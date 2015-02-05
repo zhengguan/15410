@@ -1,0 +1,1 @@
+user/libsyscall/deschedule.o: user/libsyscall/deschedule.S

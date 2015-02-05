@@ -1,0 +1,1 @@
+user/libsyscall/fork.o: user/libsyscall/fork.S

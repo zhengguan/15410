@@ -1,0 +1,1 @@
+user/libsyscall/set_term_color.o: user/libsyscall/set_term_color.S

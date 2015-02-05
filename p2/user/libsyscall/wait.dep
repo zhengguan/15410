@@ -1,0 +1,1 @@
+user/libsyscall/wait.o: user/libsyscall/wait.S

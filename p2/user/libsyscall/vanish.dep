@@ -1,0 +1,1 @@
+user/libsyscall/vanish.o: user/libsyscall/vanish.S
