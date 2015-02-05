@@ -1,0 +1,85 @@
+0. Introduction
+
+This readme contains some build instructions and some notes on the
+layout of this directory structure.
+
+1. Build Process
+
+The build process for this project is somewhat complicated but
+it should be easy for you to get it to do things you're supposed
+to get it to do.
+
+In the top-level directory there is a file called config.mk.
+
+  UPDATE_METHOD should be left as "afs" if possible.
+
+  THREAD_OBJS and SYSCALL_OBJS are the names of object (.o) files
+  in the user/lib{thread,syscall} directories, respectively, which
+  you wish to be built into libthread.a and libsyscall.a.
+
+  AUTOSTACK_OBJS lists object files in the user/libautostack
+  directory which will be built into libautostack.a.  You may
+  not need to adjust this definition, though you *will* need
+  to provide code in libautostack/.
+
+  410PROGS and STUDENTPROGS specify which programs (not .o files)
+  from {410user/progs,user/progs}, respectively, will be stored
+  into the RAM-disk file system so they can be launched by the
+  shell when your floppy image is booted.  If you want to write
+  a test program called "test", put test.c into user/progs and
+  put "test" into STUDENTPROGS.
+
+When we grade your submission we will depend on THREAD_OBJS and
+SYSCALL_OBJS being correct and we will override the values of
+410PROGS and STUDENTPROGS.
+
+If you feel you need to edit one or more Makefiles, you should
+probably stop and consult the course staff.  Before building
+and grading your submission, we will wipe out any Makefile
+changes which haven't been cleared...
+
+Once you've finished reading this document, you should be able
+to populate your work space by running "make".  That should
+build a kernel image which you can boot and admire (though
+you won't be able to do anything fun with it until you write
+some code).
+
+2. Directory Structure
+
+./
+  The only files you should ever even think about editing in the 
+  top-level directory are config.mk and update.sh and the
+  latter only if you are working from a non-Andrew machine and
+  need to use the ./update.sh "web" mechanism.
+
+./410kern
+  You don't need to touch this direcory or its subdirectories.
+
+./user
+  This is where the fun happens.  You should not have to edit the Makefile
+  here but should have to edit config.mk to get your libraries to build.
+
+./user/inc
+  You can put include files here.
+
+./user/libautostack
+  This is where you should implement autostack-related housekeeping.
+
+./user/libsyscall
+  This is where you should drop the files for your syscall wrappers.
+
+./user/libthread
+  This is where you should drop the file for your thread library, including
+  mutexes, condition variables, r/w locks, semaphores, and your thread safe
+  malloc wrapper.
+
+./410user/progs
+  This is where we will stick our tests.  Don't touch this directory.
+
+./user/progs
+  This is where you should put the source files for your tests.  You should
+  not have to edit the Makefile. You should add your tests to config.mk.
+
+./temp
+  This is a directory where some temp files will go during the build process
+  that makes the ram disk.  You should not have to touch this directory.
