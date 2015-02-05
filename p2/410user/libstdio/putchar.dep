@@ -1,0 +1,15 @@
+410user/libstdio/putchar.o: 410user/libstdio/putchar.c \
+ 410user/libstdio/stdio.h 410user/inc/stddef.h 410user/inc/types.h \
+ 410user/inc/stdarg.h spec/syscall.h spec/ureg.h
+
+410user/libstdio/stdio.h:
+
+410user/inc/stddef.h:
+
+410user/inc/types.h:
+
+410user/inc/stdarg.h:
+
+spec/syscall.h:
+
+spec/ureg.h:

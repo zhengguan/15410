@@ -1,0 +1,8 @@
+410user/libstring/strpbrk.o: 410user/libstring/strpbrk.c \
+ 410user/inc/types.h 410user/inc/stddef.h 410user/libstring/string.h
+
+410user/inc/types.h:
+
+410user/inc/stddef.h:
+
+410user/libstring/string.h:

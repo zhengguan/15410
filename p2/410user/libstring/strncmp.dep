@@ -1,0 +1,6 @@
+410user/libstring/strncmp.o: 410user/libstring/strncmp.c \
+ 410user/libstring/string.h 410user/inc/types.h
+
+410user/libstring/string.h:
+
+410user/inc/types.h:

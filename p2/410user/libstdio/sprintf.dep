@@ -1,0 +1,6 @@
+410user/libstdio/sprintf.o: 410user/libstdio/sprintf.c \
+ 410user/inc/stdarg.h 410user/libstdio/doprnt.h
+
+410user/inc/stdarg.h:
+
+410user/libstdio/doprnt.h:

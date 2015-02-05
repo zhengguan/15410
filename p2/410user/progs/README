@@ -1,0 +1,31 @@
+We've supplied some tests that you may use to check the functionality
+of your thread library:
+
+cyclone: using multiple misbehavior modes, spawns a thread and then
+attempts to join it.
+
+join_specific_test: A (relatively stressful) test of the thread
+library's ability to join on specific threads. Use it as-is, or
+copy it to your user_tests directory and modify it as you will.
+
+agility_drill: Aggressively tests acquire/release of lots of
+mutexes with the occasional sleep or yield call in the middle.
+
+beady_test: Comprehensive, practical test of the core of the thread
+library package. Creates a game in which you attempt to keep a
+small cursor on a bead by using the , and . keys to move the cursor
+left and right. The test spawns threads, then uses condition
+variables and mutexes to maintain shared world state. Also cleans
+up all threads when 'q' is pressed to quit the game. If you can
+run this test without problems, you are well on your way to completing
+project 2.
+
+mandelbrot: Creates a set of threads that wander the console drawing a
+mandelbrot fractal with colored letters.  The letters count the number of
+times a pixel has been visited by any thread.  Some pixels are thread traps
+where threads wait on a condition variable until a thread count threshold
+is reached and all threads are released (signaled).  Each trap displays the
+number of waiting threads.  Tests both mutexes and condition variables.
+The number of wanderer threads, number of traps, and the thread wakeup
+threshold are tunable as command line arguments.  This test runs until the
+user enters "q<enter>".

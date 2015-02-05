@@ -1,0 +1,6 @@
+410user/libstdio/sscanf.o: 410user/libstdio/sscanf.c 410user/inc/stdarg.h \
+ 410user/libstdio/doscan.h
+
+410user/inc/stdarg.h:
+
+410user/libstdio/doscan.h:

@@ -1,0 +1,10 @@
+410user/libstdlib/qsort.o: 410user/libstdlib/qsort.c 410user/inc/types.h \
+ 410user/libstdlib/stdlib.h 410user/inc/stddef.h 410user/inc/malloc.h
+
+410user/inc/types.h:
+
+410user/libstdlib/stdlib.h:
+
+410user/inc/stddef.h:
+
+410user/inc/malloc.h:

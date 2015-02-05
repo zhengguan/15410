@@ -1,0 +1,6 @@
+410user/libtest/testasm.o: 410user/libtest/testasm.S \
+ 410user/libsimics/simics.h spec/syscall_int.h
+
+410user/libsimics/simics.h:
+
+spec/syscall_int.h:

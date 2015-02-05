@@ -1,0 +1,23 @@
+410user/libtest/report.o: 410user/libtest/report.c \
+ 410user/libstdio/stdio.h 410user/inc/stddef.h 410user/inc/types.h \
+ 410user/inc/stdarg.h 410user/libstdlib/stdlib.h 410user/inc/malloc.h \
+ 410user/libtest/report.h 410user/inc/410_tests.h \
+ 410user/libsimics/simics.h
+
+410user/libstdio/stdio.h:
+
+410user/inc/stddef.h:
+
+410user/inc/types.h:
+
+410user/inc/stdarg.h:
+
+410user/libstdlib/stdlib.h:
+
+410user/inc/malloc.h:
+
+410user/libtest/report.h:
+
+410user/inc/410_tests.h:
+
+410user/libsimics/simics.h:

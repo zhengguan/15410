@@ -1,0 +1,6 @@
+410user/libstring/strspn.o: 410user/libstring/strspn.c \
+ 410user/inc/types.h 410user/libstring/string.h
+
+410user/inc/types.h:
+
+410user/libstring/string.h:

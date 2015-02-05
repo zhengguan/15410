@@ -1,0 +1,6 @@
+user/libsyscall/syscall.o: user/libsyscall/syscall.c spec/syscall.h \
+ spec/ureg.h
+
+spec/syscall.h:
+
+spec/ureg.h:

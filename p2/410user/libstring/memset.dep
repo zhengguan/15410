@@ -1,0 +1,4 @@
+410user/libstring/memset.o: 410user/libstring/memset.c \
+ 410user/inc/types.h
+
+410user/inc/types.h:

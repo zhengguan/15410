@@ -1,0 +1,17 @@
+410user/libsimics/simics_c.o: 410user/libsimics/simics_c.c \
+ 410user/libsimics/simics.h 410user/inc/stdarg.h 410user/libstdio/stdio.h \
+ 410user/inc/stddef.h 410user/inc/types.h spec/syscall.h spec/ureg.h
+
+410user/libsimics/simics.h:
+
+410user/inc/stdarg.h:
+
+410user/libstdio/stdio.h:
+
+410user/inc/stddef.h:
+
+410user/inc/types.h:
+
+spec/syscall.h:
+
+spec/ureg.h:

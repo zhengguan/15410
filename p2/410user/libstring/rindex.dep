@@ -1,0 +1,13 @@
+410user/libstring/rindex.o: 410user/libstring/rindex.c \
+ 410user/libstring/string.h 410user/inc/types.h \
+ 410user/libstdlib/stdlib.h 410user/inc/stddef.h 410user/inc/malloc.h
+
+410user/libstring/string.h:
+
+410user/inc/types.h:
+
+410user/libstdlib/stdlib.h:
+
+410user/inc/stddef.h:
+
+410user/inc/malloc.h:

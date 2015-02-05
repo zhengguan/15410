@@ -1,0 +1,17 @@
+410user/crt0.o: 410user/crt0.c 410user/libstdlib/stdlib.h \
+ 410user/inc/stddef.h 410user/inc/types.h 410user/inc/malloc.h \
+ spec/syscall.h spec/ureg.h 410user/inc/assert.h
+
+410user/libstdlib/stdlib.h:
+
+410user/inc/stddef.h:
+
+410user/inc/types.h:
+
+410user/inc/malloc.h:
+
+spec/syscall.h:
+
+spec/ureg.h:
+
+410user/inc/assert.h:
