@@ -1,6 +1,0 @@
-410user/libstdlib/exit.o: 410user/libstdlib/exit.c spec/syscall.h \
- spec/ureg.h
-
-spec/syscall.h:
-
-spec/ureg.h:

@@ -1,1 +1,0 @@
-user/libsyscall/getchar.o: user/libsyscall/getchar.S

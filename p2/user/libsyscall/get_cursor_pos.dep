@@ -1,1 +1,0 @@
-user/libsyscall/get_cursor_pos.o: user/libsyscall/get_cursor_pos.S

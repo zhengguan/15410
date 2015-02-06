@@ -1,3 +1,6 @@
+*.dep
+*.o
+*.a
 *.img
 *.gz
 *.md5s

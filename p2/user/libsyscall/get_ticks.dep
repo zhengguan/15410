@@ -1,1 +1,0 @@
-user/libsyscall/get_ticks.o: user/libsyscall/get_ticks.S

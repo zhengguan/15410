@@ -1,3 +1,13 @@
+/** @file print.S.
+ *  @brief The print system-call stub.
+ *
+ *  @author Patrick Koenig (phkoenig)
+ *  @author Jack Sorrell (jsorrell)
+ *  @bug No known bugs.
+ */
+ 
+#include<syscall_int.h>
+
 .globl print
 
 print:
@@ -5,7 +15,7 @@ print:
     mov     %esp, %ebp
     push    %esi
     lea     8(%ebp), %esi
-    int     $0x4e
+    int     $PRINT_INT
     pop     %esi
     mov     %ebp, %esp
     pop     %ebp

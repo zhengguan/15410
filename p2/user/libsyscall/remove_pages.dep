@@ -1,1 +1,0 @@
-user/libsyscall/remove_pages.o: user/libsyscall/remove_pages.S

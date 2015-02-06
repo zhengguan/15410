@@ -1,1 +1,0 @@
-user/libsyscall/print.o: user/libsyscall/print.S

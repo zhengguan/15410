@@ -1,1 +1,0 @@
-user/libsyscall/set_status.o: user/libsyscall/set_status.S

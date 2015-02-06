@@ -1,6 +1,0 @@
-410user/libstring/strchr.o: 410user/libstring/strchr.c \
- 410user/libstring/string.h 410user/inc/types.h
-
-410user/libstring/string.h:
-
-410user/inc/types.h:
