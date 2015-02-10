@@ -8,13 +8,13 @@
 
 #include<syscall_int.h>
 
-.globl set_term_color
+.globl readline
 
-set_term_color:
+readline:
     push    %ebp
     mov     %esp, %ebp
     push    %esi
-    mov     8(%ebp), %esi
+    lea     8(%ebp), %esi
     int     $READLINE_INT
     pop     %esi
     mov     %ebp, %esp

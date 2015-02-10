@@ -14,7 +14,7 @@ get_cursor_pos:
     push    %ebp
     mov     %esp, %ebp
     push    %esi
-    mov     8(%ebp), %esi
+    lea     8(%ebp), %esi
     int     $GET_CURSOR_POS_INT
     pop     %esi
     mov     %ebp, %esp
