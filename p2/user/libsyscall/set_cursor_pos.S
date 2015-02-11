@@ -1,4 +1,4 @@
-/** @file set_cursor_pos.S.
+/** @file set_cursor_pos.S
  *  @brief The set_cursor_pos system-call stub.
  *
  *  @author Patrick Koenig (phkoenig)

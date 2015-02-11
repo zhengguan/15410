@@ -1,4 +1,4 @@
-/** @file set_term_color.S.
+/** @file set_term_color.S
  *  @brief The set_term_color system-call stub.
  *
  *  @author Patrick Koenig (phkoenig)

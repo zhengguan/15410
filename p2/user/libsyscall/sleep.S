@@ -1,4 +1,4 @@
-/** @file sleep.S.
+/** @file sleep.S
  *  @brief The sleep system-call stub.
  *
  *  @author Patrick Koenig (phkoenig)

@@ -1,4 +1,4 @@
-/** @file getchar.S.
+/** @file getchar.S
  *  @brief The getchar system-call stub.
  *
  *  @author Patrick Koenig (phkoenig)

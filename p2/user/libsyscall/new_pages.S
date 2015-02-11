@@ -1,4 +1,4 @@
-/** @file new_pages.S.
+/** @file new_pages.S
  *  @brief The new_pages system-call stub.
  *
  *  @author Patrick Koenig (phkoenig)

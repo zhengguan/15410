@@ -1,4 +1,4 @@
-/** @file set_status.S.
+/** @file set_status.S
  *  @brief The set_status system-call stub.
  *
  *  @author Patrick Koenig (phkoenig)

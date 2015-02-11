@@ -1,4 +1,4 @@
-/** @file print.S.
+/** @file print.S
  *  @brief The print system-call stub.
  *
  *  @author Patrick Koenig (phkoenig)

@@ -1,4 +1,4 @@
-/** @file misbehave.S.
+/** @file misbehave.S
  *  @brief The misbehave system-call stub.
  *
  *  @author Patrick Koenig (phkoenig)

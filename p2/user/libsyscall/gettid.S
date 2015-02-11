@@ -1,4 +1,4 @@
-/** @file gettid.S.
+/** @file gettid.S
  *  @brief The gettid system-call stub.
  *
  *  @author Patrick Koenig (phkoenig)

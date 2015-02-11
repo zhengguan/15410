@@ -1,4 +1,4 @@
-/** @file readline.S.
+/** @file readline.S
  *  @brief The readline system-call stub.
  *
  *  @author Patrick Koenig (phkoenig)

@@ -1,4 +1,4 @@
-/** @file swexn.S.
+/** @file swexn.S
  *  @brief The swexn system-call stub.
  *
  *  @author Patrick Koenig (phkoenig)

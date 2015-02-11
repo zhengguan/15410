@@ -1,4 +1,4 @@
-/** @file vanish.S.
+/** @file vanish.S
  *  @brief The vanish system-call stub.
  *
  *  @author Patrick Koenig (phkoenig)

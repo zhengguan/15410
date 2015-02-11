@@ -1,4 +1,4 @@
-/** @file readfile.S.
+/** @file readfile.S
  *  @brief The readfile system-call stub.
  *
  *  @author Patrick Koenig (phkoenig)

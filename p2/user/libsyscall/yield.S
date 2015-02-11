@@ -1,4 +1,4 @@
-/** @file yield.S.
+/** @file yield.S
  *  @brief The yield system-call stub.
  *
  *  @author Patrick Koenig (phkoenig)

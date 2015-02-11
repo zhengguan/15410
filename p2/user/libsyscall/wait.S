@@ -1,4 +1,4 @@
-/** @file wait.S.
+/** @file wait.S
  *  @brief The wait system-call stub.
  *
  *  @author Patrick Koenig (phkoenig)

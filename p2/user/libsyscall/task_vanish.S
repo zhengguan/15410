@@ -1,4 +1,4 @@
-/** @file task_vanish.S.
+/** @file task_vanish.S
  *  @brief The task_vanish system-call stub.
  *
  *  @author Patrick Koenig (phkoenig)

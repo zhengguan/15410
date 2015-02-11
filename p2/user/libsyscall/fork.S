@@ -1,4 +1,4 @@
-/** @file fork.S.
+/** @file fork.S
  *  @brief The fork system-call stub.
  *
  *  @author Patrick Koenig (phkoenig)

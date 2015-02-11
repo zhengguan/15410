@@ -1,4 +1,4 @@
-/** @file get_ticks.S.
+/** @file get_ticks.S
  *  @brief The get_ticks system-call stub.
  *
  *  @author Patrick Koenig (phkoenig)

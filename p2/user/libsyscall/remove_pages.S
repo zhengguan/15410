@@ -1,4 +1,4 @@
-/** @file remove_pages.S.
+/** @file remove_pages.S
  *  @brief The remove_pages system-call stub.
  *
  *  @author Patrick Koenig (phkoenig)

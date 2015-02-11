@@ -1,4 +1,4 @@
-/** @file halt.S.
+/** @file halt.S
  *  @brief The halt system-call stub.
  *
  *  @author Patrick Koenig (phkoenig)

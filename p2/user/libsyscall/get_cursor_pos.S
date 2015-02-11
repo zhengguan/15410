@@ -1,4 +1,4 @@
-/** @file get_cursor_pos.S.
+/** @file get_cursor_pos.S
  *  @brief The get_cursor_pos system-call stub.
  *
  *  @author Patrick Koenig (phkoenig)

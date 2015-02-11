@@ -1,4 +1,4 @@
-/** @file make_runnable.S.
+/** @file make_runnable.S
  *  @brief The make_runnable system-call stub.
  *
  *  @author Patrick Koenig (phkoenig)

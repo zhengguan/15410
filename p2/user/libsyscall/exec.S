@@ -1,4 +1,4 @@
-/** @file exec.S.
+/** @file exec.S
  *  @brief The exec system-call stub.
  *
  *  @author Patrick Koenig (phkoenig)

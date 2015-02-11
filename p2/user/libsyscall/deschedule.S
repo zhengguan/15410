@@ -1,4 +1,4 @@
-/** @file deschedule.S.
+/** @file deschedule.S
  *  @brief The deschedule system-call stub.
  *
  *  @author Patrick Koenig (phkoenig)
