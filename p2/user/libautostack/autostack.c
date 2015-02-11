@@ -1,9 +1,53 @@
-/* If you want to use assembly language instead of C,
- * delete this autostack.c and provide an autostack.S
- * instead.
+/** @file autostack.c
+ *  @brief Registers a exception handler which resolveds page-fault
+ *  exceptions by performing automatic stack growth.
+ *
+ *  @author Patrick Koenig (phkoenig)
+ *  @author Jack Sorrell (jsorrell)
+ *  @bug No known bugs.
  */
+
+#include <autostack.h>
+#include <syscall.h>
+#include <stdlib.h>
+
+stackinfo_t g_stackinfo;
 
 void
 install_autostack(void *stack_high, void *stack_low)
 {
+    g_stackinfo.stack_high = stack_high;
+    g_stackinfo.stack_low = stack_low;
+    g_stackinfo.stack_max_size = stack_high - ROOT_HANDLER_STACK;
+    
+    if (new_pages((void *)(ROOT_HANDLER_STACK - PAGE_SIZE), PAGE_SIZE) < 0) {
+        exit(-1);
+    }
+    
+    register_exception_handler(ROOT_HANDLER_STACK, NULL);
+}
+
+void register_exception_handler(void *esp3, ureg_t *newureg) {
+    swexn(esp3, exception_handler, NULL, newureg);
+}
+
+/* Change exit() to thr_exit()  once thread library completed */
+void exception_handler(void *arg, ureg_t *ureg) {
+    if ((ureg == NULL) || (ureg->cause != SWEXN_CAUSE_PAGEFAULT)) {
+        exit(-1);
+    }
+    
+    void *fault_addr = (void *)ureg->cr2;
+    
+    void *base = (void *)((unsigned int)fault_addr & PAGE_MASK);
+    int len = (int)(g_stackinfo.stack_low - base);
+    
+    int ret;
+    if ((ret = new_pages(base, len)) < 0) {
+        exit(ret);
+    }
+    
+    g_stackinfo.stack_low = base;
+    
+    register_exception_handler(ROOT_HANDLER_STACK, ureg);
 }
