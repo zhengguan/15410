@@ -27,11 +27,23 @@ install_autostack(void *stack_high, void *stack_low)
     register_exception_handler(ROOT_HANDLER_STACK, NULL);
 }
 
+/** @brief Registers the exception handler responsible for  performing
+ *  automatic stack growth.
+ *
+ *  @param esp3 Exception stack pointer.
+ *  @param newureg New register values.
+ *  @return Void.
+ */
 void register_exception_handler(void *esp3, ureg_t *newureg) {
     swexn(esp3, exception_handler, NULL, newureg);
 }
 
-/* Change exit() to thr_exit()  once thread library completed */
+/** @brief Handles page-faults by performing automatic stack growth.
+ *
+ *  @param arg Argument pointer.
+ *  @param ureg Register values.
+ *  @return Void.
+ */
 void exception_handler(void *arg, ureg_t *ureg) {
     if ((ureg == NULL) || (ureg->cause != SWEXN_CAUSE_PAGEFAULT)) {
         exit(-1);
@@ -42,9 +54,8 @@ void exception_handler(void *arg, ureg_t *ureg) {
     void *base = (void *)((unsigned int)fault_addr & PAGE_MASK);
     int len = (int)(g_stackinfo.stack_low - base);
     
-    int ret;
-    if ((ret = new_pages(base, len)) < 0) {
-        exit(ret);
+    if (new_pages(base, len) < 0) {
+        exit(-1);
     }
     
     g_stackinfo.stack_low = base;
