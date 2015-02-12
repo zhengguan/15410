@@ -6,6 +6,7 @@
  *  @bug No known bugs.
  */
  
+#include <mutex.h>
 #include <cond.h>
 #include <syscall.h>
 #include <stdlib.h>
@@ -20,11 +21,11 @@ int cond_init(cond_t *cv) {
         return -1;
     }  
       
-    if (linklist_init(&cv->queue) < 0) {
+    if (linklist_init(cv->queue) < 0) {
         return -1;
     }
     
-    if (mutex_init(&cv->mutex) < 0) {
+    if (mutex_init(cv->mutex) < 0) {
         return -1;
     }
     
@@ -74,7 +75,7 @@ void cond_wait(cond_t *cv, mutex_t *mp) {
         return;
     }
     
-    listnode_t node = (listnode_t *)malloc(sizeof(listnode_t));
+    listnode_t *node = (listnode_t *)malloc(sizeof(listnode_t));
     node->data = (void *)gettid();
     node->next = NULL;
     
@@ -101,7 +102,7 @@ void cond_signal(cond_t *cv) {
     }
     
     mutex_lock(cv->mutex);
-    listnode *node = linklist_remove_head(cv->queue);
+    listnode_t *node = linklist_remove_head(cv->queue);
     mutex_unlock(cv->mutex);
     
     if (node == NULL) {
@@ -127,10 +128,10 @@ void cond_broadcast(cond_t *cv) {
     }
     
     mutex_lock(cv->mutex);
-    listnode *node = linklist_remove_all(cv->queue);
+    listnode_t *node = linklist_remove_all(cv->queue);
     mutex_unlock(cv->mutex);
     
-    while (node != null) {
+    while (node != NULL) {
         int tid = (int)node->data;
         if (make_runnable(tid) == 0) {
             yield(tid);
@@ -139,6 +140,6 @@ void cond_broadcast(cond_t *cv) {
         listnode_t *oldnode = node;
         node = node->next;
         
-        free(node);       
+        free(oldnode);       
     }
 }
