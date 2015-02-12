@@ -19,34 +19,11 @@ typedef struct linklist {
     listnode_t *tail;
 } linklist_t;
 
-/** @brief Initializes a list to be empty.
- *
- *  @param list List.
- *  @return Void.
- */
-void linklist_init(linklist_t *list);
-
-/** @brief Adds a node to the head of a list.
- *
- *  @param list List.
- *  @param node Node.
- *  @return Void.
- */
+/* linked list functions */
+int linklist_init(linklist_t *list);
 void linklist_add_head(linklist_t *list, listnode_t *node);
-
-/** @brief Adds a node to the tail of a list.
- *
- *  @param list List.
- *  @param node Node.
- *  @return Void.
- */
 void linklist_add_tail(linklist_t *list, listnode_t *node);
-
-/** @brief Removes the node at the head of a list.
- *
- *  @param list List.
- *  @return The removed node or NULL of the list is empty.
- */
 listnode_t *linklist_remove_head(linklist_t *list);
+listnode_t *linklist_remove_all(linklist_t *list);
 
 #endif /* _LINKLIST_H */
