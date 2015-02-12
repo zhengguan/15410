@@ -98,7 +98,7 @@ STUDENTTESTS =
 ###########################################################################
 # Object files for your thread library
 ###########################################################################
-THREAD_OBJS = malloc.o panic.o atom_xchg.o linklist.o cond.o
+THREAD_OBJS = malloc.o panic.o atom_xchg.o mutex.o linklist.o cond.o
 
 # Thread Group Library Support.
 #
