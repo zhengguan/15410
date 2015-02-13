@@ -7,16 +7,9 @@
  */
  
 #include <mutex.h>
+#include <atom_xchg.h>
 #include <syscall.h>
 #include <stdlib.h>
-
-/** @brief Performs an atomic xchg.
- *
- *  @param dest Destination.
- *  @param src Source
- *  @return The old dest value.
- */
-extern int atom_xchg(int *dest, int src);
 
 /** @brief Initializes a mutex.
  *
