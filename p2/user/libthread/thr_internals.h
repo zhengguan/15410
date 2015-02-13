@@ -9,22 +9,24 @@
 #ifndef THR_INTERNALS_H
 #define THR_INTERNALS_H
 
+#include <mutex.h>
+#include <hashtable.h>
+
 #define PAGE_MASK ((unsigned int)(~(PAGE_SIZE - 1)))
 
-#define HASH_TABLE_SIZE = 32;
+#define HASH_TABLE_SIZE 32
 
 typedef struct threadlib {
     int stack_size;
-    void *stack_base;
-    hashtable_t threads;
+    void *stack_base;    
+    hashtable_t *threads;
+    mutex_t *lock;
 } threadlib_t;
 
 typedef struct thread {
     int tid;
     void *esp3;
-    void *stack_low;
-    void *stack_high;
-} thread_t
-
+    void *stack_base;
+} thread_t;
 
 #endif /* THR_INTERNALS_H */
