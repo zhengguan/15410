@@ -10,8 +10,19 @@
 #include <syscall.h>
 #include <stdlib.h>
 
+/** @brief Performs an atomic xchg.
+ *
+ *  @param dest Destination.
+ *  @param src Source
+ *  @return The old dest value.
+ */
 extern int atom_xchg(int *dest, int src);
 
+/** @brief Initializes a mutex.
+ *
+ *  @param list Mutex.
+ *  @return 0 on success, number less than 0 on error.
+ */
 int mutex_init(mutex_t *mp) {
     if (mp == NULL) {
         return -1;
@@ -27,6 +38,11 @@ int mutex_init(mutex_t *mp) {
     return 0;
 }
 
+/** @brief "Deactivates" a mutex.
+ *
+ *  @param list Mutex.
+ *  @return Void.
+ */
 void mutex_destroy(mutex_t *mp) {
     if (mp == NULL) {
         return;
@@ -39,6 +55,11 @@ void mutex_destroy(mutex_t *mp) {
     }
 }
 
+/** @brief Locks a mutex.
+ *
+ *  @param list Mutex.
+ *  @return Void.
+ */
 void mutex_lock(mutex_t *mp) {
     if (mp == NULL) {
         return;
@@ -61,6 +82,11 @@ void mutex_lock(mutex_t *mp) {
     mp->tid = gettid();
 }
 
+/** @brief Unlocks a mutex.
+ *
+ *  @param list Mutex.
+ *  @return Void.
+ */
 void mutex_unlock(mutex_t *mp) {
     if (mp == NULL) {
         return;
