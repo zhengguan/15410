@@ -85,7 +85,7 @@ UPDATE_METHOD = afs
 # A list of the test programs you want compiled in from the 410user/progs
 # directory
 #
-410TESTS =
+410TESTS = stack_test1 misbehave_wrap startle
 
 ###########################################################################
 # Test programs you have written which you wish to run
@@ -93,7 +93,7 @@ UPDATE_METHOD = afs
 # A list of the test programs you want compiled in from the user/progs
 # directory
 #
-STUDENTTESTS =
+STUDENTTESTS = 
 
 ###########################################################################
 # Object files for your thread library

@@ -4,21 +4,17 @@
  *         internal to the thread library.
  */
 
-
-
 #ifndef THR_INTERNALS_H
 #define THR_INTERNALS_H
 
 #include <mutex.h>
 #include <hashtable.h>
 
-#define PAGE_MASK ((unsigned int)(~(PAGE_SIZE - 1)))
-
 #define HASH_TABLE_SIZE 32
 
 typedef struct threadlib {
     int stack_size;
-    void *stack_base;    
+    void *stack_base;
     hashtable_t *threads;
     mutex_t *lock;
 } threadlib_t;
