@@ -5,7 +5,7 @@
  *  @author Jack Sorrell (jsorrell)
  *  @bug No known bugs.
  */
- 
+
 #include <mutex.h>
 #include <atom_xchg.h>
 #include <syscall.h>
@@ -27,7 +27,7 @@ int mutex_init(mutex_t *mp) {
     mp->count_lock = 0;
 
     mp->active_flag = 1;
-    
+
     return 0;
 }
 
@@ -40,9 +40,9 @@ void mutex_destroy(mutex_t *mp) {
     if (mp == NULL) {
         return;
     }
-    
+
     mp->active_flag = 0;
-    
+
     while (mp->count > 0) {
         yield(mp->tid);
     }
@@ -57,7 +57,7 @@ void mutex_lock(mutex_t *mp) {
     if (mp == NULL) {
         return;
     }
-    
+
     if (mp->active_flag == 0) {
         return;
     }
@@ -67,11 +67,11 @@ void mutex_lock(mutex_t *mp) {
     }
     mp->count++;
     mp->count_lock = 0;
-    
+
     while (atom_xchg(&mp->lock, 1) != 0) {
         yield(mp->tid);
     }
-    
+
     mp->tid = gettid();
 }
 
@@ -81,17 +81,17 @@ void mutex_lock(mutex_t *mp) {
  *  @return Void.
  */
 void mutex_unlock(mutex_t *mp) {
-    if (mp == NULL) {
+    if (mp == NULL || mp->active_flag == 0)
         return;
-    }
 
-    if (mp->count > 0) {
-        while (atom_xchg(&mp->count_lock, 1) != 0) {
-            yield(-1);
-        }
-        mp->count--;
-        mp->count_lock = 0;
+    if (mp->tid != gettid() || mp->lock == 0)
+        return;
+
+    while (atom_xchg(&mp->count_lock, 1) != 0) {
+        yield(-1);
     }
-    
+    mp->count--;
+    mp->count_lock = 0;
+
     mp->lock = 0;
 }
