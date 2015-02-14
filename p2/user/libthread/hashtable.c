@@ -1,13 +1,26 @@
 /** @file hashtable.c
  *  @brief An implementation of hash tables.
  *
+ *  Simple integer modulo for a hash function.
+ *  Uses linked lists for collision resolution.
+ *
  *  @author Patrick Koenig (phkoenig)
  *  @author Jack Sorrell (jsorrell)
  *  @bug No known bugs.
  */
- 
+
 #include <hashtable.h>
 #include <stdlib.h>
+
+/**
+ * @brief Determines the index in the hashtable from the key.
+ * @param table The hashtable
+ * @param key The key
+ * @return The index
+ */
+static inline int hashtable_idx(hashtable_t *table, int key) {
+    return key % table->size;
+}
 
 /** @brief Initializes a hash table to be empty.
  *
@@ -18,7 +31,7 @@ hashtable_t *hashtable_init(int size) {
     hashtable_t *table = (hashtable_t *)malloc(sizeof(hashtable_t));
     table->size = size;
     table->nodes = (hashnode_t **)calloc(size, sizeof(hashnode_t *));
-    
+
     return table;
 }
 
@@ -33,16 +46,18 @@ void hashtable_add(hashtable_t *table, int key, void *data) {
     if (table == NULL) {
         return;
     }
-    
+
     hashnode_t *addnode = (hashnode_t *)malloc(sizeof(hashnode_t *));
     addnode->key = key;
     addnode->data = data;
     addnode->next = NULL;
-    
-    hashnode_t *node = table->nodes[key % table->size];
-    
+
+    int idx = hashtable_idx(table, key);
+
+    hashnode_t *node = table->nodes[idx];
+
     if (node == NULL) {
-        table->nodes[key % table->size] = addnode;
+        table->nodes[idx] = addnode;
     } else {
         while (node->next != NULL) {
             node = node->next;
@@ -61,16 +76,18 @@ void *hashtable_get(hashtable_t *table, int key) {
     if (table == NULL) {
         return NULL;
     }
-    
-    hashnode_t *node = table->nodes[key % table->size];
-    
+
+    int idx = hashtable_idx(table, key);
+
+    hashnode_t *node = table->nodes[idx];
+
     while (node != NULL) {
         if (node->key == key) {
             return node->data;
         }
         node = node->next;
     }
-    
+
     return NULL;
 }
 
@@ -84,12 +101,14 @@ void hashtable_remove(hashtable_t *table, int key) {
     if (table == NULL) {
         return;
     }
-    
-    hashnode_t *node = table->nodes[key % table->size];
-    
-    if (node != NULL) {    
+
+    int idx = hashtable_idx(table, key);
+
+    hashnode_t *node = table->nodes[idx];
+
+    if (node != NULL) {
         if (node->key == key) {
-            table->nodes[key % table->size] = node->next;
+            table->nodes[idx] = node->next;
             free(node);
         } else {
             while (node->next != NULL) {

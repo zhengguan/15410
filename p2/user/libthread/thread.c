@@ -12,8 +12,6 @@
 #include <syscall.h>
 #include <stdlib.h>
 
-extern stackinfo_t g_stackinfo;
-
 static threadlib_t threadlib;
 
 int thr_init(unsigned int size) {
