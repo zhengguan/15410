@@ -5,7 +5,7 @@
  *  @author Jack Sorrell (jsorrell)
  *  @bug No known bugs.
  */
- 
+
 #include <mutex.h>
 #include <cond.h>
 #include <syscall.h>
@@ -19,16 +19,16 @@
 int cond_init(cond_t *cv) {
     if (cv == NULL) {
         return -1;
-    }  
-      
+    }
+
     if (linklist_init(cv->queue) < 0) {
         return -1;
     }
-    
+
     if (mutex_init(cv->mutex) < 0) {
         return -1;
     }
-    
+
     cv->active_flag = 1;
     return 0;
 }
@@ -42,20 +42,20 @@ void cond_destroy(cond_t *cv) {
     if (cv == NULL) {
         return;
     }
-    
+
     cv->active_flag = 0;
-    
+
     while (1) {
         mutex_lock(cv->mutex);
-        
-        if (cv->queue->head == NULL) {
+
+        if (linklist_empty(cv->queue)) {
             mutex_unlock(cv->mutex);
             mutex_destroy(cv->mutex);
             return;
         }
-        
+
         mutex_unlock(cv->mutex);
-        yield(-1);        
+        yield(-1);
     }
 }
 
@@ -70,25 +70,21 @@ void cond_wait(cond_t *cv, mutex_t *mp) {
     if (cv == NULL) {
         return;
     }
-    
+
     if (!cv->active_flag) {
         return;
     }
-    
-    listnode_t *node = (listnode_t *)malloc(sizeof(listnode_t));
-    node->data = (void *)gettid();
-    node->next = NULL;
-    
+
     mutex_lock(cv->mutex);
-    linklist_add_tail(cv->queue, node);
+    linklist_add_tail(cv->queue, (void*)gettid());
     mutex_unlock(cv->mutex);
-    
+
     mutex_unlock(mp);
-    
+
     int reject = 0;
-    deschedule(&reject); 
-    
-    mutex_lock(mp);  
+    deschedule(&reject);
+
+    mutex_lock(mp);
 }
 
 /** @brief Wakes up a thread waiting on a condition variable.
@@ -100,21 +96,20 @@ void cond_signal(cond_t *cv) {
     if (cv == NULL) {
         return;
     }
-    
+
+    int tid;
+
     mutex_lock(cv->mutex);
-    listnode_t *node = linklist_remove_head(cv->queue);
+    int list_nonempty = linklist_remove_head(cv->queue, (void**)&tid);
     mutex_unlock(cv->mutex);
-    
-    if (node == NULL) {
+
+    if (!list_nonempty) {
         return;
     }
-    
-    int tid = (int)node->data;
+
     if (make_runnable(tid) == 0) {
         yield(tid);
     }
-    
-    free(node);    
 }
 
 /** @brief Wakes up all threads waiting on a condition variable.
@@ -126,20 +121,19 @@ void cond_broadcast(cond_t *cv) {
     if (cv == NULL) {
         return;
     }
-    
+
+    linklist_t list;
+
     mutex_lock(cv->mutex);
-    listnode_t *node = linklist_remove_all(cv->queue);
+    //FIXME: what to do here
+    if (!linklist_move(cv->queue, &list))
+        return;
     mutex_unlock(cv->mutex);
-    
-    while (node != NULL) {
-        int tid = (int)node->data;
+
+    int tid;
+    while (linklist_remove_head(&list, (void**)&tid)) {
         if (make_runnable(tid) == 0) {
             yield(tid);
         }
-        
-        listnode_t *oldnode = node;
-        node = node->next;
-        
-        free(oldnode);       
     }
 }
