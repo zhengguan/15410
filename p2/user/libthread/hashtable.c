@@ -11,6 +11,8 @@
 
 #include <hashtable.h>
 #include <stdlib.h>
+#include <string.h>
+#include <simics.h>
 
 /**
  * @brief Determines the index in the hashtable from the key.
@@ -28,9 +30,11 @@ static inline int hashtable_idx(hashtable_t *table, int key) {
  *  @return Pointer to the hash table, NULL on failure.
  */
 hashtable_t *hashtable_init(int size) {
-    hashtable_t *table = (hashtable_t *)malloc(sizeof(hashtable_t));
+    hashtable_t *table = (hashtable_t *)malloc(sizeof(hashtable_t) + size*sizeof(hashnode_t));
+    if (table == NULL)
+        return NULL;
     table->size = size;
-    table->nodes = (hashnode_t **)calloc(size, sizeof(hashnode_t *));
+    memset(table->nodes, 0, size*sizeof(hashnode_t));
 
     return table;
 }
@@ -46,6 +50,8 @@ void hashtable_add(hashtable_t *table, int key, void *data) {
     if (table == NULL) {
         return;
     }
+
+    lprintf("adding %d", key);
 
     hashnode_t *addnode = (hashnode_t *)malloc(sizeof(hashnode_t *));
     addnode->key = key;
@@ -77,6 +83,9 @@ void *hashtable_get(hashtable_t *table, int key) {
         return NULL;
     }
 
+    lprintf("getting %d", key);
+
+
     int idx = hashtable_idx(table, key);
 
     hashnode_t *node = table->nodes[idx];
@@ -87,6 +96,8 @@ void *hashtable_get(hashtable_t *table, int key) {
         }
         node = node->next;
     }
+
+    lprintf("not found: %d", key);
 
     return NULL;
 }

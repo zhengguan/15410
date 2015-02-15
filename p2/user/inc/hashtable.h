@@ -17,7 +17,7 @@ typedef struct hashnode {
 
 typedef struct hashtable {
     int size;
-    hashnode_t** nodes;
+    hashnode_t* nodes[];
 } hashtable_t;
 
 /* hash table functions */

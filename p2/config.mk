@@ -93,12 +93,12 @@ UPDATE_METHOD = afs
 # A list of the test programs you want compiled in from the user/progs
 # directory
 #
-STUDENTTESTS = 
+STUDENTTESTS = basic_thr
 
 ###########################################################################
 # Object files for your thread library
 ###########################################################################
-THREAD_OBJS = malloc.o panic.o atom_xchg.o linklist.o hashtable.o thread.o mutex.o cond.o sem.o
+THREAD_OBJS = malloc.o panic.o atom_xchg.o linklist.o hashtable.o thread.o mutex.o cond.o sem.o new_kernel_thread.o
 
 # Thread Group Library Support.
 #

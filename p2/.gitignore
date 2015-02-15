@@ -7,3 +7,5 @@
 kernel*
 temp/
 410user/progs/
+user/progs/
+!user/progs/*.c
