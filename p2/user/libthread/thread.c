@@ -24,15 +24,23 @@ typedef struct stack_top {
     void *return_address; //NULL. This is where the stack pointer points on the function call
     void *function;
     void *argument; //this is at thread->stack_base
+    void *esp3;
 } stack_top_t;
 
+
+static void exception_handler(void *esp3, ureg_t *ureg)
+{
+    task_vanish(-ureg->cause);
+    //FIXME: remove this if necessary
+    swexn(esp3, exception_handler, esp3, ureg);
+}
 
 int thr_getid()
 {
     return gettid();
 }
 
-static void record_main_thread()
+static int record_main_thread()
 {
     thread_t *thread = (thread_t *)malloc(sizeof(thread_t));
 
@@ -43,14 +51,22 @@ static void record_main_thread()
     thread->joiner_tid = -1;
     thread->exited = 0;
 
+    thread->esp3 = ROOT_HANDLER_STACK;
+
+    swexn(thread->esp3, exception_handler, thread->esp3, NULL);
+
     hashtable_add(threadlib.threads, thread->tid, thread);
+
+    if (new_pages(g_stackinfo.stack_low-threadlib.stack_size, threadlib.stack_size) < 0) {
+        lprintf("new pages failed: %p, %u", g_stackinfo.stack_low-threadlib.stack_size, threadlib.stack_size);
+        return -1;
+    }
+    return 0;
 }
 
-static void thread_wrapper(void *(*func)(void*), void *arg)
+static void thread_wrapper(void *(*func)(void*), void *arg, void *esp3)
 {
-
-    lprintf("new thread: %d", thr_getid());
-
+    swexn(esp3, exception_handler, esp3, NULL);
     void *ret = func(arg);
 
     thr_exit(ret);
@@ -58,7 +74,6 @@ static void thread_wrapper(void *(*func)(void*), void *arg)
 
 int thr_init(unsigned size)
 {
-    lprintf("initializing threadlib with size %u", size);
     //round up to next page
     threadlib.stack_size = ((size + PAGE_SIZE-1) & PAGE_MASK);
     threadlib.next_stack_base = (void *)(((unsigned)g_stackinfo.stack_low - threadlib.stack_size) & PAGE_MASK);
@@ -68,7 +83,8 @@ int thr_init(unsigned size)
         return -1;
     }
 
-    record_main_thread();
+    if (record_main_thread() < 0)
+        return -4;
 
     if (mutex_init(&threadlib.lock) < 0) {
         return -2;
@@ -85,28 +101,30 @@ int thr_init(unsigned size)
 
 int thr_create(void *(*func)(void *), void *args)
 {
-    lprintf("creating thread with func %p and arg %p", func, args);
-
     thread_t *thread = (thread_t *)malloc(sizeof(thread_t));
     if (thread == NULL)
         return -1;
 
     mutex_lock(&threadlib.lock);
 
+    thread->esp3 = threadlib.next_stack_base;
+    threadlib.next_stack_base -= EXCEPTION_STACK_SIZE;
     thread->stack_base = threadlib.next_stack_base;
     threadlib.next_stack_base -= threadlib.stack_size;
-    lprintf("new stack region: [%p, %p)", thread->stack_base, threadlib.next_stack_base);
 
     unsigned eip = (unsigned)thread_wrapper;
     unsigned esp = (unsigned)&((stack_top_t *)thread->stack_base)->return_address;
 
+    int total_stack_size = EXCEPTION_STACK_SIZE + threadlib.stack_size;
+
     //allocate the new stack
-    if (new_pages(thread->stack_base-threadlib.stack_size, threadlib.stack_size) < 0) {
-        lprintf("new pages failed: %p, %u", thread->stack_base-threadlib.stack_size, threadlib.stack_size);
+    if (new_pages(thread->esp3-total_stack_size, total_stack_size) < 0) {
+        lprintf("new pages failed: %p, %u", thread->esp3-total_stack_size, total_stack_size);
         return -2;
     }
 
     //initialize stack
+    ((stack_top_t *)thread->stack_base)->esp3 = thread->esp3;
     ((stack_top_t *)thread->stack_base)->argument = args;
     ((stack_top_t *)thread->stack_base)->function = func;
     ((stack_top_t *)thread->stack_base)->return_address = NULL;
@@ -114,9 +132,7 @@ int thr_create(void *(*func)(void *), void *args)
     thread->joiner_tid = -1;
     thread->exited = 0;
 
-    lprintf("about to split");
     int tid = new_kernel_thread(eip, esp);
-    lprintf("done split");
     thread->tid = tid;
     hashtable_add(threadlib.threads, thread->tid, thread);
     mutex_unlock(&threadlib.lock);
@@ -127,7 +143,6 @@ int thr_create(void *(*func)(void *), void *args)
 
 int thr_join(int tid, void **statusp)
 {
-    lprintf("join");
     mutex_lock(&threadlib.lock);
     thread_t *thread = hashtable_get(threadlib.threads, tid);
     if (!thread) {
@@ -142,12 +157,14 @@ int thr_join(int tid, void **statusp)
 
     thread->joiner_tid = thr_getid();
 
+    mutex_unlock(&threadlib.lock);
+
     //wait for thread to exit
     while (!thread->exited) {
-        mutex_unlock(&threadlib.lock);
         thr_yield(tid);
-        mutex_lock(&threadlib.lock);
     }
+
+    mutex_lock(&threadlib.lock);
 
     hashtable_remove(threadlib.threads, tid);
 
@@ -163,7 +180,6 @@ int thr_join(int tid, void **statusp)
 
 void thr_exit(void *status)
 {
-    lprintf("exiting");
     mutex_lock(&threadlib.lock);
     thread_t *thread = hashtable_get(threadlib.threads, thr_getid());
     if (thread != NULL) {

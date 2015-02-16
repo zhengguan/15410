@@ -12,6 +12,7 @@
 #include <ureg.h>
 
 #define HASH_TABLE_SIZE 32
+#define EXCEPTION_STACK_SIZE PAGE_SIZE
 
 typedef struct threadlib {
     mutex_t lock;
@@ -23,6 +24,7 @@ typedef struct threadlib {
 typedef struct thread {
     void *stack_base;
     int tid;
+    void *esp3;
 
     int exited; //boolean
     int joiner_tid;

@@ -10,6 +10,7 @@
 #ifndef _AUTOSTACK_H_
 #define _AUTOSTACK_H_
 
+#define ROOT_HANDLER_STACK ((void *)0x90000000) //FIXME: what is this number?
 #define PAGE_MASK ((unsigned int)(~(PAGE_SIZE - 1)))
 
 typedef struct stackinfo {

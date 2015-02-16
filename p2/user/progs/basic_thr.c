@@ -11,15 +11,12 @@ void *other_thr(void * a) {
 	printf("2hello from %d\n", thr_getid());
 	mutex_unlock(&mutex);
 
-	thr_exit(NULL);
-	return NULL;
+	return (void*)23;
 }
 
 
 int main()
 {
-
-	MAGIC_BREAK;
 
 	mutex_init(&mutex);
 	thr_init(4096);
@@ -29,7 +26,9 @@ int main()
 	mutex_lock(&mutex);
 	printf("hello from %d\n", thr_getid());
 	mutex_unlock(&mutex);
-	thr_join(tid, NULL);
+	int ret;
+	thr_join(tid, (void**)&ret);
+	lprintf("thread returned %d", ret);
 
 	return 0;
 

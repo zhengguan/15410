@@ -12,7 +12,6 @@
 #include <stdlib.h>
 #include <ureg.h>
 
-#define ROOT_HANDLER_STACK ((void *)0x90000000) //FIXME: what is this number?
 
 stackinfo_t g_stackinfo;
 

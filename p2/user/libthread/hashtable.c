@@ -51,8 +51,6 @@ void hashtable_add(hashtable_t *table, int key, void *data) {
         return;
     }
 
-    lprintf("adding %d", key);
-
     hashnode_t *addnode = (hashnode_t *)malloc(sizeof(hashnode_t *));
     addnode->key = key;
     addnode->data = data;
@@ -83,9 +81,6 @@ void *hashtable_get(hashtable_t *table, int key) {
         return NULL;
     }
 
-    lprintf("getting %d", key);
-
-
     int idx = hashtable_idx(table, key);
 
     hashnode_t *node = table->nodes[idx];
@@ -96,8 +91,6 @@ void *hashtable_get(hashtable_t *table, int key) {
         }
         node = node->next;
     }
-
-    lprintf("not found: %d", key);
 
     return NULL;
 }
