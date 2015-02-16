@@ -120,6 +120,7 @@ void hashtable_remove(hashtable_t *table, int key) {
                     hashnode_t *oldnode = node->next;
                     node->next = node->next->next;
                     free(oldnode);
+                    break;
                 }
                 node = node->next;
             }
