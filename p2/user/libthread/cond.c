@@ -13,7 +13,7 @@
 
 /** @brief Initializes a condition variable.
  *
- *  @param list Condition variable.
+ *  @param cv Condition variable.
  *  @return 0 on success, number less than 0 on error.
  */
 int cond_init(cond_t *cv) {
@@ -21,12 +21,14 @@ int cond_init(cond_t *cv) {
         return -1;
     }
 
-    if (linklist_init(cv->queue) < 0) {
-        return -1;
+    cv->queue = linklist_init();
+    if (cv->queue == NULL) {
+        return -2;
     }
 
+    cv->mutex = (mutex_t *)malloc(sizeof(mutex_t));
     if (mutex_init(cv->mutex) < 0) {
-        return -1;
+        return -3;
     }
 
     cv->active_flag = 1;
@@ -35,7 +37,7 @@ int cond_init(cond_t *cv) {
 
 /** @brief "Deactivates" a condition variable.
  *
- *  @param list Condition variable.
+ *  @param cv Condition variable.
  *  @return Void.
  */
 void cond_destroy(cond_t *cv) {
@@ -62,7 +64,7 @@ void cond_destroy(cond_t *cv) {
 /** @brief Allows a thread to wait for a condition variable and release the
  *  associated mutex.
  *
- *  @param list Condition variable.
+ *  @param cv Condition variable.
  *  @param mp Associated mutex.
  *  @return Void.
  */
@@ -89,7 +91,7 @@ void cond_wait(cond_t *cv, mutex_t *mp) {
 
 /** @brief Wakes up a thread waiting on a condition variable.
  *
- *  @param list Condition variable.
+ *  @param cv Condition variable.
  *  @return Void.
  */
 void cond_signal(cond_t *cv) {
@@ -114,7 +116,7 @@ void cond_signal(cond_t *cv) {
 
 /** @brief Wakes up all threads waiting on a condition variable.
  *
- *  @param list Condition variable.
+ *  @param cv Condition variable.
  *  @return Void.
  */
 void cond_broadcast(cond_t *cv) {
@@ -125,9 +127,10 @@ void cond_broadcast(cond_t *cv) {
     linklist_t list;
 
     mutex_lock(cv->mutex);
-    //FIXME: what to do here
-    if (!linklist_move(cv->queue, &list))
+    
+    if (!linklist_move(cv->queue, &list)) {
         return;
+    }
     mutex_unlock(cv->mutex);
 
     int tid;

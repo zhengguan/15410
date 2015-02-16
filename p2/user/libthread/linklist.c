@@ -17,17 +17,18 @@
 /** @brief Initializes a list to be empty.
  *
  *  @param list List.
- *  @return 0 on success, negative number on failure.
+ *  @return Pointer to the list, NULL on failure.
  */
-int linklist_init(linklist_t *list) {
+linklist_t *linklist_init() {
+    linklist_t *list = (linklist_t *)malloc(sizeof(linklist_t));
     if (list == NULL) {
-        return -1;
+        return NULL;
     }
 
     list->head = NULL;
     list->tail = NULL;
 
-    return 0;
+    return list;
 }
 
 /** @brief Adds a node to the head of a list.
@@ -145,7 +146,7 @@ int linklist_move(linklist_t *oldlist, linklist_t* newlist) {
     newlist->tail = oldlist->tail;
 
     oldlist->head = NULL;
-    newlist->head = NULL;
+    oldlist->head = NULL;
 
     return 1;
 }

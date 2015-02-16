@@ -26,7 +26,7 @@ static inline int hashtable_idx(hashtable_t *table, int key) {
 
 /** @brief Initializes a hash table to be empty.
  *
- *  @param table Hash table.
+ *  @param size Hash table size.
  *  @return Pointer to the hash table, NULL on failure.
  */
 hashtable_t *hashtable_init(int size) {
