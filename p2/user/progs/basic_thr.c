@@ -18,6 +18,9 @@ void *other_thr(void * a) {
 
 int main()
 {
+
+	MAGIC_BREAK;
+
 	mutex_init(&mutex);
 	thr_init(4096);
 

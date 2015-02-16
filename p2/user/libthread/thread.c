@@ -14,16 +14,16 @@
 #include <rand.h>
 #include <new_kernel_thread.h>
 
- #include <simics.h>
+#include <simics.h>
 
 static threadlib_t threadlib;
 extern mutex_t malloc_mutex; // FIXME: put this here?
 
 
 typedef struct stack_top {
+    void *return_address; //NULL. This is where the stack pointer points on the function call
+    void *function;
     void *argument; //this is at thread->stack_base
-    void *return_address; //NULL
-    void *saved_ebp; //NULL. This is where the stack pointer points on the function call
 } stack_top_t;
 
 
@@ -44,6 +44,16 @@ static void record_main_thread()
     thread->exited = 0;
 
     hashtable_add(threadlib.threads, thread->tid, thread);
+}
+
+static void thread_wrapper(void *(*func)(void*), void *arg)
+{
+
+    lprintf("new thread: %d", thr_getid());
+
+    void *ret = func(arg);
+
+    thr_exit(ret);
 }
 
 int thr_init(unsigned size)
@@ -87,8 +97,8 @@ int thr_create(void *(*func)(void *), void *args)
     threadlib.next_stack_base -= threadlib.stack_size;
     lprintf("new stack region: [%p, %p)", thread->stack_base, threadlib.next_stack_base);
 
-    unsigned eip = (unsigned)func;
-    unsigned esp = (unsigned)&((stack_top_t *)thread->stack_base)->saved_ebp;
+    unsigned eip = (unsigned)thread_wrapper;
+    unsigned esp = (unsigned)&((stack_top_t *)thread->stack_base)->return_address;
 
     //allocate the new stack
     if (new_pages(thread->stack_base-threadlib.stack_size, threadlib.stack_size) < 0) {
@@ -98,8 +108,8 @@ int thr_create(void *(*func)(void *), void *args)
 
     //initialize stack
     ((stack_top_t *)thread->stack_base)->argument = args;
+    ((stack_top_t *)thread->stack_base)->function = func;
     ((stack_top_t *)thread->stack_base)->return_address = NULL;
-    ((stack_top_t *)thread->stack_base)->saved_ebp = NULL;
 
     thread->joiner_tid = -1;
     thread->exited = 0;
