@@ -32,22 +32,13 @@ void *wait_thr(void *arg) {
 	return (void*)42;
 }
 
-int main()
-{
-    int ret;
+int main() {
+    cvar.queue = (linklist_t *)malloc(sizeof(linklist_t));
+    cvar.mutex = (mutex_t *)malloc(sizeof(mutex_t));
     
-	ret = mutex_init(&mutex);
-	if (ret < 0) {
-	    lprintf("mutex_init failed\n");
-	    return ret;
-	}
-	ret = cond_init(&cvar);
-	if (ret < 0) {
-	    lprintf("cond_init failed\n");
-	    return ret;
-	}
+	mutex_init(&mutex);
+	cond_init(&cvar);
 	thr_init(4096);
-
 
     mutex_lock(&mutex);
 	int wait_tid = thr_create(wait_thr, NULL);
@@ -61,6 +52,7 @@ int main()
 	mutex_unlock(&mutex);
     printf("Main thread released mutex\n");
     
+    int ret;
 	thr_join(wait_tid, (void**)&ret);
 	thr_join(signal_tid, (void**)&ret);
 	lprintf("Threads returned %d", ret);

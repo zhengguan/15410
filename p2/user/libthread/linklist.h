@@ -17,11 +17,11 @@ typedef struct linklist {
 } linklist_t;
 
 /* linked list functions */
-linklist_t *linklist_init();
+int linklist_init(linklist_t *list);
 void linklist_add_head(linklist_t *list, void *data);
 void linklist_add_tail(linklist_t *list, void *data);
 int linklist_remove_head(linklist_t *list, void **data);
-int linklist_remove_all(linklist_t *list, void **data);
+int linklist_remove_all(linklist_t *list);
 int linklist_move(linklist_t *oldlist, linklist_t* newlist);
 int linklist_empty(linklist_t *list);
 

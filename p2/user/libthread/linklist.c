@@ -9,7 +9,7 @@
 #include <linklist.h>
 #include <stdlib.h>
 
- struct listnode {
+struct listnode {
     void *data;
     struct listnode *next;
 };
@@ -19,16 +19,15 @@
  *  @param list List.
  *  @return Pointer to the list, NULL on failure.
  */
-linklist_t *linklist_init() {
-    linklist_t *list = (linklist_t *)malloc(sizeof(linklist_t));
+int linklist_init(linklist_t *list) {
     if (list == NULL) {
-        return NULL;
+        return -1;
     }
 
     list->head = NULL;
     list->tail = NULL;
 
-    return list;
+    return 0;
 }
 
 /** @brief Adds a node to the head of a list.
@@ -47,11 +46,9 @@ void linklist_add_head(linklist_t *list, void *data) {
     node->next = list->head;
     list->head = node;
 
-    //previously empty
     if (node->next == NULL) {
         list->tail = node;
     }
-
 }
 
 /** @brief Adds a node to the tail of a list.
@@ -69,7 +66,6 @@ void linklist_add_tail(linklist_t *list, void *data) {
     node->data = data;
     node->next = NULL;
 
-    //previously empty
     if (list->tail == NULL) {
         list->head = node;
     } else {
@@ -81,19 +77,20 @@ void linklist_add_tail(linklist_t *list, void *data) {
 /** @brief Removes the node at the head of a list.
  *
  *  @param list List.
- *  @param data A location in memory to store the data at the head.
- *  @return Evaluates to true if the list is nonempty and the head is
- *  removed and false otherwise.
+ *  @param data A location in memory to store the remove data.
+ *  @return 0 if the head was successfully removed and a negative number
+ *  otherwise.
  */
 int linklist_remove_head(linklist_t *list, void **data) {
     if (list == NULL) {
-        return 0;
+        return -1;
     }
 
     listnode_t *node = list->head;
 
-    if (node == NULL)
-        return 0;
+    if (node == NULL) {
+        return -2;
+    }
 
     list->head = node->next;
 
@@ -101,33 +98,30 @@ int linklist_remove_head(linklist_t *list, void **data) {
         list->tail = NULL;
     }
 
-    if (data != NULL)
+    if (data != NULL) {
         *data = node->data;
+    }
 
     free(node);
 
-    return 1;
+    return 0;
 }
 
 /** @brief Removes all nodes from a list.
  *
  *  @param list List.
- *  @param data A location in memory to store the data at the head.
- *  @return Evaluates to true if the list is nonempty and the head is
- *  removed and false otherwise.
+ *  @return 0 if all nodes are successfully removed and a negative number
+ *  otherwise.
  */
-int linklist_remove_all(linklist_t *list, void **data) {
+int linklist_remove_all(linklist_t *list) {
     if (list == NULL) {
-        return 0;
+        return -1;
     }
 
-    if (!linklist_remove_head(list, data))
-        return 0;
+    while (linklist_remove_head(list, NULL) == 0) {
+    }
 
-    //while there is still an element in the list
-    while (linklist_remove_head(list, NULL)) { }
-
-    return 1;
+    return 0;
 }
 
 /** @brief Moves all nodes in a linked list to a new linked list
@@ -135,11 +129,12 @@ int linklist_remove_all(linklist_t *list, void **data) {
  *  @param list List.
  *  @param oldlist The list to move the nodes from.
  *  @param newlist The list to move the nodes to.
- *  @return Evaluates to true iff the move was successful.
+ *  @return 0 if the move was successful and a negative number
+ *  otherwise.
  */
 int linklist_move(linklist_t *oldlist, linklist_t* newlist) {
     if (oldlist == NULL || newlist == NULL) {
-        return 0;
+        return -1;
     }
 
     newlist->head = oldlist->head;
@@ -148,15 +143,16 @@ int linklist_move(linklist_t *oldlist, linklist_t* newlist) {
     oldlist->head = NULL;
     oldlist->head = NULL;
 
-    return 1;
+    return 0;
 }
 
 /**
  * @brief Determines if a linked list is empty.
+ *
  * @param list List
- * @return Evaluates to true iff the linked list is empty or NULL
+ * @return True if the list is empty or NULL and false otherwise.
  */
 int linklist_empty(linklist_t *list)
 {
-    return !list || !list->head;
+    return (list == NULL) || (list->head == NULL);
 }

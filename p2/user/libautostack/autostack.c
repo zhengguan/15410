@@ -12,7 +12,6 @@
 #include <stdlib.h>
 #include <ureg.h>
 
-
 stackinfo_t g_stackinfo;
 
 static void register_exception_handler(void *esp3, ureg_t *newureg);
@@ -59,7 +58,7 @@ static void exception_handler(void *arg, ureg_t *ureg) {
     int len = (int)(g_stackinfo.stack_low - base);
 
     if (new_pages(base, len) < 0) {
-        exit(-1);
+        exit(-2);
     }
 
     g_stackinfo.stack_low = base;

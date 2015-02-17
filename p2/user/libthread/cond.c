@@ -21,17 +21,16 @@ int cond_init(cond_t *cv) {
         return -1;
     }
 
-    cv->queue = linklist_init();
-    if (cv->queue == NULL) {
+    if (linklist_init(cv->queue) < 0) {
         return -2;
     }
 
-    cv->mutex = (mutex_t *)malloc(sizeof(mutex_t));
     if (mutex_init(cv->mutex) < 0) {
         return -3;
     }
 
     cv->active_flag = 1;
+    
     return 0;
 }
 
@@ -102,12 +101,11 @@ void cond_signal(cond_t *cv) {
     int tid;
 
     mutex_lock(cv->mutex);
-    int list_nonempty = linklist_remove_head(cv->queue, (void**)&tid);
-    mutex_unlock(cv->mutex);
-
-    if (!list_nonempty) {
+    if(linklist_remove_head(cv->queue, (void**)&tid) < 0) {  
+        mutex_unlock(cv->mutex);
         return;
     }
+    mutex_unlock(cv->mutex);
 
     if (make_runnable(tid) == 0) {
         yield(tid);
@@ -127,14 +125,13 @@ void cond_broadcast(cond_t *cv) {
     linklist_t list;
 
     mutex_lock(cv->mutex);
-    
-    if (!linklist_move(cv->queue, &list)) {
+    if (linklist_move(cv->queue, &list) < 0) {
         return;
     }
     mutex_unlock(cv->mutex);
 
     int tid;
-    while (linklist_remove_head(&list, (void**)&tid)) {
+    while (linklist_remove_head(&list, (void**)&tid) == 0) {
         if (make_runnable(tid) == 0) {
             yield(tid);
         }
