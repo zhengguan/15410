@@ -61,13 +61,14 @@ void rwlock_lock(rwlock_t *rwlock, int type)
 		case RWLOCK_WRITE: {
 			mutex_lock(&rwlock->writer_mutex);
 			mutex_lock(&rwlock->reader_count_mutex);
-
-			//TODO: correct use of cond wait??
 			cond_wait(&rwlock->cond, &rwlock->reader_count_mutex);
 			mutex_unlock(&rwlock->reader_count_mutex);
-
 			break;
 		}
+		
+		default: {
+		    break;
+	    }
 	}
 }
 
@@ -84,8 +85,9 @@ void rwlock_unlock(rwlock_t *rwlock)
 		rwlock->reader_count--;
 		if (rwlock->reader_count == 0)
 			cond_signal(&rwlock->cond);
-	} else
+	} else {
 		mutex_unlock(&rwlock->writer_mutex);
+	}
 	mutex_unlock(&rwlock->reader_count_mutex);
 }
 
@@ -98,6 +100,7 @@ void rwlock_unlock(rwlock_t *rwlock)
 void rwlock_destroy(rwlock_t *rwlock)
 {
 	rwlock->valid = 0;
+	
 	mutex_destroy(&rwlock->writer_mutex);
 	mutex_destroy(&rwlock->reader_count_mutex);
 	cond_destroy(&rwlock->cond);

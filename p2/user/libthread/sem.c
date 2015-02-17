@@ -79,10 +79,12 @@ void sem_signal(sem_t *sem) {
  * @return Void.
  */
 void sem_destroy(sem_t *sem) {
-    if (sem == NULL)
+    if (sem == NULL) {
         return;
-
+    }
+    
+    sem->valid = 0;
+    
     cond_destroy(&sem->cond);
     mutex_destroy(&sem->count_mutex);
-    sem->valid = 0;
 }

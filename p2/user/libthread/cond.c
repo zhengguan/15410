@@ -48,6 +48,7 @@ void cond_destroy(cond_t *cv) {
     while (1) {
         mutex_lock(cv->mutex);
 
+        // TODO is this check necessary?
         if (linklist_empty(cv->queue)) {
             mutex_unlock(cv->mutex);
             mutex_destroy(cv->mutex);

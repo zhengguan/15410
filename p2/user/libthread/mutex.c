@@ -58,6 +58,7 @@ void mutex_lock(mutex_t *mp) {
         return;
     }
 
+    // TODO remove count?
     while (atom_xchg(&mp->count_lock, 1) != 0) {
         yield(-1);
     }
