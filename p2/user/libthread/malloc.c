@@ -14,9 +14,7 @@
 mutex_t malloc_mutex = {
     .valid = 1,
     .lock = 0,
-    .tid = -1,
-    .count = 0,
-    .count_lock = 0
+    .tid = -1
 };
 
 void *malloc(size_t __size)

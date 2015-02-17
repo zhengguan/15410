@@ -45,19 +45,7 @@ void cond_destroy(cond_t *cv) {
 
     cv->valid = 0;
 
-    while (1) {
-        mutex_lock(cv->mutex);
-
-        // TODO is this check necessary?
-        if (linklist_empty(cv->queue)) {
-            mutex_unlock(cv->mutex);
-            mutex_destroy(cv->mutex);
-            return;
-        }
-
-        mutex_unlock(cv->mutex);
-        yield(-1);
-    }
+    mutex_destroy(cv->mutex);
 }
 
 /** @brief Allows a thread to wait for a condition variable and release the
