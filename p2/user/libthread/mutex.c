@@ -13,8 +13,8 @@
 
 /** @brief Initializes a mutex.
  *
- *  @param list Mutex.
- *  @return 0 on success, number less than 0 on error.
+ *  @param mp The mutex.
+ *  @return 0 on success, negative error code otherwise.
  */
 int mutex_init(mutex_t *mp) {
     if (mp == NULL) {
@@ -26,14 +26,14 @@ int mutex_init(mutex_t *mp) {
     mp->count = 0;
     mp->count_lock = 0;
 
-    mp->active_flag = 1;
+    mp->valid = 1;
 
     return 0;
 }
 
 /** @brief "Deactivates" a mutex.
  *
- *  @param list Mutex.
+ *  @param mp The mutex.
  *  @return Void.
  */
 void mutex_destroy(mutex_t *mp) {
@@ -41,7 +41,7 @@ void mutex_destroy(mutex_t *mp) {
         return;
     }
 
-    mp->active_flag = 0;
+    mp->valid = 0;
 
     while (mp->count > 0) {
         yield(mp->tid);
@@ -50,11 +50,11 @@ void mutex_destroy(mutex_t *mp) {
 
 /** @brief Locks a mutex.
  *
- *  @param list Mutex.
+ *  @param mp The mutex.
  *  @return Void.
  */
 void mutex_lock(mutex_t *mp) {
-    if (mp == NULL || mp->active_flag == 0) {
+    if (mp == NULL || mp->valid == 0) {
         return;
     }
 
@@ -73,11 +73,11 @@ void mutex_lock(mutex_t *mp) {
 
 /** @brief Unlocks a mutex.
  *
- *  @param list Mutex.
+ *  @param mp The mutex.
  *  @return Void.
  */
 void mutex_unlock(mutex_t *mp) {
-    if (mp == NULL || mp->active_flag == 0 || mp->lock == 0 ||
+    if (mp == NULL || mp->valid == 0 || mp->lock == 0 ||
         mp->tid != gettid()) {
         return;
     }

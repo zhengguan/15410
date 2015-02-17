@@ -10,9 +10,9 @@
 
 typedef struct sem {
 	int valid;
-  int count;
-  mutex_t count_mutex;
-  cond_t cond;
+    int count;
+    mutex_t count_mutex;
+    cond_t cond;
 } sem_t;
 
 #endif /* _SEM_TYPE_H */

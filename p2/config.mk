@@ -98,7 +98,7 @@ STUDENTTESTS = basic_thr thr2 die cvar_test
 ###########################################################################
 # Object files for your thread library
 ###########################################################################
-THREAD_OBJS = malloc.o panic.o atom_xchg.o linklist.o hashtable.o thread.o mutex.o cond.o sem.o new_kernel_thread.o
+THREAD_OBJS = malloc.o panic.o atom_xchg.o linklist.o hashtable.o thread.o mutex.o cond.o sem.o rwlock.o new_kernel_thread.o
 
 # Thread Group Library Support.
 #

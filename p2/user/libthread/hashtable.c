@@ -22,9 +22,9 @@ struct hashnode {
 
 /**
  * @brief Determines the index in the hash table from the key.
- * @param table Hash table
- * @param key Key
- * @return Index
+ * @param table The hash table.
+ * @param key The key.
+ * @return The index.
  */
 static inline int hashtable_idx(hashtable_t *table, int key) {
     return key % table->size;
@@ -32,7 +32,7 @@ static inline int hashtable_idx(hashtable_t *table, int key) {
 
 /** @brief Initializes a hash table to be empty.
  *
- *  @param size Hashtable size.
+ *  @param size The hash table size.
  *  @return Pointer to the hash table, NULL on failure.
  */
 hashtable_t *hashtable_init(int size) {
@@ -49,9 +49,9 @@ hashtable_t *hashtable_init(int size) {
 
 /** @brief Adds a node to a hash table.
  *
- *  @param table Hash table.
- *  @param key Key.
- *  @param data Data.
+ *  @param table The hash table.
+ *  @param key The key.
+ *  @param data The data.
  *  @return Void.
  */
 void hashtable_add(hashtable_t *table, int key, void *data) {
@@ -80,11 +80,10 @@ void hashtable_add(hashtable_t *table, int key, void *data) {
 
 /** @brief Gets data from a hash table.
  *
- *  @param table Hash table.
- *  @param key Key.
+ *  @param table The hash table.
+ *  @param key The key.
  *  @param data A location in memory to store the gotten data.
- *  @return 0 if the data was successfully gotten and a negative number
- *  otherwise.
+ *  @return 0 on success, negative error code otherwise.
  */
 int hashtable_get(hashtable_t *table, int key, void **data) {
     if (table == NULL) {
@@ -108,10 +107,9 @@ int hashtable_get(hashtable_t *table, int key, void **data) {
 
 /** @brief Removes a node from a hash table.
  *
- *  @param table Hash table.
- *  @param key Key.
- *  @return 0 if the node was successfully removed and a negative number
- *  otherwise.
+ *  @param table The hash table.
+ *  @param key The key.
+ *  @return 0 on success, negative error code otherwise.
  */
 int hashtable_remove(hashtable_t *table, int key) {
     if (table == NULL) {

@@ -5,9 +5,8 @@
 #ifndef _MUTEX_TYPE_H
 #define _MUTEX_TYPE_H
 
-
 typedef struct mutex {
-    int active_flag;
+    int valid;
     int lock;
     int tid;
     int count;

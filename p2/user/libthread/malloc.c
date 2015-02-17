@@ -12,7 +12,7 @@
 #include <mutex.h>
 
 mutex_t malloc_mutex = {
-    .active_flag = 1,
+    .valid = 1,
     .lock = 0,
     .tid = -1,
     .count = 0,

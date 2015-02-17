@@ -6,11 +6,12 @@
 #define _RWLOCK_TYPE_H
 
 #include <mutex.h>
+#include <cond.h>
 
 typedef struct rwlock {
 	int valid;
-	int num_readers;
-	mutex_t num_readers_mutex;
+	int reader_count;
+	mutex_t reader_count_mutex;
 	mutex_t writer_mutex;
 	cond_t cond;
 } rwlock_t;

@@ -8,7 +8,7 @@
 #include <linklist.h>
 
 typedef struct cond {
-    int active_flag;
+    int valid;
     linklist_t *queue;
     mutex_t *mutex;
 } cond_t;

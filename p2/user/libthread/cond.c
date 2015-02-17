@@ -6,15 +6,14 @@
  *  @bug No known bugs.
  */
 
-#include <mutex.h>
 #include <cond.h>
 #include <syscall.h>
 #include <stdlib.h>
 
 /** @brief Initializes a condition variable.
  *
- *  @param cv Condition variable.
- *  @return 0 on success, number less than 0 on error.
+ *  @param cv The condition variable.
+ *  @return 0 on success, number error code otherwise.
  */
 int cond_init(cond_t *cv) {
     if (cv == NULL) {
@@ -29,14 +28,14 @@ int cond_init(cond_t *cv) {
         return -3;
     }
 
-    cv->active_flag = 1;
+    cv->valid = 1;
     
     return 0;
 }
 
 /** @brief "Deactivates" a condition variable.
  *
- *  @param cv Condition variable.
+ *  @param cv The condition variable.
  *  @return Void.
  */
 void cond_destroy(cond_t *cv) {
@@ -44,7 +43,7 @@ void cond_destroy(cond_t *cv) {
         return;
     }
 
-    cv->active_flag = 0;
+    cv->valid = 0;
 
     while (1) {
         mutex_lock(cv->mutex);
@@ -63,8 +62,8 @@ void cond_destroy(cond_t *cv) {
 /** @brief Allows a thread to wait for a condition variable and release the
  *  associated mutex.
  *
- *  @param cv Condition variable.
- *  @param mp Associated mutex.
+ *  @param cv The condition variable.
+ *  @param mp The associated mutex.
  *  @return Void.
  */
 void cond_wait(cond_t *cv, mutex_t *mp) {
@@ -72,7 +71,7 @@ void cond_wait(cond_t *cv, mutex_t *mp) {
         return;
     }
 
-    if (!cv->active_flag) {
+    if (!cv->valid) {
         return;
     }
 
@@ -90,7 +89,7 @@ void cond_wait(cond_t *cv, mutex_t *mp) {
 
 /** @brief Wakes up a thread waiting on a condition variable.
  *
- *  @param cv Condition variable.
+ *  @param cv The condition variable.
  *  @return Void.
  */
 void cond_signal(cond_t *cv) {
@@ -114,7 +113,7 @@ void cond_signal(cond_t *cv) {
 
 /** @brief Wakes up all threads waiting on a condition variable.
  *
- *  @param cv Condition variable.
+ *  @param cv The condition variable.
  *  @return Void.
  */
 void cond_broadcast(cond_t *cv) {

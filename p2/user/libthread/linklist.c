@@ -16,7 +16,7 @@ struct listnode {
 
 /** @brief Initializes a list to be empty.
  *
- *  @param list List.
+ *  @param list The list.
  *  @return Pointer to the list, NULL on failure.
  */
 int linklist_init(linklist_t *list) {
@@ -32,8 +32,8 @@ int linklist_init(linklist_t *list) {
 
 /** @brief Adds a node to the head of a list.
  *
- *  @param list List.
- *  @param data Data.
+ *  @param list The list.
+ *  @param data The data.
  *  @return Void.
  */
 void linklist_add_head(linklist_t *list, void *data) {
@@ -53,7 +53,7 @@ void linklist_add_head(linklist_t *list, void *data) {
 
 /** @brief Adds a node to the tail of a list.
  *
- *  @param list List.
+ *  @param list The list.
  *  @param data Data.
  *  @return Void.
  */
@@ -76,10 +76,9 @@ void linklist_add_tail(linklist_t *list, void *data) {
 
 /** @brief Removes the node at the head of a list.
  *
- *  @param list List.
+ *  @param list The list.
  *  @param data A location in memory to store the remove data.
- *  @return 0 if the head was successfully removed and a negative number
- *  otherwise.
+ *  @return 0 on success, negative error code otherwise.
  */
 int linklist_remove_head(linklist_t *list, void **data) {
     if (list == NULL) {
@@ -109,9 +108,8 @@ int linklist_remove_head(linklist_t *list, void **data) {
 
 /** @brief Removes all nodes from a list.
  *
- *  @param list List.
- *  @return 0 if all nodes are successfully removed and a negative number
- *  otherwise.
+ *  @param list The list.
+ *  @return 0 on success, negative error code otherwise.
  */
 int linklist_remove_all(linklist_t *list) {
     if (list == NULL) {
@@ -126,11 +124,10 @@ int linklist_remove_all(linklist_t *list) {
 
 /** @brief Moves all nodes in a linked list to a new linked list
  *
- *  @param list List.
+ *  @param list The list.
  *  @param oldlist The list to move the nodes from.
  *  @param newlist The list to move the nodes to.
- *  @return 0 if the move was successful and a negative number
- *  otherwise.
+ *  @return 0 on success, negative error code otherwise.
  */
 int linklist_move(linklist_t *oldlist, linklist_t* newlist) {
     if (oldlist == NULL || newlist == NULL) {
@@ -149,8 +146,8 @@ int linklist_move(linklist_t *oldlist, linklist_t* newlist) {
 /**
  * @brief Determines if a linked list is empty.
  *
- * @param list List
- * @return True if the list is empty or NULL and false otherwise.
+ * @param list The list
+ * @return True if the list is empty or NULL, false otherwise.
  */
 int linklist_empty(linklist_t *list)
 {
