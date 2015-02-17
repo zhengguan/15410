@@ -93,7 +93,7 @@ UPDATE_METHOD = afs
 # A list of the test programs you want compiled in from the user/progs
 # directory
 #
-STUDENTTESTS = basic_thr thr2 die cvar_test rw_test
+STUDENTTESTS = basic_thr thr2 die cvar_test rw_test sem_test
 
 ###########################################################################
 # Object files for your thread library
