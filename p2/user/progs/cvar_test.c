@@ -33,11 +33,15 @@ void *wait_thr(void *arg) {
 }
 
 int main() {
-    cvar.queue = (linklist_t *)malloc(sizeof(linklist_t));
-    cvar.mutex = (mutex_t *)malloc(sizeof(mutex_t));
-    
-	mutex_init(&mutex);
+    int ret;    
+	ret = mutex_init(&mutex);
+	if (ret < 0) {
+	    return ret;
+	}
 	cond_init(&cvar);
+	if (ret < 0) {
+	    return ret;
+	}
 	thr_init(4096);
 
     mutex_lock(&mutex);
@@ -52,7 +56,6 @@ int main() {
 	mutex_unlock(&mutex);
     printf("Main thread released mutex\n");
     
-    int ret;
 	thr_join(wait_tid, (void**)&ret);
 	thr_join(signal_tid, (void**)&ret);
 	lprintf("Threads returned %d", ret);

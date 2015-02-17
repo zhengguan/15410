@@ -9,8 +9,8 @@
 
 typedef struct cond {
     int valid;
-    linklist_t *queue;
-    mutex_t *mutex;
+    linklist_t queue;
+    mutex_t mutex;
 } cond_t;
 
 #endif /* _COND_TYPE_H */
