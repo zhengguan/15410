@@ -98,9 +98,11 @@ int thr_create(void *(*func)(void *), void *args)
 
     int total_stack_size = EXCEPTION_STACK_SIZE + threadlib.stack_size;
     if (new_pages(threadlib.next_stack_base-total_stack_size, total_stack_size) < 0) {
+        mutex_unlock(&threadlib.mutex);
         free(thread);
         return -2;
     }
+    
     thread->stack_base = threadlib.next_stack_base;
     threadlib.next_stack_base -= threadlib.stack_size;
     thread->esp3 = threadlib.next_stack_base;
