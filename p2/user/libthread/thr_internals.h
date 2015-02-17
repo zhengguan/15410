@@ -15,20 +15,19 @@
 #define EXCEPTION_STACK_SIZE PAGE_SIZE
 
 typedef struct threadlib {
-    mutex_t lock;
+    mutex_t mutex;
+    unsigned int stack_size;
 	void *next_stack_base;
     hashtable_t *threads;
-    unsigned stack_size;
 } threadlib_t;
 
 typedef struct thread {
     void *stack_base;
-    int tid;
     void *esp3;
-
-    int exited; //boolean
+    int tid;
     int joiner_tid;
-    void *status; //return value
+    int exited;
+    void *status;
 } thread_t;
 
 #endif /* THR_INTERNALS_H */
