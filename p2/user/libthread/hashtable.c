@@ -14,11 +14,17 @@
 #include <string.h>
 #include <simics.h>
 
+struct listnode {
+    int key;
+    void *data;
+    struct hashnode *next;
+};
+
 /**
- * @brief Determines the index in the hashtable from the key.
- * @param table The hashtable
- * @param key The key
- * @return The index
+ * @brief Determines the index in the hash table from the key.
+ * @param table Hash table
+ * @param key Key
+ * @return Index
  */
 static inline int hashtable_idx(hashtable_t *table, int key) {
     return key % table->size;
@@ -26,13 +32,15 @@ static inline int hashtable_idx(hashtable_t *table, int key) {
 
 /** @brief Initializes a hash table to be empty.
  *
- *  @param size Hash table size.
+ *  @param size Hashtable size.
  *  @return Pointer to the hash table, NULL on failure.
  */
 hashtable_t *hashtable_init(int size) {
     hashtable_t *table = (hashtable_t *)malloc(sizeof(hashtable_t) + size*sizeof(hashnode_t));
-    if (table == NULL)
+    if (table == NULL) {
         return NULL;
+    }
+    
     table->size = size;
     memset(table->nodes, 0, size*sizeof(hashnode_t));
 
@@ -74,11 +82,13 @@ void hashtable_add(hashtable_t *table, int key, void *data) {
  *
  *  @param table Hash table.
  *  @param key Key.
- *  @return The data, or NULL if key does not exist in the hash table.
+ *  @param data A location in memory to store the gotten data.
+ *  @return 0 if the data was successfully gotten and a negative number
+ *  otherwise.
  */
-void *hashtable_get(hashtable_t *table, int key) {
+int hashtable_get(hashtable_t *table, int key, void **data) {
     if (table == NULL) {
-        return NULL;
+        return -1;
     }
 
     int idx = hashtable_idx(table, key);
@@ -87,23 +97,25 @@ void *hashtable_get(hashtable_t *table, int key) {
 
     while (node != NULL) {
         if (node->key == key) {
-            return node->data;
+            *data = node->data;
+            return 0;
         }
         node = node->next;
     }
 
-    return NULL;
+    return -2;
 }
 
 /** @brief Removes a node from a hash table.
  *
  *  @param table Hash table.
  *  @param key Key.
- *  @return Void.
+ *  @return 0 if the node was successfully removed and a negative number
+ *  otherwise.
  */
-void hashtable_remove(hashtable_t *table, int key) {
+int hashtable_remove(hashtable_t *table, int key) {
     if (table == NULL) {
-        return;
+        return -1;
     }
 
     int idx = hashtable_idx(table, key);
@@ -114,16 +126,19 @@ void hashtable_remove(hashtable_t *table, int key) {
         if (node->key == key) {
             table->nodes[idx] = node->next;
             free(node);
+            return 0;
         } else {
             while (node->next != NULL) {
                 if (node->next->key == key) {
                     hashnode_t *oldnode = node->next;
                     node->next = node->next->next;
                     free(oldnode);
-                    break;
+                    return 0;
                 }
                 node = node->next;
             }
         }
     }
+    
+    return -2;
 }

@@ -17,8 +17,8 @@
 #include <simics.h>
 
 static threadlib_t threadlib;
-extern mutex_t malloc_mutex; // FIXME: put this here?
 
+extern mutex_t malloc_mutex; // FIXME: put this here?
 
 typedef struct stack_top {
     void *return_address; //NULL. This is where the stack pointer points on the function call
@@ -144,7 +144,8 @@ int thr_create(void *(*func)(void *), void *args)
 int thr_join(int tid, void **statusp)
 {
     mutex_lock(&threadlib.lock);
-    thread_t *thread = hashtable_get(threadlib.threads, tid);
+    thread_t *thread;
+    hashtable_get(threadlib.threads, tid, (void **)&thread);
     if (!thread) {
         mutex_unlock(&threadlib.lock);
         return -1;
@@ -181,7 +182,8 @@ int thr_join(int tid, void **statusp)
 void thr_exit(void *status)
 {
     mutex_lock(&threadlib.lock);
-    thread_t *thread = hashtable_get(threadlib.threads, thr_getid());
+    thread_t *thread;
+    hashtable_get(threadlib.threads, thr_getid(), (void **)&thread);
     if (thread != NULL) {
         //otherwise error
         thread->status = status;

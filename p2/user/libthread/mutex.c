@@ -54,11 +54,7 @@ void mutex_destroy(mutex_t *mp) {
  *  @return Void.
  */
 void mutex_lock(mutex_t *mp) {
-    if (mp == NULL) {
-        return;
-    }
-
-    if (mp->active_flag == 0) {
+    if (mp == NULL || mp->active_flag == 0) {
         return;
     }
 
@@ -81,11 +77,10 @@ void mutex_lock(mutex_t *mp) {
  *  @return Void.
  */
 void mutex_unlock(mutex_t *mp) {
-    if (mp == NULL || mp->active_flag == 0)
+    if (mp == NULL || mp->active_flag == 0 || mp->lock == 0 ||
+        mp->tid != gettid()) {
         return;
-
-    if (mp->tid != gettid() || mp->lock == 0)
-        return;
+    }
 
     while (atom_xchg(&mp->count_lock, 1) != 0) {
         yield(-1);

@@ -23,7 +23,7 @@ typedef struct hashtable {
 /* hash table functions */
 hashtable_t *hashtable_init(int size);
 void hashtable_add(hashtable_t *table, int key, void *data);
-void *hashtable_get(hashtable_t *table, int key);
-void hashtable_remove(hashtable_t *table, int key);
+int hashtable_get(hashtable_t *table, int key, void **data);
+int hashtable_remove(hashtable_t *table, int key);
 
 #endif /* _HASHTABLE_H */
