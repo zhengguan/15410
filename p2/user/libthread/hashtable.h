@@ -9,11 +9,7 @@
 #ifndef _HASHTABLE_H
 #define _HASHTABLE_H
 
-typedef struct hashnode {
-    int key;
-    void *data;
-    struct hashnode *next;
-} hashnode_t;
+typedef struct hashnode hashnode_t;
 
 typedef struct hashtable {
     int size;

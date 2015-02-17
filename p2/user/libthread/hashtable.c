@@ -14,7 +14,7 @@
 #include <string.h>
 #include <simics.h>
 
-struct listnode {
+struct hashnode {
     int key;
     void *data;
     struct hashnode *next;

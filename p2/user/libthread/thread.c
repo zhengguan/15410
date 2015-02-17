@@ -18,8 +18,6 @@
 
 static threadlib_t threadlib;
 
-extern mutex_t malloc_mutex; // FIXME: put this here?
-
 typedef struct stack_top {
     void *return_address; //NULL. This is where the stack pointer points on the function call
     void *function;
@@ -88,11 +86,6 @@ int thr_init(unsigned size)
 
     if (mutex_init(&threadlib.lock) < 0) {
         return -2;
-    }
-
-    //TODO: where do i go???
-    if (mutex_init(&malloc_mutex) < 0) {
-        return -3;
     }
 
     return 0;
