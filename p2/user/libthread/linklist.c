@@ -42,6 +42,10 @@ void linklist_add_head(linklist_t *list, void *data) {
     }
 
     listnode_t *node = malloc(sizeof(listnode_t));
+    if (node == NULL) {
+        return;
+    }
+    
     node->data = data;
     node->next = list->head;
     list->head = node;
@@ -63,6 +67,10 @@ void linklist_add_tail(linklist_t *list, void *data) {
     }
 
     listnode_t *node = malloc(sizeof(listnode_t));
+    if (node == NULL) {
+        return;
+    }
+    
     node->data = data;
     node->next = NULL;
 
