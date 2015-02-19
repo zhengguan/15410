@@ -23,18 +23,15 @@ typedef struct stacktop {
     void *esp3;
 } stacktop_t;
 
-//FIXME: what to do here?
 static void exception_handler(void *esp3, ureg_t *ureg)
 {
     task_vanish(-ureg->cause);
-    
-    swexn(esp3, exception_handler, esp3, ureg);
 }
 
 static void thread_wrapper(void *(*func)(void*), void *arg, void *esp3)
 {
     swexn(esp3, exception_handler, esp3, NULL);
-    
+
     void *ret = func(arg);
 
     thr_exit(ret);
@@ -54,15 +51,15 @@ static int add_main_thread()
     thread->stack_base = threadlib.next_stack_base;
     threadlib.next_stack_base -= threadlib.stack_size;
     thread->esp3 = ROOT_HANDLER_STACK;
-    
+
     thread->tid = thr_getid();
     thread->joiner_tid = -1;
     thread->exited = 0;
 
     hashtable_add(threadlib.threads, thread->tid, thread);
-    
+
     swexn(thread->esp3, exception_handler, thread->esp3, NULL);
-    
+
     return 0;
 }
 
@@ -75,7 +72,7 @@ int thr_init(unsigned int size)
     if (threadlib.threads == NULL) {
         return -1;
     }
-    
+
     if (mutex_init(&threadlib.mutex) < 0) {
         return -2;
     }
@@ -102,7 +99,7 @@ int thr_create(void *(*func)(void *), void *args)
         free(thread);
         return -2;
     }
-    
+
     thread->stack_base = threadlib.next_stack_base;
     threadlib.next_stack_base -= threadlib.stack_size;
     thread->esp3 = threadlib.next_stack_base;
@@ -117,12 +114,12 @@ int thr_create(void *(*func)(void *), void *args)
     unsigned int esp = (unsigned int)&((stacktop_t *)thread->stack_base)->return_address;
     int tid = new_kernel_thread(eip, esp);
     thread->tid = tid;
-    
+
     thread->joiner_tid = -1;
     thread->exited = 0;
-    
+
     hashtable_add(threadlib.threads, thread->tid, thread);
-    
+
     mutex_unlock(&threadlib.mutex);
 
     return tid;
@@ -132,7 +129,7 @@ int thr_create(void *(*func)(void *), void *args)
 int thr_join(int tid, void **statusp)
 {
     mutex_lock(&threadlib.mutex);
-    
+
     thread_t *thread;
     if (hashtable_get(threadlib.threads, tid, (void **)&thread) < 0) {
         mutex_unlock(&threadlib.mutex);
@@ -161,7 +158,7 @@ int thr_join(int tid, void **statusp)
     if (statusp != NULL) {
         *statusp = thread->status;
     }
-    
+
     free(thread);
 
     return 0;
@@ -170,7 +167,7 @@ int thr_join(int tid, void **statusp)
 void thr_exit(void *status)
 {
     mutex_lock(&threadlib.mutex);
-    
+
     thread_t *thread;
     if (hashtable_get(threadlib.threads, thr_getid(), (void **)&thread) == 0) {
         thread->status = status;
@@ -178,7 +175,7 @@ void thr_exit(void *status)
     }
 
     mutex_unlock(&threadlib.mutex);
-    
+
     vanish();
 }
 

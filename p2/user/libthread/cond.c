@@ -9,6 +9,12 @@
 #include <cond.h>
 #include <syscall.h>
 #include <stdlib.h>
+ #include <thread.h>
+
+typedef struct waiter {
+    int tid;
+    int reject;
+} waiter_t;
 
 /** @brief Initializes a condition variable.
  *
@@ -29,7 +35,7 @@ int cond_init(cond_t *cv) {
     }
 
     cv->valid = 1;
-    
+
     return 0;
 }
 
@@ -60,14 +66,15 @@ void cond_wait(cond_t *cv, mutex_t *mp) {
         return;
     }
 
+    waiter_t w = {thr_getid(), 0};
+
     mutex_lock(&cv->mutex);
-    linklist_add_tail(&cv->queue, (void*)gettid());
+    linklist_add_tail(&cv->queue, (void*)&w);
     mutex_unlock(&cv->mutex);
 
     mutex_unlock(mp);
 
-    int reject = 0;
-    deschedule(&reject);
+    deschedule(&w.reject);
 
     mutex_lock(mp);
 }
@@ -84,16 +91,18 @@ void cond_signal(cond_t *cv) {
 
     int tid;
 
+    waiter_t *w;
+
     mutex_lock(&cv->mutex);
-    if(linklist_remove_head(&cv->queue, (void**)&tid) < 0) {  
+    if(linklist_remove_head(&cv->queue, (void**)&w) < 0) {
         mutex_unlock(&cv->mutex);
         return;
     }
+    tid = w->tid;
+    w->reject = 1;
     mutex_unlock(&cv->mutex);
 
-    while (make_runnable(tid) != 0) {
-        yield(tid);
-    }
+    make_runnable(tid);
     yield(tid);
 }
 
@@ -116,9 +125,11 @@ void cond_broadcast(cond_t *cv) {
     mutex_unlock(&cv->mutex);
 
     int tid;
-    while (linklist_remove_head(&list, (void**)&tid) == 0) {
-        while (make_runnable(tid) != 0) {
-        }
+    waiter_t *w;
+    while (linklist_remove_head(&list, (void**)&w) == 0) {
+        tid = w->tid;
+        w->reject = 1;
+        make_runnable(tid);
     }
     yield(-1);
 }
