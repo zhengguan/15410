@@ -145,9 +145,7 @@ int linklist_move(linklist_t *oldlist, linklist_t* newlist) {
     newlist->head = oldlist->head;
     newlist->tail = oldlist->tail;
 
-    linklist_init(oldlist);
-
-    return 0;
+    return linklist_init(oldlist);
 }
 
 /**
