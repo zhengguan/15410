@@ -59,7 +59,7 @@ void hashtable_add(hashtable_t *table, int key, void *data) {
         return;
     }
 
-    hashnode_t *addnode = (hashnode_t *)malloc(sizeof(hashnode_t *));
+    hashnode_t *addnode = (hashnode_t *)malloc(sizeof(hashnode_t));
     addnode->key = key;
     addnode->data = data;
     addnode->next = NULL;
