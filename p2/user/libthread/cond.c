@@ -39,7 +39,7 @@ int cond_init(cond_t *cv) {
  *  @return Void.
  */
 void cond_destroy(cond_t *cv) {
-    if (cv == NULL) {
+    if (cv == NULL || !cv->valid) {
         return;
     }
 
@@ -56,11 +56,7 @@ void cond_destroy(cond_t *cv) {
  *  @return Void.
  */
 void cond_wait(cond_t *cv, mutex_t *mp) {
-    if (cv == NULL) {
-        return;
-    }
-
-    if (!cv->valid) {
+    if (cv == NULL || !cv->valid) {
         return;
     }
 
@@ -82,7 +78,7 @@ void cond_wait(cond_t *cv, mutex_t *mp) {
  *  @return Void.
  */
 void cond_signal(cond_t *cv) {
-    if (cv == NULL) {
+    if (cv == NULL || !cv->valid) {
         return;
     }
 
@@ -95,9 +91,10 @@ void cond_signal(cond_t *cv) {
     }
     mutex_unlock(&cv->mutex);
 
-    if (make_runnable(tid) == 0) {
+    while (make_runnable(tid) != 0) {
         yield(tid);
     }
+    yield(tid);
 }
 
 /** @brief Wakes up all threads waiting on a condition variable.
@@ -106,7 +103,7 @@ void cond_signal(cond_t *cv) {
  *  @return Void.
  */
 void cond_broadcast(cond_t *cv) {
-    if (cv == NULL) {
+    if (cv == NULL || !cv->valid) {
         return;
     }
 
@@ -120,8 +117,8 @@ void cond_broadcast(cond_t *cv) {
 
     int tid;
     while (linklist_remove_head(&list, (void**)&tid) == 0) {
-        if (make_runnable(tid) == 0) {
-            yield(tid);
+        while (make_runnable(tid) != 0) {
         }
     }
+    yield(-1);
 }

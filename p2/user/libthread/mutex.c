@@ -23,6 +23,8 @@ int mutex_init(mutex_t *mp) {
 
     mp->lock = 0;
     mp->tid = -1;
+    mp->count = 0;
+    mp->count_lock = 0;
 
     mp->valid = 1;
 
@@ -35,11 +37,15 @@ int mutex_init(mutex_t *mp) {
  *  @return Void.
  */
 void mutex_destroy(mutex_t *mp) {
-    if (mp == NULL) {
+    if (mp == NULL || !mp->valid) {
         return;
     }
 
     mp->valid = 0;
+
+    while (mp->count > 0) {
+        yield(mp->tid);
+    }
 }
 
 /** @brief Locks a mutex.
@@ -48,10 +54,19 @@ void mutex_destroy(mutex_t *mp) {
  *  @return Void.
  */
 void mutex_lock(mutex_t *mp) {
-    if (mp == NULL || mp->valid == 0) {
+    if (mp == NULL || !mp->valid) {
         return;
     }
 
+    while (atom_xchg(&mp->count_lock, 1) != 0) {
+        if (!mp->valid) {
+            return;
+        }
+        yield(-1);
+    }
+    mp->count++;
+    mp->count_lock = 0;
+    
     while (atom_xchg(&mp->lock, 1) != 0) {
         yield(mp->tid);
     }
@@ -65,10 +80,17 @@ void mutex_lock(mutex_t *mp) {
  *  @return Void.
  */
 void mutex_unlock(mutex_t *mp) {
-    if (mp == NULL || mp->valid == 0 || mp->lock == 0 ||
+    if (mp == NULL || !mp->valid || !mp->lock ||
         mp->tid != gettid()) {
         return;
     }
-
+    
+    while (atom_xchg(&mp->count_lock, 1) != 0) {
+        yield(-1);
+    }
+    mp->count--;
+    mp->count_lock = 0;
+    
+    mp->tid = -1;
     mp->lock = 0;
 }
