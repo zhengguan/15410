@@ -7,9 +7,9 @@
  */
 
 #include <cond.h>
+#include <thread.h>
 #include <syscall.h>
 #include <stdlib.h>
- #include <thread.h>
 
 typedef struct waiter {
     int tid;
@@ -66,15 +66,15 @@ void cond_wait(cond_t *cv, mutex_t *mp) {
         return;
     }
 
-    waiter_t w = {thr_getid(), 0};
+    waiter_t waiter = {thr_getid(), 0};
 
     mutex_lock(&cv->mutex);
-    linklist_add_tail(&cv->queue, (void*)&w);
+    linklist_add_tail(&cv->queue, (void*)&waiter);
     mutex_unlock(&cv->mutex);
 
     mutex_unlock(mp);
 
-    deschedule(&w.reject);
+    deschedule(&waiter.reject);
 
     mutex_lock(mp);
 }
@@ -90,16 +90,15 @@ void cond_signal(cond_t *cv) {
     }
 
     int tid;
-
-    waiter_t *w;
+    waiter_t *waiter;
 
     mutex_lock(&cv->mutex);
-    if(linklist_remove_head(&cv->queue, (void**)&w) < 0) {
+    if(linklist_remove_head(&cv->queue, (void**)&waiter) < 0) {
         mutex_unlock(&cv->mutex);
         return;
     }
-    tid = w->tid;
-    w->reject = 1;
+    tid = waiter->tid;
+    waiter->reject = 1;
     mutex_unlock(&cv->mutex);
 
     make_runnable(tid);

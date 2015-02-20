@@ -9,10 +9,9 @@
 #include <thread.h>
 #include <thr_internals.h>
 #include <autostack.h>
+#include <thread_fork.h>
 #include <syscall.h>
 #include <stdlib.h>
-#include <rand.h>
-#include <new_kernel_thread.h>
 
 static threadlib_t threadlib;
 
@@ -23,11 +22,23 @@ typedef struct stacktop {
     void *esp3;
 } stacktop_t;
 
+/** @brief Thread exception handler.
+ *
+ *  Causes all threads to vanish.
+ *
+ *  @return Does not return.
+ */
 static void exception_handler(void *esp3, ureg_t *ureg)
 {
     task_vanish(-ureg->cause);
 }
 
+/** @brief Wrapper function used in thread creation.
+ *
+ *  Registers exception handler on creation and calls thr_exit on termination.
+ *
+ *  @return Void.
+ */
 static void thread_wrapper(void *(*func)(void*), void *arg, void *esp3)
 {
     swexn(esp3, exception_handler, esp3, NULL);
@@ -37,6 +48,11 @@ static void thread_wrapper(void *(*func)(void*), void *arg, void *esp3)
     thr_exit(ret);
 }
 
+/** @brief Allocates a stack for the main thread and adds it to the thread
+ *  library.
+ *
+ *  @return 0 on success, negative error code otherwise.
+ */
 static int add_main_thread()
 {
     thread_t *thread = (thread_t *)malloc(sizeof(thread_t));
@@ -50,7 +66,7 @@ static int add_main_thread()
     }
     thread->stack_base = threadlib.next_stack_base;
     threadlib.next_stack_base -= threadlib.stack_size;
-    thread->esp3 = ROOT_HANDLER_STACK;
+    thread->esp3 = MAIN_EXCEPTION_STACK;
 
     thread->tid = thr_getid();
     thread->joiner_tid = -1;
@@ -99,11 +115,10 @@ int thr_create(void *(*func)(void *), void *args)
         free(thread);
         return -2;
     }
-
-    thread->stack_base = threadlib.next_stack_base;
-    threadlib.next_stack_base -= threadlib.stack_size;
     thread->esp3 = threadlib.next_stack_base;
     threadlib.next_stack_base -= EXCEPTION_STACK_SIZE;
+    thread->stack_base = threadlib.next_stack_base;
+    threadlib.next_stack_base -= threadlib.stack_size;
 
     ((stacktop_t *)thread->stack_base)->esp3 = thread->esp3;
     ((stacktop_t *)thread->stack_base)->argument = args;
@@ -112,7 +127,7 @@ int thr_create(void *(*func)(void *), void *args)
 
     unsigned int eip = (unsigned int)thread_wrapper;
     unsigned int esp = (unsigned int)&((stacktop_t *)thread->stack_base)->return_address;
-    int tid = new_kernel_thread(eip, esp);
+    int tid = thread_fork(eip, esp);
     thread->tid = tid;
 
     thread->joiner_tid = -1;

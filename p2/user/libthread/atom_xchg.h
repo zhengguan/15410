@@ -5,6 +5,9 @@
  *  @author Jack Sorrell (jsorrell)
  *  @bug No known bugs.
  */
+
+#ifndef _ATOM_XCHG_H
+#define _ATOM_XCHG_H
  
 /** @brief Performs an atomic xchg.
  *
@@ -13,3 +16,5 @@
  *  @return The old dest value.
  */
 extern int atom_xchg(int *dest, int src);
+
+#endif /* _ATOM_XCHG_H */

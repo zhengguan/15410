@@ -44,5 +44,5 @@ void panic(const char *fmt, ...)
 	va_end(vl);
 	printf("\n");
 
-	task_vanish(-42);
+	task_vanish(-99);
 }

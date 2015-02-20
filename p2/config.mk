@@ -85,7 +85,7 @@ UPDATE_METHOD = afs
 # A list of the test programs you want compiled in from the 410user/progs
 # directory
 #
-410TESTS = stack_test1 misbehave_wrap startle agility_drill cyclone join_specific_test thr_exit_join cvar_test mutex_destroy_test
+410TESTS = stack_test1 misbehave_wrap startle agility_drill cyclone join_specific_test thr_exit_join
 
 ###########################################################################
 # Test programs you have written which you wish to run
@@ -93,12 +93,12 @@ UPDATE_METHOD = afs
 # A list of the test programs you want compiled in from the user/progs
 # directory
 #
-STUDENTTESTS = basic_thr thr2 die rw_test sem_test
+STUDENTTESTS =
 
 ###########################################################################
 # Object files for your thread library
 ###########################################################################
-THREAD_OBJS = malloc.o panic.o atom_xchg.o linklist.o hashtable.o thread.o mutex.o cond.o sem.o rwlock.o new_kernel_thread.o
+THREAD_OBJS = malloc.o panic.o thread_fork.o atom_xchg.o linklist.o hashtable.o thread.o mutex.o cond.o sem.o rwlock.o
 
 # Thread Group Library Support.
 #

@@ -1,5 +1,5 @@
-/** @file new_kernel_thread.S
- *  @brief This file implements the function new_kernel_thread.
+/** @file thread_fork.S
+ *  @brief The thread_fork system call wrapper.
  *
  *  @author Patrick Koenig (phkoenig)
  *  @author Jack Sorrell (jsorrell)
@@ -8,9 +8,9 @@
 
 #include<syscall_int.h>
 
-.global new_kernel_thread
+.global thread_fork
 
-new_kernel_thread:
+thread_fork:
     mov     4(%esp), %ecx       # get the new thread's %eip
     mov     8(%esp), %edx       # get the new thread's %esp
     int     $THREAD_FORK_INT    # thread_fork
@@ -21,4 +21,3 @@ new_kernel_thread:
     jmp     %ecx                # jmp to the new %eip
     RETURN:
     ret
-

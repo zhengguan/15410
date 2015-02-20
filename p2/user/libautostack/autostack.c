@@ -21,13 +21,13 @@ void install_autostack(void *stack_high, void *stack_low)
 {
     g_stackinfo.stack_high = stack_high;
     g_stackinfo.stack_low = stack_low;
-    g_stackinfo.stack_max_size = stack_high - ROOT_HANDLER_STACK;
+    g_stackinfo.stack_max_size = stack_high - MAIN_EXCEPTION_STACK;
 
-    if (new_pages((void *)(ROOT_HANDLER_STACK - PAGE_SIZE), PAGE_SIZE) < 0) {
+    if (new_pages((void *)(MAIN_EXCEPTION_STACK - PAGE_SIZE), PAGE_SIZE) < 0) {
         exit(-1);
     }
 
-    register_exception_handler(ROOT_HANDLER_STACK, NULL);
+    register_exception_handler(MAIN_EXCEPTION_STACK, NULL);
 }
 
 /** @brief Registers the exception handler responsible for  performing
@@ -63,5 +63,5 @@ static void exception_handler(void *arg, ureg_t *ureg) {
 
     g_stackinfo.stack_low = base;
 
-    register_exception_handler(ROOT_HANDLER_STACK, ureg);
+    register_exception_handler(MAIN_EXCEPTION_STACK, ureg);
 }

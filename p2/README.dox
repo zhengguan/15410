@@ -2,9 +2,108 @@
 
 @mainpage 15-410 Project 2
 
-@author Name1 (id1)
-@author Name2 (id2)
+@author Patrick Koenig (phkoenig)
+@author Jack Sorrell (jsorrell)
 
-Same drill as last time.
+
+1. Stack
+
+Our stack is designed as follows
+
+ +-----------------+
+ |      main       |
+ |   user stack    |
+ +-----------------+
+ |    thread 1     |
+ | exception stack |
+ +-----------------+
+ |    thread 1     |
+ |   user stack    |
+ +-----------------+
+ |    thread 2     |
+ | exception stack |
+ +-----------------+
+ |    thread 2     |
+ |   user stack    |
+ +-----------------+
+ |       ...       |
+ |       ...       |
+ |       ...       |
+ |       ...       |
+ +-----------------+
+ |      main       |
+ | exception stack |
+ +-----------------+
+    
+Each thread has a separate exception because an exception handler may be
+interrupted by an exception on another thread.  Exception stacks are one page as
+this should be sufficient for exception handlers.  The main exception stack is
+located far down the stack (at MAIN_EXCEPTION _STACK defined in autostack.h) to
+allow for the creation of an adequate number of threads.
+
+In thr_init we extend the size of the main user stack by the maximum size
+specified by the user to accommodate future stack allocation by the main thread.
+In thr_create, each time a thread is created we create a exception stack and a
+user stack for the new thread below previously created stacks.  Exception stacks
+are one page in size and user stacks have the size specified by the user in
+thr_init.
+
+
+2. Thread library
+
+We chose to implement a 1:1 thread library due to its simplicity.  Implementing
+other thread library models would require our thread library to contain some
+method of context switching when moving between user threads sharing a kernel
+thread.  For this reason we chose to implement 1:1 thread library where
+thr_getid() returns the kernel thread ID and thr_yield() simply make a yield
+system call.
+
+Data for our thread library is kept in a struct which contains stack
+information, a hash table of thread data, and a mutex to be used when
+modifying the hash table.  We used a hash table to provide fast lookup and use
+the thread IDs as keys.  Thread data is kept in a struct which contains stack
+information, the thread ID, the ID of the joining thread (if there is one), and
+exit information.
+
+
+3. Mutexes
+
+Our mutex implementation does not satisfy bounded waiting.  We made this
+decision to more easily allow our thread library to handle an arbitrary amount
+of threads as well as to simplify our implementation.  In practice this should
+have little impact on our library due to that critical sections are expected to
+be short and kernel schedulers are often relatively fair.
+
+While a thread it waiting for a mutex, it will yield to the thread currently
+holding the mutex in an effort to improve waiting times.
+
+
+4. Condition variables
+
+Our condition variable implementation use a linked list as a queue for threads
+waiting on the condition variable.  We created a waiter struct which contains a
+thread ID and reject flag.  When a thread calls cond_wait(), we create a waiter
+struct, add it to our linked list, and call deschedule() on the thread.  Later,
+in signal or broadcast, we remove waiter(s) from the queue, set the reject flag,
+call make_runnable() on the thread, and call yield to the woken thread.  The
+reject flag prevents threads from being descheduled indefinitely due to a race
+conditions in which a waiter is remove from the queue and make_runnable() is
+called before descheduled() has been called.
+
+
+5. Semaphores
+
+Our semaphore implementation is straightforward and uses a condition variable to
+wait for and signal open slots in the semaphore.
+
+
+6. Reader-writer locks
+
+Our reader-writer lock implementation solves the second readers/writers problem
+and does not allow the starvartion of writers.  Once a writer begins waiting,
+no new readers can aquire the lock until the writer is done.  However our
+solution does allow for the startvation of readers.  We made this decision
+because often writes do not happen nearly as frequently as reads so the 
+likelihood of reader starvation is low.
 
 */
