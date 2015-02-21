@@ -10,15 +10,14 @@
 #ifndef _AUTOSTACK_H_
 #define _AUTOSTACK_H_
 
-#define MAIN_EXCEPTION_STACK ((void *)0x80000000)
 #define PAGE_MASK ((unsigned int)(~(PAGE_SIZE - 1)))
 
 typedef struct stackinfo {
     void *stack_high;
     void *stack_low;
-    unsigned int stack_max_size;
 } stackinfo_t;
 
 extern stackinfo_t g_stackinfo;
+extern void *main_exception_stack;
 
 #endif /* _AUTOSTACK_H_ */

@@ -34,12 +34,11 @@ Our stack is designed as follows
  |      main       |
  | exception stack |
  +-----------------+
-    
+
 Each thread has a separate exception because an exception handler may be
 interrupted by an exception on another thread.  Exception stacks are one page as
 this should be sufficient for exception handlers.  The main exception stack is
-located far down the stack (at MAIN_EXCEPTION _STACK defined in autostack.h) to
-allow for the creation of an adequate number of threads.
+located in the heap to allow for the creation of an adequate number of threads.
 
 In thr_init we extend the size of the main user stack by the maximum size
 specified by the user to accommodate future stack allocation by the main thread.
@@ -74,7 +73,7 @@ of threads as well as to simplify our implementation.  In practice this should
 have little impact on our library due to that critical sections are expected to
 be short and kernel schedulers are often relatively fair.
 
-While a thread it waiting for a mutex, it will yield to the thread currently
+While a thread is waiting for a mutex, it will yield to the thread currently
 holding the mutex in an effort to improve waiting times.
 
 
@@ -87,7 +86,7 @@ struct, add it to our linked list, and call deschedule() on the thread.  Later,
 in signal or broadcast, we remove waiter(s) from the queue, set the reject flag,
 call make_runnable() on the thread, and call yield to the woken thread.  The
 reject flag prevents threads from being descheduled indefinitely due to a race
-conditions in which a waiter is remove from the queue and make_runnable() is
+conditions in which a waiter is removed from the queue and make_runnable() is
 called before descheduled() has been called.
 
 
@@ -103,7 +102,7 @@ Our reader-writer lock implementation solves the second readers/writers problem
 and does not allow the starvartion of writers.  Once a writer begins waiting,
 no new readers can aquire the lock until the writer is done.  However our
 solution does allow for the startvation of readers.  We made this decision
-because often writes do not happen nearly as frequently as reads so the 
+because often writes do not happen nearly as frequently as reads so the
 likelihood of reader starvation is low.
 
 */

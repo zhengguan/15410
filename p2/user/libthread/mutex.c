@@ -1,5 +1,5 @@
 /** @file mutex.c
- *  @brief This file implements the interface for mutexes.
+ *  @brief This file implements mutexes.
  *
  *  @author Patrick Koenig (phkoenig)
  *  @author Jack Sorrell (jsorrell)
@@ -8,8 +8,8 @@
 
 #include <mutex.h>
 #include <atom_xchg.h>
-#include <syscall.h>
 #include <stdlib.h>
+#include <syscall.h>
 
 /** @brief Initializes a mutex.
  *
@@ -66,7 +66,7 @@ void mutex_lock(mutex_t *mp) {
     }
     mp->count++;
     mp->count_lock = 0;
-    
+
     while (atom_xchg(&mp->lock, 1) != 0) {
         yield(mp->tid);
     }
@@ -84,13 +84,13 @@ void mutex_unlock(mutex_t *mp) {
         mp->tid != gettid()) {
         return;
     }
-    
+
     while (atom_xchg(&mp->count_lock, 1) != 0) {
         yield(-1);
     }
     mp->count--;
     mp->count_lock = 0;
-    
+
     mp->tid = -1;
     mp->lock = 0;
 }

@@ -7,8 +7,8 @@
 #ifndef THR_INTERNALS_H
 #define THR_INTERNALS_H
 
-#include <mutex.h>
 #include <hashtable.h>
+#include <mutex.h>
 #include <ureg.h>
 
 #define HASH_TABLE_SIZE 32

@@ -60,13 +60,14 @@ static int add_main_thread()
         return -1;
     }
 
-    if (new_pages(threadlib.next_stack_base-threadlib.stack_size, threadlib.stack_size) < 0) {
+    if (new_pages(threadlib.next_stack_base-threadlib.stack_size,
+                  threadlib.stack_size) < 0) {
         free(thread);
         return -2;
     }
     thread->stack_base = threadlib.next_stack_base;
     threadlib.next_stack_base -= threadlib.stack_size;
-    thread->esp3 = MAIN_EXCEPTION_STACK;
+    thread->esp3 = main_exception_stack;
 
     thread->tid = thr_getid();
     thread->joiner_tid = -1;
@@ -110,7 +111,8 @@ int thr_create(void *(*func)(void *), void *args)
     mutex_lock(&threadlib.mutex);
 
     int total_stack_size = EXCEPTION_STACK_SIZE + threadlib.stack_size;
-    if (new_pages(threadlib.next_stack_base-total_stack_size, total_stack_size) < 0) {
+    if (new_pages(threadlib.next_stack_base-total_stack_size,
+                  total_stack_size) < 0) {
         mutex_unlock(&threadlib.mutex);
         free(thread);
         return -2;
@@ -126,7 +128,7 @@ int thr_create(void *(*func)(void *), void *args)
     ((stacktop_t *)thread->stack_base)->return_address = NULL;
 
     unsigned int eip = (unsigned int)thread_wrapper;
-    unsigned int esp = (unsigned int)&((stacktop_t *)thread->stack_base)->return_address;
+    unsigned esp = (unsigned)&((stacktop_t*)thread->stack_base)->return_address;
     int tid = thread_fork(eip, esp);
     thread->tid = tid;
 

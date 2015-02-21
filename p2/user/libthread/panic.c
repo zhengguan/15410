@@ -25,6 +25,8 @@
 #include <simics.h>
 #include <syscall.h>
 
+#define EXIT_CODE (-99)
+
 /*
  * This function is called by the assert() macro defined in assert.h;
  * it's also a nice simple general-purpose panic function.
@@ -44,5 +46,5 @@ void panic(const char *fmt, ...)
 	va_end(vl);
 	printf("\n");
 
-	task_vanish(-99);
+	task_vanish(EXIT_CODE);
 }

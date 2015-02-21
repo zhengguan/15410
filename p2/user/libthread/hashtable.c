@@ -35,11 +35,11 @@ static inline int hashtable_idx(hashtable_t *table, int key) {
  *  @return Pointer to the hash table, NULL on failure.
  */
 hashtable_t *hashtable_init(int size) {
-    hashtable_t *table = (hashtable_t *)malloc(sizeof(hashtable_t) + size*sizeof(hashnode_t));
+    hashtable_t *table = malloc(sizeof(hashtable_t) + size*sizeof(hashnode_t));
     if (table == NULL) {
         return NULL;
     }
-    
+
     table->size = size;
     memset(table->nodes, 0, size*sizeof(hashnode_t));
 
@@ -136,6 +136,6 @@ int hashtable_remove(hashtable_t *table, int key) {
             }
         }
     }
-    
+
     return -2;
 }

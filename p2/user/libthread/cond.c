@@ -7,9 +7,9 @@
  */
 
 #include <cond.h>
-#include <thread.h>
-#include <syscall.h>
 #include <stdlib.h>
+#include <syscall.h>
+#include <thread.h>
 
 typedef struct waiter {
     int tid;

@@ -8,11 +8,14 @@
  */
 
 #include <autostack.h>
-#include <syscall.h>
 #include <stdlib.h>
+#include <syscall.h>
 #include <ureg.h>
 
+#define MAIN_EXCEPTION_STACK_SIZE PAGE_SIZE
+
 stackinfo_t g_stackinfo;
+void *main_exception_stack;
 
 static void register_exception_handler(void *esp3, ureg_t *newureg);
 static void exception_handler(void *arg, ureg_t *ureg);
@@ -21,13 +24,12 @@ void install_autostack(void *stack_high, void *stack_low)
 {
     g_stackinfo.stack_high = stack_high;
     g_stackinfo.stack_low = stack_low;
-    g_stackinfo.stack_max_size = stack_high - MAIN_EXCEPTION_STACK;
 
-    if (new_pages((void *)(MAIN_EXCEPTION_STACK - PAGE_SIZE), PAGE_SIZE) < 0) {
+    if ( (main_exception_stack = malloc(MAIN_EXCEPTION_STACK_SIZE)) == NULL ) {
         exit(-1);
     }
 
-    register_exception_handler(MAIN_EXCEPTION_STACK, NULL);
+    register_exception_handler(main_exception_stack, NULL);
 }
 
 /** @brief Registers the exception handler responsible for  performing
@@ -63,5 +65,5 @@ static void exception_handler(void *arg, ureg_t *ureg) {
 
     g_stackinfo.stack_low = base;
 
-    register_exception_handler(MAIN_EXCEPTION_STACK, ureg);
+    register_exception_handler(main_exception_stack, ureg);
 }
