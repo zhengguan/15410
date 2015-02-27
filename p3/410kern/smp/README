@@ -1,0 +1,17 @@
+If you are reading this file, you probably don't need to.
+
+This directory contains code which enables a Pebbles kernel
+to boot multiple processors and communicate among them by
+using inter-processor interrupts (IPIs).  This code is
+provided for the curious or ambitious reader, but you should
+be VERY CAREFUL that it doesn't distract you from accomplishing
+what you need to get done to pass the kernel project, i.e. write
+a complete and robust kernel.
+
+Notes:
+
+1. We expect you to consult "L36_P4.pdf" and "smp4.pdf" in
+this directory.
+
+2. It might be useful to refer to Intel's "MultiProcessor
+Specification, Version 1.4 (May 1997)".
