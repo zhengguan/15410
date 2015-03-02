@@ -7,15 +7,13 @@
  *  @author Jack Sorrell (jsorrell)
  *  @bug No known bugs.
  */
- 
-#include <p1kern.h>
+
 #include <stdio.h>
 #include <x86/asm.h>
 #include <x86/video_defines.h>
 #include <console.h>
 
 static int term_color = DEFAULT_TERM_COLOR;
-
 static int cursor_visible = DEFAULT_CURSOR_VISIBLE;
 static int cursor_row = 0;
 static int cursor_col = 0;
@@ -168,7 +166,7 @@ int get_color(int row, int col) {
   return *(char *)(CONSOLE_MEM_BASE + 2*(row*CONSOLE_WIDTH + col) + 1);
 }
 
-static void scroll_up() {
+void scroll_up() {
     int row;
     int col;
     for(row = 1; row < CONSOLE_HEIGHT; row++) {    

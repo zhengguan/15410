@@ -1,27 +1,11 @@
-/*
- *
- *  #     #
- *  ##    #   ####    #####     #     ####   ######
- *  # #   #  #    #     #       #    #    #  #
- *  #  #  #  #    #     #       #    #       #####
- *  #   # #  #    #     #       #    #       #
- *  #    ##  #    #     #       #    #    #  #
- *  #     #   ####      #       #     ####   ######
- *
- * Now that it's P3 instead of P1 you are allowed
- * to edit this file if it suits you.
- *
- * Please delete this notice.
- *
- */
-
 /** @file console.h
  *  @brief Function prototypes for the console driver.
  *
  *  This contains the prototypes and global variables for the console
  *  driver
  *
- *  @author Michael Berman (mberman)
+ *  @author Patrick Koenig (phkoenig)
+ *  @author Jack Sorrell (jsorrell)
  *  @bug No known bugs.
  */
 
@@ -29,6 +13,9 @@
 #define _CONSOLE_H
 
 #include <video_defines.h>
+
+#define DEFAULT_TERM_COLOR (FGND_WHITE | BGND_BLACK)
+#define DEFAULT_CURSOR_VISIBLE 1
 
 /** @brief Prints character ch at the current location
  *         of the cursor.
@@ -155,5 +142,19 @@ void draw_char(int row, int col, int ch, int color);
  *  @return The character at (row, col).
  */
 char get_char(int row, int col);
+
+/** @brief Returns the color of the character at position (row, col).
+ *
+ *  @param row Row of the character.
+ *  @param col Column of the character.
+ *  @return The color at (row, col).
+ */
+int get_color(int row, int col);
+
+/** @brief Scroll the console up by one line.
+ *
+ *  @return Void.
+ */
+void scroll_up();
 
 #endif /* _CONSOLE_H */
