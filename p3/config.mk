@@ -86,7 +86,8 @@ STUDENTFILES =
 ###########################################################################
 # Object files for your thread library
 ###########################################################################
-THREAD_OBJS = malloc.o panic.o
+THREAD_OBJS = malloc.o panic.o thread_fork.o atom_xchg.o linklist.o \
+hashtable.o thread.o mutex.o cond.o sem.o rwlock.o
 
 # Thread Group Library Support.
 #
@@ -94,12 +95,16 @@ THREAD_OBJS = malloc.o panic.o
 # P3" we give you can't build libthrgrp.a.  Once you install your thread
 # library and fix THREAD_OBJS above, uncomment this line to enable building
 # libthrgrp.a:
-#410USER_LIBS_EARLY += libthrgrp.a
+410USER_LIBS_EARLY += libthrgrp.a
 
 ###########################################################################
 # Object files for your syscall wrappers
 ###########################################################################
-SYSCALL_OBJS = syscall.o
+SYSCALL_OBJS = fork.o exec.o wait.o yield.o deschedule.o \
+make_runnable.o gettid.o new_pages.o remove_pages.o sleep.o getchar.o \
+readline.o print.o set_term_color.o set_cursor_pos.o get_cursor_pos.o \
+get_ticks.o misbehave.o halt.o task_vanish.o set_status.o vanish.o \
+readfile.o swexn.o
 
 ###########################################################################
 # Object files for your automatic stack handling

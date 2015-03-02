@@ -5,9 +5,15 @@
 #ifndef _RWLOCK_TYPE_H
 #define _RWLOCK_TYPE_H
 
+#include <mutex.h>
+#include <cond.h>
 
 typedef struct rwlock {
-  /* fill this in */
+	int valid;
+	int reader_count;
+	mutex_t reader_count_mutex;
+	mutex_t writer_mutex;
+	cond_t cond;
 } rwlock_t;
 
 #endif /* _RWLOCK_TYPE_H */

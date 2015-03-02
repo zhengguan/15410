@@ -5,9 +5,12 @@
 #ifndef _COND_TYPE_H
 #define _COND_TYPE_H
 
+#include <linklist.h>
 
 typedef struct cond {
-  /* fill this in */
+    int valid;
+    linklist_t queue;
+    mutex_t mutex;
 } cond_t;
 
 #endif /* _COND_TYPE_H */

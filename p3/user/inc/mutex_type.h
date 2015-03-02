@@ -5,9 +5,12 @@
 #ifndef _MUTEX_TYPE_H
 #define _MUTEX_TYPE_H
 
-
 typedef struct mutex {
-  /* fill this in */
+    int valid;
+    int lock;
+    int tid;
+    int count;
+    int count_lock;
 } mutex_t;
 
 #endif /* _MUTEX_TYPE_H */
