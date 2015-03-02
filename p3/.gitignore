@@ -4,7 +4,8 @@
 *.img
 *.gz
 *.md5s
-kernel*
+kernel
+kernel.strip
 temp/
 410user/exec2obj
 410user/progs/
