@@ -7,11 +7,12 @@
  */
 
 #include <vm.h>
-#include <syscall.h>
 #include <linklist.h>
-#include <cr3.h>
+#include <syscall.h>
+#include <x86/cr.h>
+#include <x86/cr.h>
 
-unsigned next_phy_frame = FIRST_PHY_FRAME;
+uint32_t next_phy_frame = FIRST_PHY_FRAME;
 linklist_t free_frames;
 
 /** @brief Initializes the virtual memory.
@@ -21,7 +22,8 @@ linklist_t free_frames;
 void vm_init() {
     linklist_init(&free_frames);
     
-    set_cr3(vm_pd_init());
+    set_cr3((uint32_t)vm_pd_init());
+    set_cr0(get_cr0() & CR0_PG);
 }
 
 /** @brief Initializes a new page directory.
@@ -34,7 +36,7 @@ void *vm_pd_init() {
     pd_t pd = get_free_frame();
     
     // TODO what to do here?
-    pd[0] = (((unsigned)vm_pt_init() & BASE_ADDR_MASK) |
+    pd[0] = (((uint32_t)vm_pt_init() & BASE_ADDR_MASK) |
         PTE_PRESENT_YES | PTE_RW_WRITE | PTE_SU_SUPER);
     
     int i;
@@ -84,7 +86,7 @@ static void *get_free_frame() {
  *  @return 0 on success, negative error code otherwise.
  */
 int new_pages(void *base, int len) {
-    if (((unsigned)base % PAGE_SIZE) != 0) {
+    if (((uint32_t)base % PAGE_SIZE) != 0) {
         return -1;
     }
     
@@ -92,7 +94,7 @@ int new_pages(void *base, int len) {
         return -2;
     }
 
-    pd_t pd = get_cr3();
+    pd_t pd = (pd_t)get_cr3();
     
     // TODO find better solution for this looping
     
@@ -103,7 +105,7 @@ int new_pages(void *base, int len) {
     while (i < num_pages) {
         pt_t pt = (pt_t)(pd[GET_PD_IDX(base)] & BASE_ADDR_MASK);
         int pt_idx = GET_PT_IDX(base);
-        while(i < num_pages) {
+        while(i < num_pages && pt_idx < PT_SIZE) {
             pte_t pte = pt[pt_idx++];
             if (!(pte & PTE_PRESENT_YES)) {
                 return -3;
@@ -113,7 +115,7 @@ int new_pages(void *base, int len) {
     }
     
     for (i = 0; i < num_pages; i++) {
-        *ptes[i] = (((unsigned)get_free_frame() & BASE_ADDR_MASK) |
+        *ptes[i] = (((uint32_t)get_free_frame() & BASE_ADDR_MASK) |
             PTE_PRESENT_YES | PTE_RW_WRITE | PTE_SU_SUPER);
     }
     
