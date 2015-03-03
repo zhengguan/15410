@@ -10,8 +10,7 @@
  */
 
 #include <common_kern.h>
-#include <idt.h>
-#include <seg.h>
+#include <console.h>
 
 /* libc includes. */
 #include <stdio.h>
@@ -36,20 +35,12 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
      * You should delete this comment, and enable them --
      * when you are ready.
      */
+     
+    clear_console();
 
     while (1) {
         continue;
     }
 
     return 0;
-}
-
-void idt_entry_init(int idt_entry, idt_handler_t handler, int gate_type)
-{
-    idt_desc_t *idt_desc = (idt_desc_t *)((uint64_t *)idt_base() + idt_entry);
-    idt_desc->offset_l = (uint16_t)(int)(handler);
-    idt_desc->segment_selector = SEGSEL_KERNEL_CS;
-    idt_desc->zeros = 0x00;
-    idt_desc->flags = (gate_type | IDT_D | IDT_DPL | IDT_P);
-    idt_desc->offset_h = (uint16_t)(((int)handler) >> 16);
 }
