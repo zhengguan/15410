@@ -7,9 +7,18 @@
  *  @author Jack Sorrell (jsorrell)
  *  @bug No known bugs.
  */
- 
+
+#ifndef _THREAD_H
+#define _THREAD_H
+
+#include <linklist.h>
+
+#define PCB_HT_SIZE 128
+#define TCB_HT_SIZE 128
+
 typedef struct pcb {
     int pid;
+    linklist_t threads;
 } pcb_t;
 
 typedef struct tcb {
@@ -17,3 +26,5 @@ typedef struct tcb {
     int esp;
     pcb_t *process;
 } tcb_t;
+
+#endif /* _THREAD_H */

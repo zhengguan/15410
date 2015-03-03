@@ -17,7 +17,7 @@ struct listnode {
 /** @brief Initializes a list to be empty.
  *
  *  @param list The list.
- *  @return Pointer to the list, NULL on failure.
+ *  @return 0 on success, negative error code otherwise.
  */
 int linklist_init(linklist_t *list) {
     if (list == NULL) {

@@ -103,11 +103,18 @@ int new_pages(void *base, int len) {
     
     int i = 0;
     while (i < num_pages) {
-        pt_t pt = (pt_t)(pd[GET_PD_IDX(base)] & BASE_ADDR_MASK);
+        pde_t *pde = &pd[GET_PD_IDX(base)];
+        if (!(*pde & PTE_PRESENT_YES)) {
+            // TODO duplicated from above
+            *pde = (((uint32_t)vm_pt_init() & BASE_ADDR_MASK) |
+                PTE_PRESENT_YES | PTE_RW_WRITE | PTE_SU_SUPER);
+        }
+        // TODO handle nonexistant page table
+        pt_t pt = (pt_t)(*pde & BASE_ADDR_MASK);
         int pt_idx = GET_PT_IDX(base);
         while(i < num_pages && pt_idx < PT_SIZE) {
             pte_t pte = pt[pt_idx++];
-            if (!(pte & PTE_PRESENT_YES)) {
+            if (pte & PTE_PRESENT_YES) {
                 return -3;
             };
             ptes[i++] = &pte;
