@@ -9,6 +9,7 @@
 #include <vm.h>
 #include <linklist.h>
 #include <syscall.h>
+#include <malloc.h>
 #include <x86/cr.h>
 #include <common_kern.h>
 
@@ -69,7 +70,7 @@ unsigned vm_new_pd()
 {
     // TODO add locking mechanism?
     
-    pd_t pd = (pd_t)get_frame();
+    pd_t pd = malloc(PD_SIZE*sizeof(pde_t));
     set_cr3((unsigned)pd);
     
     int i;
@@ -105,7 +106,7 @@ void vm_new_pde(pde_t *pde, pt_t pt)
  */
 void vm_new_pt(pde_t *pde)
 {    
-    pt_t pt = (pt_t)get_frame();
+    pt_t pt = malloc(PT_SIZE*sizeof(pte_t));
     
     int i;
     for (i = 0; i < PT_SIZE; i++) {
