@@ -50,10 +50,8 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
 
     lprintf("Beginning exec");
 
-    if (exec("idle", arg) < 0)
+    if (exec("ck1", arg) < 0)
         lprintf("not idle");
-
-    lprintf("%d", exec("idle", arg));
 
     return 0;
 }

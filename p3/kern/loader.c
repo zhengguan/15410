@@ -22,8 +22,11 @@
 #include <common_kern.h>
 #include <simics.h>
 #include <exec_run.h>
+#include <seg.h>
+#include <eflags.h>
 
 #define USER_STACK_TOP ((unsigned)0xFFFFFFFF)
+#define USER_MODE_CPL 3
 
 
 /* --- Local function prototypes --- */
@@ -125,12 +128,22 @@ unsigned fillmem(const simple_elf_t *se_hdr, const exec2obj_userapp_TOC_entry *e
     *(int*)esp = stack_low;
     esp -= sizeof(int);
     *(int*)esp = USER_STACK_TOP;
-    esp -= arglen*sizeof(char);
-    memcpy((char*)esp, argv, arglen*sizeof(char*));
+    esp -= sizeof(char**);
+    *(char***)esp = argv;
     esp -= sizeof(int);
     *(int*)esp = arglen;
+    esp -= sizeof(int);
 
     return esp;
+}
+
+void user_run(unsigned eip, unsigned esp)
+{
+    //TODO: should this look at currently set eflags?
+    //TODO: more flags?
+    unsigned eflags = EFL_RESV1;// | EFL_IF;
+    MAGIC_BREAK;
+    exec_run(SEGSEL_USER_DS, eip, SEGSEL_USER_CS, eflags, esp, SEGSEL_USER_DS);
 }
 
 int exec(char *filename, char *argv[])
@@ -161,7 +174,7 @@ int exec(char *filename, char *argv[])
 
         lprintf("filled");
 
-        exec_run(esp, se_hdr.e_entry);
+        user_run(se_hdr.e_entry, esp);
 
         //should not get here
         lprintf("fucked up");
