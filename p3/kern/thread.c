@@ -9,6 +9,7 @@
 #include <thread.h>
 #include <stdlib.h>
 #include <hashtable.h>
+#include <simics.h>
 
 int next_pid = 1;
 int next_tid = 1;
@@ -16,38 +17,50 @@ int next_tid = 1;
 hashtable_t pcbs;
 hashtable_t tcbs;
 
+int cur_pid;
+int cur_tid;
+
 void thread_init() {
      hashtable_init(&pcbs, PCB_HT_SIZE);
      hashtable_init(&tcbs, TCB_HT_SIZE);
 }
 
-int new_task() {
-    pcb_t *pcb = (pcb_t *)malloc(sizeof(tcb_t));
+int new_process() {
+    pcb_t *pcb = malloc(sizeof(pcb_t));
     if (pcb == NULL) {
         return -1;
     }
-    
+
     pcb->pid = next_pid++;
-    
+    cur_process = pid->cur_pid;
     // TODO do more stuff
-    
-    hashtable_add(&pcbs, pcb->pid, pcb);
-    
+
+    hashtable_add(&pcbs, pcb->pid, (void *)pcb);
+
     return 0;
 }
 
 int new_thread() {
-    tcb_t *tcb = (tcb_t *)malloc(sizeof(tcb_t));
+    tcb_t *tcb = malloc(sizeof(tcb_t));
     if (tcb == NULL) {
         return -1;
     }
-    
+
     tcb->tid = next_tid++;
-    
+    tcb->process = cur_pid;
+
     // TODO do more stuff
-    
-    hashtable_add(&tcbs, tcb->tid, tcb);
+
+    hashtable_add(&tcbs, tcb->tid, (void*)tcb);
+
+    pcb_t pcb;
+    if (!hashtable_get(&pcbs, tcb->process, &pcb)) {
+        //FIXME do something
+        lprintf("fucked up");
+        MAGIC_BREAK;
+    }
+
     // TODO add to pcb linklist
-    
+
     return 0;
 }
