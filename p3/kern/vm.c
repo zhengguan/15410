@@ -10,74 +10,127 @@
 #include <linklist.h>
 #include <syscall.h>
 #include <x86/cr.h>
-#include <x86/cr.h>
+#include <common_kern.h>
 
-uint32_t next_phy_frame = FIRST_PHY_FRAME;
+unsigned next_frame = USER_MEM_START;
+// TODO Improve space complexity of this data structure
 linklist_t free_frames;
+
+/** @brief Gets a free physical frame.
+ *
+ *  @return Physical address of the frame.
+ */
+static unsigned get_frame()
+{
+    unsigned frame;
+    if (linklist_empty(&free_frames)) {
+        frame = next_frame;
+        next_frame += PAGE_SIZE;
+    } else {
+        linklist_remove_head(&free_frames, (void **)&frame);
+    }
+    return frame;
+}
+
+/** @brief Checks whether a virtual address in the page table.
+ *
+ *  @return True if present, false otherwise.
+ */
+static int is_present(void *va)
+{
+    pde_t pde = GET_PDE(va);
+    if (IS_PRESENT(pde)) {
+        pte_t pte = GET_PTE(pde, va);
+        if (IS_PRESENT(pte)) {
+            return 1;
+        }
+    }
+    
+    return 0;
+}
 
 /** @brief Initializes the virtual memory.
  *
  *  @return Void.
  */
-void vm_init() {
+void vm_init()
+{
     linklist_init(&free_frames);
     
-    set_cr3((uint32_t)vm_pd_init());
-    set_cr0(get_cr0() & CR0_PG);
+    set_cr3(vm_new_pd());
+    set_cr0(get_cr0() | CR0_PG);
 }
 
 /** @brief Initializes a new page directory.
  *
  *  @return Physical address of base of the new page directory.
  */
-void *vm_pd_init() {
+unsigned vm_new_pd()
+{
     // TODO add locking mechanism?
     
-    pd_t pd = get_free_frame();
-    
-    // TODO what to do here?
-    pd[0] = (((uint32_t)vm_pt_init() & BASE_ADDR_MASK) |
-        PTE_PRESENT_YES | PTE_RW_WRITE | PTE_SU_SUPER);
+    pd_t pd = (pd_t)get_frame();
     
     int i;
-    for (i = 1; i < PD_SIZE; i++) {
-        // TODO what to do here?
-        pd[i] |= (PTE_PRESENT_NO | PTE_RW_WRITE | PTE_SU_SUPER);
+    for (i = 0; i < PD_SIZE; i++) {
+        pd[i] &= PTE_PRESENT_NO;
     }
     
-    return (void *)pd;
+    unsigned va;
+    for(va = KERNEL_MEM_START; va < USER_MEM_START; va += PAGE_SIZE) {
+        vm_new_pte((void *)va, va, PTE_SU_SUPER);
+    }
+    
+    return (unsigned)pd;
+}
+
+/** @brief Initializes a new page directory entry.
+ *
+ *  @param pde The page directory entry.
+ *  @param pt The page table for the page directory entry.
+ *  @return Physical address of base of the new page table.
+ */
+void vm_new_pde(pde_t *pde, pt_t pt)
+{
+    *pde = (((unsigned)pt & BASE_ADDR_MASK) | PTE_PRESENT_YES | PTE_RW_WRITE);
 }
 
 /** @brief Initializes a new page table.
  *
+ *  @param pde The page directory entry for the new page table.
  *  @return Physical address of base of the new page table.
  */
-void *vm_pt_init() {
-    pt_t pt = get_free_frame();
+void vm_new_pt(pde_t *pde)
+{    
+    pt_t pt = (pt_t)get_frame();
     
     int i;
-    for (i = 0; i < PD_SIZE; i++) {
-        // TODO what to do here?
-        pt[i] |= (PTE_PRESENT_NO | PTE_RW_WRITE | PTE_SU_SUPER);
+    for (i = 0; i < PT_SIZE; i++) {
+        pt[i] &= PTE_PRESENT_NO;
     }
     
-    return (void *)pt;
+    vm_new_pde(pde, pt);
 }
 
-/** @brief Gets a free physical frame.
+/** @brief Initializes a new page table entry for a virtual address.
  *
- *  @return Physical address of the frame.
+ *  @param va The virtual address.
+ *  @param pa The mapped physical address.
+ *  @param su The page table entry su flag.
+ *  @return Physical address of base of the new page table.
  */
-static void *get_free_frame() {
-    void *frame;
-    if (linklist_empty(&free_frames)) {
-        frame = (void *)next_phy_frame;
-        next_phy_frame += PAGE_SIZE;
-    } else {
-        linklist_remove_head(&free_frames, &frame);
+void vm_new_pte(void *va, unsigned pa, unsigned su)
+{
+    pde_t *pde = &GET_PDE(va);
+    if (!IS_PRESENT(*pde)) {
+        vm_new_pt(pde);
     }
-    return frame;
+    
+    pte_t *pte = &GET_PTE(*pde, va);
+    *pte = ((pa & BASE_ADDR_MASK) | PTE_PRESENT_YES |
+                             PTE_RW_WRITE | su);
 }
+
 
 /** @brief Allocated memory starting at base and extending for len bytes.
  *
@@ -85,7 +138,8 @@ static void *get_free_frame() {
  *  @param len The number of bytes to allocate.
  *  @return 0 on success, negative error code otherwise.
  */
-int new_pages(void *base, int len) {
+int new_pages(void *base, int len)
+{
     if (((uint32_t)base % PAGE_SIZE) != 0) {
         return -1;
     }
@@ -93,37 +147,16 @@ int new_pages(void *base, int len) {
     if ((len % PAGE_SIZE) != 0) {
         return -2;
     }
-
-    pd_t pd = (pd_t)get_cr3();
     
-    // TODO find better solution for this looping
-    
-    int num_pages = len / PAGE_SIZE;
-    pte_t *ptes[num_pages];
-    
-    int i = 0;
-    while (i < num_pages) {
-        pde_t *pde = &pd[GET_PD_IDX(base)];
-        if (!(*pde & PTE_PRESENT_YES)) {
-            // TODO duplicated from above
-            *pde = (((uint32_t)vm_pt_init() & BASE_ADDR_MASK) |
-                PTE_PRESENT_YES | PTE_RW_WRITE | PTE_SU_SUPER);
-        }
-        // TODO handle nonexistant page table
-        pt_t pt = (pt_t)(*pde & BASE_ADDR_MASK);
-        int pt_idx = GET_PT_IDX(base);
-        while(i < num_pages && pt_idx < PT_SIZE) {
-            pte_t pte = pt[pt_idx++];
-            if (pte & PTE_PRESENT_YES) {
-                return -3;
-            };
-            ptes[i++] = &pte;
+    void *va;
+    for (va = base; va < base + len; va += PAGE_SIZE) { 
+        if (is_present(va)) {
+            return -3;
         }
     }
     
-    for (i = 0; i < num_pages; i++) {
-        *ptes[i] = (((uint32_t)get_free_frame() & BASE_ADDR_MASK) |
-            PTE_PRESENT_YES | PTE_RW_WRITE | PTE_SU_SUPER);
+    for (va = base; va < base + len; va += PAGE_SIZE) { 
+        vm_new_pte(va, get_frame(), PTE_SU_USER);
     }
     
     return 0;
@@ -134,7 +167,8 @@ int new_pages(void *base, int len) {
  *  @param base The base of the memory region to deallocate.
  *  @return 0 on success, negative error code otherwise.
  */
-int remove_pages(void *base) {
+int remove_pages(void *base)
+{
     // TODO How to keep track of allocated region len?
     return 0;
 }
