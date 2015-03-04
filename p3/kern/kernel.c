@@ -38,7 +38,6 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
      * You should delete this comment, and enable them --
      * when you are ready.
      */
-     
     
     vm_init();
     new_process();
