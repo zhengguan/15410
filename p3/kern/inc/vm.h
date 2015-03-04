@@ -7,10 +7,8 @@
  *  @author Jack Sorrell (jsorrell)
  *  @bug No known bugs.
  */
- 
-#include <x86/asm.h>
 
-#define FIRST_PHY_FRAME 0x1000000
+#define KERNEL_MEM_START 0x00000000
 
 #define PTE_PRESENT_NO 0x00
 #define PTE_PRESENT_YES 0x01
@@ -22,29 +20,34 @@
 #define PD_SIZE (PAGE_SIZE / sizeof(pde_t))
 #define PT_SIZE (PAGE_SIZE / sizeof(pte_t))
 
-#define PT_MASK 0x003FF000
-#define PT_SHIFT 10
-#define GET_PT_IDX(BASE) (((unsigned)BASE & PT_MASK) >> PT_SHIFT)
-
 #define PD_MASK 0xFFC00000
 #define PD_SHIFT 20
-#define GET_PD_IDX(BASE) (((unsigned)BASE & PD_MASK) >> PD_SHIFT)
+#define GET_PD() ((pd_t)get_cr3())
+#define GET_PD_IDX(ADDR) (((unsigned)ADDR & PD_MASK) >> PD_SHIFT)
+#define GET_PDE(ADDR) (GET_PD()[GET_PD_IDX(ADDR)])
 
-#define BASE_ADDR_MASK (unsigned)(~(PAGE_SIZE - 1))
+#define PT_MASK 0x003FF000
+#define PT_SHIFT 10
+#define GET_PT(PDE) ((pt_t)(PDE & BASE_ADDR_MASK))
+#define GET_PT_IDX(ADDR) (((unsigned)ADDR & PT_MASK) >> PT_SHIFT)
+#define GET_PTE(PDE,ADDR) (GET_PT(PDE)[GET_PT_IDX(ADDR)])
+
+#define IS_PRESENT(PTE) (PTE & PTE_PRESENT_YES) 
+
+#define BASE_ADDR_MASK ((unsigned)(~(PAGE_SIZE - 1)))
 
 typedef unsigned pde_t;
 typedef unsigned pte_t;
 typedef pde_t* pd_t;
 typedef pte_t* pt_t;
 
+/* Virtual memory functions */
 void vm_init();
+unsigned vm_new_pd();
+void vm_new_pde(pde_t *pde, pt_t pt);
+void vm_new_pt(pde_t *pde);
+void vm_new_pte(void *va, unsigned pa, unsigned su);
 
-void *vm_pd_init();
-
-void *vm_pt_init();
-
-static void *get_free_frame();
-
+/* System calls */
 int new_pages(void *base, int len);
-
 int remove_pages(void *base);
