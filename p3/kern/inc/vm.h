@@ -21,13 +21,13 @@
 #define PT_SIZE (PAGE_SIZE / sizeof(pte_t))
 
 #define PD_MASK 0xFFC00000
-#define PD_SHIFT 20
+#define PD_SHIFT 22
 #define GET_PD() ((pd_t)get_cr3())
 #define GET_PD_IDX(ADDR) (((unsigned)ADDR & PD_MASK) >> PD_SHIFT)
 #define GET_PDE(ADDR) (GET_PD()[GET_PD_IDX(ADDR)])
 
 #define PT_MASK 0x003FF000
-#define PT_SHIFT 10
+#define PT_SHIFT 12
 #define GET_PT(PDE) ((pt_t)(PDE & BASE_ADDR_MASK))
 #define GET_PT_IDX(ADDR) (((unsigned)ADDR & PT_MASK) >> PT_SHIFT)
 #define GET_PTE(PDE,ADDR) (GET_PT(PDE)[GET_PT_IDX(ADDR)])
@@ -46,7 +46,7 @@ void vm_init();
 unsigned vm_new_pd();
 void vm_new_pde(pde_t *pde, pt_t pt);
 void vm_new_pt(pde_t *pde);
-void vm_new_pte(void *va, unsigned pa, unsigned flags);
+void vm_new_pte(void *va, unsigned pa, unsigned su);
 
 /* System calls */
 int new_pages(void *base, int len);

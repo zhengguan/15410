@@ -27,4 +27,7 @@ typedef struct tcb {
     int pid;
 } tcb_t;
 
+int new_process();
+int new_thread();
+
 #endif /* _THREAD_H */

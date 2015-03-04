@@ -40,10 +40,12 @@ static int is_present(void *va)
 {
     pde_t pde = GET_PDE(va);
     if (IS_PRESENT(pde)) {
-        pte_t pte = GET_PTE(pde, va);
-        if (IS_PRESENT(pte)) {
-            return 1;
-        }
+        return 1;
+    }
+    
+    pte_t pte = GET_PTE(pde, va);
+    if (!IS_PRESENT(pte)) {
+        return 1;
     }
     
     return 0;
@@ -57,7 +59,7 @@ void vm_init()
 {
     linklist_init(&free_frames);
     
-    set_cr3(vm_new_pd());
+    vm_new_pd();
     set_cr0(get_cr0() | CR0_PG);
 }
 
@@ -70,6 +72,7 @@ unsigned vm_new_pd()
     // TODO add locking mechanism?
     
     pd_t pd = (pd_t)get_frame();
+    set_cr3((unsigned)pd);
     
     int i;
     for (i = 0; i < PD_SIZE; i++) {
@@ -122,6 +125,7 @@ void vm_new_pt(pde_t *pde)
 void vm_new_pte(void *va, unsigned pa, unsigned su)
 {
     pde_t *pde = &GET_PDE(va);
+    
     if (!IS_PRESENT(*pde)) {
         vm_new_pt(pde);
     }

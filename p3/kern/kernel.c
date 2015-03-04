@@ -11,6 +11,9 @@
 
 #include <common_kern.h>
 #include <console.h>
+#include <vm.h>
+#include <thread.h>
+#include <exec.h>
 
 /* libc includes. */
 #include <stdio.h>
@@ -36,11 +39,17 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
      * when you are ready.
      */
      
+    
+    vm_init();
+    new_process();
+    
     clear_console();
-
-    while (1) {
-        continue;
-    }
+    
+    const char *arg[] = {NULL};
+    
+    lprintf("Beginning exec");
+    
+    exec("idle", arg); 
 
     return 0;
 }
