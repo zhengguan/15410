@@ -32,7 +32,7 @@ int new_process() {
     }
 
     pcb->pid = next_pid++;
-    cur_process = pid->cur_pid;
+    cur_pid = pcb->pid;
     // TODO do more stuff
 
     hashtable_add(&pcbs, pcb->pid, (void *)pcb);
@@ -47,18 +47,20 @@ int new_thread() {
     }
 
     tcb->tid = next_tid++;
-    tcb->process = cur_pid;
+    tcb->pid = cur_pid;
 
     // TODO do more stuff
 
     hashtable_add(&tcbs, tcb->tid, (void*)tcb);
 
-    pcb_t pcb;
-    if (!hashtable_get(&pcbs, tcb->process, &pcb)) {
+    pcb_t *pcb;
+    if (!hashtable_get(&pcbs, tcb->pid, (void**)&pcb)) {
         //FIXME do something
         lprintf("fucked up");
         MAGIC_BREAK;
     }
+
+    linklist_add_tail(&pcb->threads, tcb);
 
     // TODO add to pcb linklist
 

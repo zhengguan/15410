@@ -19,9 +19,11 @@
 #include <loader.h>
 #include <elf_410.h>
 #include <macros.h>
-#include <spec/common_kern.h>
+#include <common_kern.h>
+#include <simics.h>
+#include <exec_run.h>
 
-#define USER_STACK_TOP ((char*)0xFFFFFFFF)
+#define USER_STACK_TOP ((unsigned)0xFFFFFFFF)
 
 
 /* --- Local function prototypes --- */
@@ -41,11 +43,11 @@ int getbytes( const char *filename, int offset, int size, char *buf )
 {
     int i;
     for (i = 0; i < MAX_NUM_APP_ENTRIES; i++) {
-        exec2obj_userapp_TOC_entry *entry = exec2obj_userapp_TOC+i;
+        const exec2obj_userapp_TOC_entry *entry = exec2obj_userapp_TOC+i;
         if (!strncmp(entry->execname, filename, MAX_EXECNAME_LEN)) {
             if (offset >= entry->execlen)
                 return -1;
-            memcpy(buf, entry->execbytes+offset, min(entry->execlen-offset, size));
+            memcpy(buf, entry->execbytes+offset, MIN(entry->execlen-offset, size));
         }
     }
 
@@ -55,7 +57,7 @@ int getbytes( const char *filename, int offset, int size, char *buf )
 int elf_valid(const simple_elf_t *se_hdr, const exec2obj_userapp_TOC_entry *entry)
 {
     //TODO: add more checks
-    if (se_hdr->e_entry < se_hdr->e_txtstart || se_hdr->e_entry >= se_hdr->e_txtstart+e_txtlen)
+    if (se_hdr->e_entry < se_hdr->e_txtstart || se_hdr->e_entry >= se_hdr->e_txtstart+se_hdr->e_txtlen)
         return 0;
     if (se_hdr->e_txtstart < USER_MEM_START)
         return 0;
@@ -72,29 +74,27 @@ int elf_valid(const simple_elf_t *se_hdr, const exec2obj_userapp_TOC_entry *entr
         return 0;
     if (se_hdr->e_rodatoff >= entry->execlen)
         return 0;
-    if (se_hdr->e_bssoff >= entry->execlen)
-        return 0;
 
     return 1;
 
 }
 
-int fillmem(const simple_elf_t *se_hdr, const exec2obj_userapp_TOC_entry *entry, const char *argv[])
+unsigned fillmem(const simple_elf_t *se_hdr, const exec2obj_userapp_TOC_entry *entry, const char *argv[])
 {
     //TODO: who you gonna call? new pages!
 
-    memcpy(se_hdr->e_txtstart, entry->execbytes + se_hdr->e_txtoff, se_hdr->e_txtlen);
-    memcpy(se_hdr->e_datstart, entry->execbytes + se_hdr->e_datoff, se_hdr->e_datlen);
+    memcpy((char*)se_hdr->e_txtstart, entry->execbytes + se_hdr->e_txtoff, se_hdr->e_txtlen);
+    memcpy((char*)se_hdr->e_datstart, entry->execbytes + se_hdr->e_datoff, se_hdr->e_datlen);
     //TODO: make this read only?
-    memcpy(se_hdr->e_rodatstart, entry->execbytes + se_hdr->e_rodatoff, se_hdr->e_rodatlen);
-    memset(se_hdr->e_bssstart, 0, se_hdr->e_bsslen);
+    memcpy((char*)se_hdr->e_rodatstart, entry->execbytes + se_hdr->e_rodatoff, se_hdr->e_rodatlen);
+    memset((char*)se_hdr->e_bssstart, 0, se_hdr->e_bsslen);
 
     int arglen;
     for (arglen = 0; argv[arglen] != NULL; arglen++);
 
-    char *esp = USER_STACK_TOP - (sizeof(char*) * arglen) - sizeof(int) + 1;
+    unsigned esp = USER_STACK_TOP - (sizeof(char*) * arglen) - sizeof(int) + 1;
 
-    memcpy(esp + sizeof(int), argv, arglen*sizeof(char*));
+    memcpy((char*)esp + sizeof(int), argv, arglen*sizeof(char*));
     *(int*)esp = arglen;
 
     return esp;
@@ -102,10 +102,7 @@ int fillmem(const simple_elf_t *se_hdr, const exec2obj_userapp_TOC_entry *entry,
 
 int exec(const char *filename, const char *argv[])
 {
-    if (!elf_valid(se_hdr, entry))
-        return -1;
-
-    exec2obj_userapp_TOC_entry *entry;
+    const exec2obj_userapp_TOC_entry *entry;
 
     int i;
     for (i = 0; i < MAX_NUM_APP_ENTRIES; i++) {
@@ -114,6 +111,7 @@ int exec(const char *filename, const char *argv[])
             break;
         }
     }
+
     if (i == MAX_NUM_APP_ENTRIES)
         return -1;
 
@@ -133,7 +131,7 @@ int exec(const char *filename, const char *argv[])
         lprintf("fucked up");
         MAGIC_BREAK;
     }
-    return -3;
+    return -1;
 }
 
 /*@}*/

@@ -24,7 +24,7 @@ typedef struct pcb {
 typedef struct tcb {
     int tid;
     int esp;
-    pcb_t *process;
+    int pid;
 } tcb_t;
 
 #endif /* _THREAD_H */
