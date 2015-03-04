@@ -39,11 +39,20 @@ static unsigned get_frame()
  */
 static int is_present(void *va)
 {
-    pde_t pde = GET_PDE(va);
+    lprintf("-1: %p", va);
+    MAGIC_BREAK;
 
-  if (IS_PRESENT(pde)) {
+    pde_t pde = GET_PDE(va);
+    lprintf("0");
+
+    if (IS_PRESENT(pde)) {
+        lprintf("1");
         pte_t pte = GET_PTE(pde, va);
+        lprintf("2");
+
         if (IS_PRESENT(pte)) {
+            lprintf("3");
+
             return 1;
         }
     }
