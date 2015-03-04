@@ -57,7 +57,7 @@ void vm_init()
 {
     linklist_init(&free_frames);
     
-    set_cr3(vm_new_pd());
+    vm_new_pd();
     set_cr0(get_cr0() | CR0_PG);
 }
 
@@ -70,6 +70,7 @@ unsigned vm_new_pd()
     // TODO add locking mechanism?
     
     pd_t pd = (pd_t)get_frame();
+    set_cr3((unsigned)pd);
     
     int i;
     for (i = 0; i < PD_SIZE; i++) {
@@ -80,6 +81,8 @@ unsigned vm_new_pd()
     for(va = KERNEL_MEM_START; va < USER_MEM_START; va += PAGE_SIZE) {
         vm_new_pte((void *)va, va, PTE_SU_SUPER);
     }
+    
+    vm_new_pte((void *)pd, (unsigned)pd, PTE_SU_SUPER);
     
     return (unsigned)pd;
 }
@@ -110,6 +113,8 @@ void vm_new_pt(pde_t *pde)
     }
     
     vm_new_pde(pde, pt);
+    
+    vm_new_pte((void *)pt, (unsigned)pt, PTE_SU_SUPER);
 }
 
 /** @brief Initializes a new page table entry for a virtual address.
@@ -122,6 +127,7 @@ void vm_new_pt(pde_t *pde)
 void vm_new_pte(void *va, unsigned pa, unsigned su)
 {
     pde_t *pde = &GET_PDE(va);
+    
     if (!IS_PRESENT(*pde)) {
         vm_new_pt(pde);
     }
