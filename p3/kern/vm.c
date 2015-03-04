@@ -39,19 +39,12 @@ static unsigned get_frame()
  */
 static int is_present(void *va)
 {
-    lprintf("-1: %p", va);
-    MAGIC_BREAK;
-
     pde_t pde = GET_PDE(va);
-    lprintf("0");
 
     if (IS_PRESENT(pde)) {
-        lprintf("1");
         pte_t pte = GET_PTE(pde, va);
-        lprintf("2");
 
         if (IS_PRESENT(pte)) {
-            lprintf("3");
 
             return 1;
         }
@@ -93,6 +86,8 @@ unsigned vm_new_pd()
         vm_new_pte((void *)va, va, PTE_SU_SUPER);
     }
 
+    vm_new_pte((void *)pd, (unsigned)pd, PTE_SU_SUPER);
+
     return (unsigned)pd;
 }
 
@@ -122,6 +117,8 @@ void vm_new_pt(pde_t *pde)
     }
 
     vm_new_pde(pde, pt);
+
+    vm_new_pte((void *)pt, (unsigned)pt, PTE_SU_SUPER);
 }
 
 /** @brief Initializes a new page table entry for a virtual address.

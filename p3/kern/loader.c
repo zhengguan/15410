@@ -94,10 +94,18 @@ unsigned fillmem(const simple_elf_t *se_hdr, const exec2obj_userapp_TOC_entry *e
     new_pages((void*)se_hdr->e_bssstart, ROUND_UP_TO_PAGE(se_hdr->e_bsslen));
 
     lprintf("about to copy");
+    lprintf("txtstart: %p, %p", (void*)se_hdr->e_txtstart, (void*)(entry->execbytes + se_hdr->e_txtoff));
+    MAGIC_BREAK;
     memcpy((char*)se_hdr->e_txtstart, entry->execbytes + se_hdr->e_txtoff, se_hdr->e_txtlen);
+    lprintf("0");
+
     memcpy((char*)se_hdr->e_datstart, entry->execbytes + se_hdr->e_datoff, se_hdr->e_datlen);
+    lprintf("1");
+
     //TODO: make this read only?
     memcpy((char*)se_hdr->e_rodatstart, entry->execbytes + se_hdr->e_rodatoff, se_hdr->e_rodatlen);
+    lprintf("2");
+
     memset((char*)se_hdr->e_bssstart, 0, se_hdr->e_bsslen);
     lprintf("copied");
 
