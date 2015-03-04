@@ -32,6 +32,10 @@ static unsigned get_frame()
     return frame;
 }
 
+/** @brief Checks whether a virtual address in the page table.
+ *
+ *  @return True if present, false otherwise.
+ */
 static int is_present(void *va)
 {
     pde_t pde = GET_PDE(va);
@@ -80,8 +84,10 @@ unsigned vm_new_pd()
     return (unsigned)pd;
 }
 
-/** @brief Initializes a new page table.
+/** @brief Initializes a new page directory entry.
  *
+ *  @param pde The page directory entry.
+ *  @param pt The page table for the page directory entry.
  *  @return Physical address of base of the new page table.
  */
 void vm_new_pde(pde_t *pde, pt_t pt)
@@ -91,8 +97,7 @@ void vm_new_pde(pde_t *pde, pt_t pt)
 
 /** @brief Initializes a new page table.
  *
- *  @param pde The page directory entry which should point to the new page
- *  table.
+ *  @param pde The page directory entry for the new page table.
  *  @return Physical address of base of the new page table.
  */
 void vm_new_pt(pde_t *pde)
@@ -107,6 +112,13 @@ void vm_new_pt(pde_t *pde)
     vm_new_pde(pde, pt);
 }
 
+/** @brief Initializes a new page table entry for a virtual address.
+ *
+ *  @param va The virtual address.
+ *  @param pa The mapped physical address.
+ *  @param su The page table entry su flag.
+ *  @return Physical address of base of the new page table.
+ */
 void vm_new_pte(void *va, unsigned pa, unsigned su)
 {
     pde_t *pde = &GET_PDE(va);

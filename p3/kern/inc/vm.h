@@ -46,7 +46,7 @@ void vm_init();
 unsigned vm_new_pd();
 void vm_new_pde(pde_t *pde, pt_t pt);
 void vm_new_pt(pde_t *pde);
-void vm_new_pte(void *va, unsigned pa, unsigned su);
+void vm_new_pte(void *va, unsigned pa, unsigned flags);
 
 /* System calls */
 int new_pages(void *base, int len);
