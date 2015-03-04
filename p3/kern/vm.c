@@ -40,13 +40,12 @@ static unsigned get_frame()
 static int is_present(void *va)
 {
     pde_t pde = GET_PDE(va);
-    if (IS_PRESENT(pde)) {
-        return 1;
-    }
 
-    pte_t pte = GET_PTE(pde, va);
-    if (!IS_PRESENT(pte)) {
-        return 1;
+  if (IS_PRESENT(pde)) {
+        pte_t pte = GET_PTE(pde, va);
+        if (IS_PRESENT(pte)) {
+            return 1;
+        }
     }
 
     return 0;
