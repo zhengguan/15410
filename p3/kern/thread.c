@@ -7,6 +7,7 @@
  */
 
 #include <thread.h>
+#include <syscall.h>
 #include <stdlib.h>
 #include <hashtable.h>
 #include <simics.h>
@@ -68,7 +69,8 @@ int new_thread() {
 }
 
 
-int get_tid()
+int gettid()
 {
+    // FIXME implement this
     return 42;
 }

@@ -91,6 +91,9 @@ unsigned vm_new_pd()
     for(va = KERNEL_MEM_START; va < USER_MEM_START; va += PAGE_SIZE) {
         vm_new_pte((void *)va, va, PTE_SU_SUPER);
     }
+    
+    pde_t *pde = &GET_PDE(pd);
+    *pde |= PTE_SU_USER;
 
     return (unsigned)pd;
 }
@@ -101,9 +104,10 @@ unsigned vm_new_pd()
  *  @param pt The page table for the page directory entry.
  *  @return Physical address of base of the new page table.
  */
-void vm_new_pde(pde_t *pde, pt_t pt)
+void vm_new_pde(pde_t *pde, pt_t pt, unsigned su)
 {
-    *pde = (((unsigned)pt & BASE_ADDR_MASK) | PTE_PRESENT_YES | PTE_RW_WRITE);
+    *pde = (((unsigned)pt & BASE_ADDR_MASK) | PTE_PRESENT_YES | PTE_RW_WRITE |
+        su);
 }
 
 /** @brief Initializes a new page table.
@@ -111,7 +115,7 @@ void vm_new_pde(pde_t *pde, pt_t pt)
  *  @param pde The page directory entry for the new page table.
  *  @return Physical address of base of the new page table.
  */
-void vm_new_pt(pde_t *pde)
+void vm_new_pt(pde_t *pde, unsigned su)
 {
     pt_t pt = smemalign(PAGE_SIZE, PAGE_SIZE);
     if (pt == NULL)
@@ -125,8 +129,9 @@ void vm_new_pt(pde_t *pde)
         pt[i] &= PTE_PRESENT_NO;
     }
 
-    vm_new_pde(pde, pt);
+    vm_new_pde(pde, pt, su);
 }
+
 /** @brief Initializes a new page table entry for a virtual address.
  *
  *  @param va The virtual address.
@@ -139,7 +144,7 @@ void vm_new_pte(void *va, unsigned pa, unsigned su)
     pde_t *pde = &GET_PDE(va);
 
     if (!IS_PRESENT(*pde)) {
-        vm_new_pt(pde);
+        vm_new_pt(pde, su);
     }
 
     pte_t *pte = &GET_PTE(*pde, va);

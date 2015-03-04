@@ -30,6 +30,6 @@ typedef struct tcb {
 int new_process();
 int new_thread();
 
-int get_tid();
+int gettid();
 
 #endif /* _THREAD_H */

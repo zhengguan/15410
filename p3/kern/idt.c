@@ -7,6 +7,7 @@
  */
 
 #include <idt.h>
+#include <asm_syscall.h>
 #include <syscall_int.h>
 #include <x86/asm.h>
 #include <x86/seg.h>
@@ -33,8 +34,8 @@ void idt_init() {
     // idt_add_desc(YIELD_INT, 0, IDT_TRAP);
     // idt_add_desc(DESCHEDULE_INT, 0, IDT_TRAP);
     // idt_add_desc(MAKE_RUNNABLE_INT, 0, IDT_TRAP);
-    idt_add_desc(GETTID_INT, get_tid, IDT_TRAP);
-    idt_add_desc(NEW_PAGES_INT, new_pages, IDT_TRAP);
+    idt_add_desc(GETTID_INT, asm_gettid, IDT_TRAP);
+    idt_add_desc(NEW_PAGES_INT, asm_new_pages, IDT_TRAP);
     //idt_add_desc(REMOVE_PAGES_INT, remove_pages, IDT_TRAP);
     // idt_add_desc(SLEEP_INT, 0, IDT_TRAP);
     // idt_add_desc(GETCHAR_INT, 0, IDT_TRAP);

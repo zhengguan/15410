@@ -44,8 +44,8 @@ typedef pte_t* pt_t;
 /* Virtual memory functions */
 void vm_init();
 unsigned vm_new_pd();
-void vm_new_pde(pde_t *pde, pt_t pt);
-void vm_new_pt(pde_t *pde);
+void vm_new_pde(pde_t *pde, pt_t pt, unsigned su);
+void vm_new_pt(pde_t *pde, unsigned su);
 void vm_new_pte(void *va, unsigned pa, unsigned su);
 
 /* System calls */
