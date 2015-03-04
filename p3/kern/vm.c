@@ -9,6 +9,7 @@
 #include <vm.h>
 #include <linklist.h>
 #include <syscall.h>
+#include <malloc.h>
 #include <x86/cr.h>
 #include <common_kern.h>
 #include <simics.h>
@@ -72,8 +73,13 @@ void vm_init()
 unsigned vm_new_pd()
 {
     // TODO add locking mechanism?
+    pd_t pd = smemalign(PAGE_SIZE, PAGE_SIZE);
 
-    pd_t pd = (pd_t)get_frame();
+    if (pd == NULL)
+        lprintf("malloc fail");
+    else
+        lprintf("malloc success: %p", pd);
+    // FIXME check for failure
     set_cr3((unsigned)pd);
 
     int i;
@@ -85,8 +91,6 @@ unsigned vm_new_pd()
     for(va = KERNEL_MEM_START; va < USER_MEM_START; va += PAGE_SIZE) {
         vm_new_pte((void *)va, va, PTE_SU_SUPER);
     }
-
-    vm_new_pte((void *)pd, (unsigned)pd, PTE_SU_SUPER);
 
     return (unsigned)pd;
 }
@@ -109,7 +113,12 @@ void vm_new_pde(pde_t *pde, pt_t pt)
  */
 void vm_new_pt(pde_t *pde)
 {
-    pt_t pt = (pt_t)get_frame();
+    pt_t pt = smemalign(PAGE_SIZE, PAGE_SIZE);
+    if (pt == NULL)
+        lprintf("malloc fail");
+    else
+        lprintf("malloc success: %p", pt);
+    // FIXME check for failure
 
     int i;
     for (i = 0; i < PT_SIZE; i++) {
@@ -117,10 +126,7 @@ void vm_new_pt(pde_t *pde)
     }
 
     vm_new_pde(pde, pt);
-
-    vm_new_pte((void *)pt, (unsigned)pt, PTE_SU_SUPER);
 }
-
 /** @brief Initializes a new page table entry for a virtual address.
  *
  *  @param va The virtual address.
@@ -131,8 +137,6 @@ void vm_new_pt(pde_t *pde)
 void vm_new_pte(void *va, unsigned pa, unsigned su)
 {
     pde_t *pde = &GET_PDE(va);
-
-    //lprintf("creating entry at %p", va);
 
     if (!IS_PRESENT(*pde)) {
         vm_new_pt(pde);
@@ -160,17 +164,15 @@ int new_pages(void *base, int len)
         return -2;
     }
 
-    lprintf("checking");
     void *va;
-    for (va = base; va < base + len; va += PAGE_SIZE) {
+    for (va = base; va < base + len - 1 && va > 0; va += PAGE_SIZE) {
         if (is_present(va)) {
+            lprintf("va:%p", va);
             return -3;
         }
     }
 
-    lprintf("not present");
-
-    for (va = base; va < base + len; va += PAGE_SIZE) {
+    for (va = base; va < base + len - 1 && va > 0; va += PAGE_SIZE) {
         vm_new_pte(va, get_frame(), PTE_SU_USER);
     }
 

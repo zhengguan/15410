@@ -66,3 +66,9 @@ int new_thread() {
 
     return 0;
 }
+
+
+int get_tid()
+{
+    return 42;
+}

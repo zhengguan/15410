@@ -63,11 +63,11 @@ int elf_valid(const simple_elf_t *se_hdr, const exec2obj_userapp_TOC_entry *entr
         return 0;
     if (se_hdr->e_txtstart < USER_MEM_START)
         return 0;
-    if (se_hdr->e_datstart < USER_MEM_START)
+    if (se_hdr->e_datstart < USER_MEM_START && se_hdr->e_datlen != 0)
         return 0;
-    if (se_hdr->e_rodatstart < USER_MEM_START)
+    if (se_hdr->e_rodatstart < USER_MEM_START && se_hdr->e_rodatlen != 0)
         return 0;
-    if (se_hdr->e_bssstart < USER_MEM_START)
+    if (se_hdr->e_bssstart < USER_MEM_START && se_hdr->e_bsslen != 0)
         return 0;
 
     if (se_hdr->e_txtoff >= entry->execlen)
@@ -81,40 +81,53 @@ int elf_valid(const simple_elf_t *se_hdr, const exec2obj_userapp_TOC_entry *entr
 
 }
 
+void allocate_pages(unsigned start, unsigned len)
+{
+    unsigned end = start + len;
+
+    unsigned cur = ROUND_DOWN_TO_PAGE(start);
+
+    while (cur < end) {
+        new_pages((void*)cur, PAGE_SIZE);
+        cur += PAGE_SIZE;
+    }
+}
+
 unsigned fillmem(const simple_elf_t *se_hdr, const exec2obj_userapp_TOC_entry *entry, char *argv[])
 {
     //TODO: who you gonna call? new pages!
 
     //TODO: errors
     //TODO: page align
-    lprintf("about to make new pages");
-    new_pages((void*)se_hdr->e_txtstart, ROUND_UP_TO_PAGE(se_hdr->e_txtlen));
-    new_pages((void*)se_hdr->e_datstart, ROUND_UP_TO_PAGE(se_hdr->e_datlen));
-    new_pages((void*)se_hdr->e_rodatstart, ROUND_UP_TO_PAGE(se_hdr->e_rodatlen));
-    new_pages((void*)se_hdr->e_bssstart, ROUND_UP_TO_PAGE(se_hdr->e_bsslen));
+    allocate_pages(se_hdr->e_txtstart, se_hdr->e_txtlen);
+    allocate_pages(se_hdr->e_datstart, se_hdr->e_datlen);
+    allocate_pages(se_hdr->e_rodatstart, se_hdr->e_rodatlen);
+    allocate_pages(se_hdr->e_bssstart, se_hdr->e_bsslen);
 
-    lprintf("about to copy");
-    lprintf("txtstart: %p, %p", (void*)se_hdr->e_txtstart, (void*)(entry->execbytes + se_hdr->e_txtoff));
-    MAGIC_BREAK;
     memcpy((char*)se_hdr->e_txtstart, entry->execbytes + se_hdr->e_txtoff, se_hdr->e_txtlen);
-    lprintf("0");
 
     memcpy((char*)se_hdr->e_datstart, entry->execbytes + se_hdr->e_datoff, se_hdr->e_datlen);
-    lprintf("1");
-
     //TODO: make this read only?
     memcpy((char*)se_hdr->e_rodatstart, entry->execbytes + se_hdr->e_rodatoff, se_hdr->e_rodatlen);
-    lprintf("2");
 
     memset((char*)se_hdr->e_bssstart, 0, se_hdr->e_bsslen);
-    lprintf("copied");
 
+    lprintf("1");
     int arglen;
     for (arglen = 0; argv[arglen] != NULL; arglen++);
+    lprintf("2");
 
-    unsigned esp = USER_STACK_TOP - (sizeof(char*) * arglen) - sizeof(int) + 1;
+    unsigned stack_low = USER_STACK_TOP-PAGE_SIZE+1;
+    new_pages((void*)(stack_low), PAGE_SIZE);
 
-    memcpy((char*)esp + sizeof(int), argv, arglen*sizeof(char*));
+    unsigned esp = USER_STACK_TOP+1;
+    esp -= sizeof(int);
+    *(int*)esp = stack_low;
+    esp -= sizeof(int);
+    *(int*)esp = USER_STACK_TOP;
+    esp -= arglen*sizeof(char);
+    memcpy((char*)esp, argv, arglen*sizeof(char*));
+    esp -= sizeof(int);
     *(int*)esp = arglen;
 
     return esp;

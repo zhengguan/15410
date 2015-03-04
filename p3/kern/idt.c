@@ -10,6 +10,7 @@
 #include <syscall_int.h>
 #include <x86/asm.h>
 #include <x86/seg.h>
+#include <thread.h>
 
 extern int new_pages(void *base, int len);
 extern int remove_pages(void *base);
@@ -19,41 +20,39 @@ extern int remove_pages(void *base);
  *  @return Void.
  */
 void idt_init() {
-    // TODO remove this
-    return;
-    
-    /* Add timer and keyboard interrupt gate descriptors */
-    idt_add_desc(TIMER_IDT_ENTRY, 0, IDT_INT);
-    idt_add_desc(KEY_IDT_ENTRY, 0, IDT_INT);
-    
-    /* Add system call trap gate descriptors */
-    idt_add_desc(SYSCALL_INT, 0, IDT_TRAP);
-    idt_add_desc(FORK_INT, 0, IDT_TRAP);
-    idt_add_desc(EXEC_INT, 0, IDT_TRAP);
-    idt_add_desc(WAIT_INT, 0, IDT_TRAP);
-    idt_add_desc(YIELD_INT, 0, IDT_TRAP);
-    idt_add_desc(DESCHEDULE_INT, 0, IDT_TRAP);
-    idt_add_desc(MAKE_RUNNABLE_INT, 0, IDT_TRAP);
-    idt_add_desc(GETTID_INT, 0, IDT_TRAP);
+
+    // /* Add timer and keyboard interrupt gate descriptors */
+    // idt_add_desc(TIMER_IDT_ENTRY, 0, IDT_INT);
+    // idt_add_desc(KEY_IDT_ENTRY, 0, IDT_INT);
+
+    // /* Add system call trap gate descriptors */
+    // idt_add_desc(SYSCALL_INT, 0, IDT_TRAP);
+    // idt_add_desc(FORK_INT, 0, IDT_TRAP);
+    // idt_add_desc(EXEC_INT, 0, IDT_TRAP);
+    // idt_add_desc(WAIT_INT, 0, IDT_TRAP);
+    // idt_add_desc(YIELD_INT, 0, IDT_TRAP);
+    // idt_add_desc(DESCHEDULE_INT, 0, IDT_TRAP);
+    // idt_add_desc(MAKE_RUNNABLE_INT, 0, IDT_TRAP);
+    idt_add_desc(GETTID_INT, get_tid, IDT_TRAP);
     idt_add_desc(NEW_PAGES_INT, new_pages, IDT_TRAP);
-    idt_add_desc(REMOVE_PAGES_INT, remove_pages, IDT_TRAP);
-    idt_add_desc(SLEEP_INT, 0, IDT_TRAP);
-    idt_add_desc(GETCHAR_INT, 0, IDT_TRAP);
-    idt_add_desc(READLINE_INT, 0, IDT_TRAP);
-    idt_add_desc(PRINT_INT, 0, IDT_TRAP);
-    idt_add_desc(SET_TERM_COLOR_INT, 0, IDT_TRAP);
-    idt_add_desc(SET_CURSOR_POS_INT, 0, IDT_TRAP);
-    idt_add_desc(GET_CURSOR_POS_INT, 0, IDT_TRAP);
-    idt_add_desc(THREAD_FORK_INT, 0, IDT_TRAP);
-    idt_add_desc(GET_TICKS_INT, 0, IDT_TRAP);
-    idt_add_desc(MISBEHAVE_INT, 0, IDT_TRAP);
-    idt_add_desc(HALT_INT, 0, IDT_TRAP);
-    idt_add_desc(TASK_VANISH_INT, 0, IDT_TRAP);
-    idt_add_desc(SET_STATUS_INT, 0, IDT_TRAP);
-    idt_add_desc(VANISH_INT, 0, IDT_TRAP);
-    idt_add_desc(READFILE_INT, 0, IDT_TRAP);
-    idt_add_desc(SWEXN_INT, 0, IDT_TRAP);
-} 
+    //idt_add_desc(REMOVE_PAGES_INT, remove_pages, IDT_TRAP);
+    // idt_add_desc(SLEEP_INT, 0, IDT_TRAP);
+    // idt_add_desc(GETCHAR_INT, 0, IDT_TRAP);
+    // idt_add_desc(READLINE_INT, 0, IDT_TRAP);
+    // idt_add_desc(PRINT_INT, 0, IDT_TRAP);
+    // idt_add_desc(SET_TERM_COLOR_INT, 0, IDT_TRAP);
+    // idt_add_desc(SET_CURSOR_POS_INT, 0, IDT_TRAP);
+    // idt_add_desc(GET_CURSOR_POS_INT, 0, IDT_TRAP);
+    // idt_add_desc(THREAD_FORK_INT, 0, IDT_TRAP);
+    // idt_add_desc(GET_TICKS_INT, 0, IDT_TRAP);
+    // idt_add_desc(MISBEHAVE_INT, 0, IDT_TRAP);
+    // idt_add_desc(HALT_INT, 0, IDT_TRAP);
+    // idt_add_desc(TASK_VANISH_INT, 0, IDT_TRAP);
+    // idt_add_desc(SET_STATUS_INT, 0, IDT_TRAP);
+    // idt_add_desc(VANISH_INT, 0, IDT_TRAP);
+    // idt_add_desc(READFILE_INT, 0, IDT_TRAP);
+    // idt_add_desc(SWEXN_INT, 0, IDT_TRAP);
+}
 
 /** @brief Add a descriptor entry to the IDT.
  *

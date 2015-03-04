@@ -14,6 +14,7 @@
 #include <vm.h>
 #include <thread.h>
 #include <syscall.h>
+#include <idt.h>
 
 /* libc includes. */
 #include <stdio.h>
@@ -38,9 +39,10 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
      * You should delete this comment, and enable them --
      * when you are ready.
      */
-
+    idt_init();
     vm_init();
-    new_process();
+
+    // new_process();
 
     clear_console();
 
@@ -48,7 +50,10 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
 
     lprintf("Beginning exec");
 
-    exec("idle", arg);
+    if (exec("idle", arg) < 0)
+        lprintf("not idle");
+
+    lprintf("%d", exec("idle", arg));
 
     return 0;
 }
