@@ -71,6 +71,7 @@ unsigned vm_new_pd()
     // TODO add locking mechanism?
     
     pd_t pd = malloc(PD_SIZE*sizeof(pde_t));
+    // FIXME check for failure
     set_cr3((unsigned)pd);
     
     int i;
@@ -107,6 +108,7 @@ void vm_new_pde(pde_t *pde, pt_t pt)
 void vm_new_pt(pde_t *pde)
 {    
     pt_t pt = malloc(PT_SIZE*sizeof(pte_t));
+    // FIXME check for failure
     
     int i;
     for (i = 0; i < PT_SIZE; i++) {
