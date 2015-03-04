@@ -11,6 +11,7 @@
 #include <syscall.h>
 #include <x86/cr.h>
 #include <common_kern.h>
+#include <simics.h>
 
 unsigned next_frame = USER_MEM_START;
 // TODO Improve space complexity of this data structure
@@ -42,12 +43,12 @@ static int is_present(void *va)
     if (IS_PRESENT(pde)) {
         return 1;
     }
-    
+
     pte_t pte = GET_PTE(pde, va);
     if (!IS_PRESENT(pte)) {
         return 1;
     }
-    
+
     return 0;
 }
 
@@ -58,7 +59,7 @@ static int is_present(void *va)
 void vm_init()
 {
     linklist_init(&free_frames);
-    
+
     vm_new_pd();
     set_cr0(get_cr0() | CR0_PG);
 }
@@ -70,20 +71,20 @@ void vm_init()
 unsigned vm_new_pd()
 {
     // TODO add locking mechanism?
-    
+
     pd_t pd = (pd_t)get_frame();
     set_cr3((unsigned)pd);
-    
+
     int i;
     for (i = 0; i < PD_SIZE; i++) {
         pd[i] &= PTE_PRESENT_NO;
     }
-    
+
     unsigned va;
     for(va = KERNEL_MEM_START; va < USER_MEM_START; va += PAGE_SIZE) {
         vm_new_pte((void *)va, va, PTE_SU_SUPER);
     }
-    
+
     return (unsigned)pd;
 }
 
@@ -104,14 +105,14 @@ void vm_new_pde(pde_t *pde, pt_t pt)
  *  @return Physical address of base of the new page table.
  */
 void vm_new_pt(pde_t *pde)
-{    
+{
     pt_t pt = (pt_t)get_frame();
-    
+
     int i;
     for (i = 0; i < PT_SIZE; i++) {
         pt[i] &= PTE_PRESENT_NO;
     }
-    
+
     vm_new_pde(pde, pt);
 }
 
@@ -125,11 +126,13 @@ void vm_new_pt(pde_t *pde)
 void vm_new_pte(void *va, unsigned pa, unsigned su)
 {
     pde_t *pde = &GET_PDE(va);
-    
+
+    //lprintf("creating entry at %p", va);
+
     if (!IS_PRESENT(*pde)) {
         vm_new_pt(pde);
     }
-    
+
     pte_t *pte = &GET_PTE(*pde, va);
     *pte = ((pa & BASE_ADDR_MASK) | PTE_PRESENT_YES |
                              PTE_RW_WRITE | su);
@@ -147,22 +150,25 @@ int new_pages(void *base, int len)
     if (((uint32_t)base % PAGE_SIZE) != 0) {
         return -1;
     }
-    
+
     if ((len % PAGE_SIZE) != 0) {
         return -2;
     }
-    
+
+    lprintf("checking");
     void *va;
-    for (va = base; va < base + len; va += PAGE_SIZE) { 
+    for (va = base; va < base + len; va += PAGE_SIZE) {
         if (is_present(va)) {
             return -3;
         }
     }
-    
-    for (va = base; va < base + len; va += PAGE_SIZE) { 
+
+    lprintf("not present");
+
+    for (va = base; va < base + len; va += PAGE_SIZE) {
         vm_new_pte(va, get_frame(), PTE_SU_USER);
     }
-    
+
     return 0;
 }
 

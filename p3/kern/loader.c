@@ -22,7 +22,6 @@
 #include <common_kern.h>
 #include <simics.h>
 #include <exec_run.h>
-#include <exec.h>
 
 #define USER_STACK_TOP ((unsigned)0xFFFFFFFF)
 
@@ -40,7 +39,7 @@
  *
  * @return returns the number of bytes copied on success; -1 on failure
  */
-int getbytes( const char *filename, int offset, int size, char *buf )
+int getbytes(const char *filename, int offset, int size, char *buf)
 {
     int i;
     for (i = 0; i < MAX_NUM_APP_ENTRIES; i++) {
@@ -48,7 +47,9 @@ int getbytes( const char *filename, int offset, int size, char *buf )
         if (!strncmp(entry->execname, filename, MAX_EXECNAME_LEN)) {
             if (offset >= entry->execlen)
                 return -1;
-            memcpy(buf, entry->execbytes+offset, MIN(entry->execlen-offset, size));
+            int min = MIN(entry->execlen-offset, size);
+            memcpy(buf, entry->execbytes+offset, min);
+            return min;
         }
     }
 
@@ -80,15 +81,25 @@ int elf_valid(const simple_elf_t *se_hdr, const exec2obj_userapp_TOC_entry *entr
 
 }
 
-unsigned fillmem(const simple_elf_t *se_hdr, const exec2obj_userapp_TOC_entry *entry, const char *argv[])
+unsigned fillmem(const simple_elf_t *se_hdr, const exec2obj_userapp_TOC_entry *entry, char *argv[])
 {
     //TODO: who you gonna call? new pages!
 
+    //TODO: errors
+    //TODO: page align
+    lprintf("about to make new pages");
+    new_pages((void*)se_hdr->e_txtstart, ROUND_UP_TO_PAGE(se_hdr->e_txtlen));
+    new_pages((void*)se_hdr->e_datstart, ROUND_UP_TO_PAGE(se_hdr->e_datlen));
+    new_pages((void*)se_hdr->e_rodatstart, ROUND_UP_TO_PAGE(se_hdr->e_rodatlen));
+    new_pages((void*)se_hdr->e_bssstart, ROUND_UP_TO_PAGE(se_hdr->e_bsslen));
+
+    lprintf("about to copy");
     memcpy((char*)se_hdr->e_txtstart, entry->execbytes + se_hdr->e_txtoff, se_hdr->e_txtlen);
     memcpy((char*)se_hdr->e_datstart, entry->execbytes + se_hdr->e_datoff, se_hdr->e_datlen);
     //TODO: make this read only?
     memcpy((char*)se_hdr->e_rodatstart, entry->execbytes + se_hdr->e_rodatoff, se_hdr->e_rodatlen);
     memset((char*)se_hdr->e_bssstart, 0, se_hdr->e_bsslen);
+    lprintf("copied");
 
     int arglen;
     for (arglen = 0; argv[arglen] != NULL; arglen++);
@@ -101,7 +112,7 @@ unsigned fillmem(const simple_elf_t *se_hdr, const exec2obj_userapp_TOC_entry *e
     return esp;
 }
 
-int exec(const char *filename, const char *argv[])
+int exec(char *filename, char *argv[])
 {
     const exec2obj_userapp_TOC_entry *entry;
 
@@ -122,9 +133,12 @@ int exec(const char *filename, const char *argv[])
         if (!elf_valid(&se_hdr, entry)) {
             return -2;
         }
+        lprintf("filling mem");
 
         /* start new elf */
         unsigned esp = fillmem(&se_hdr, entry, argv);
+
+        lprintf("filled");
 
         exec_run(esp, se_hdr.e_entry);
 
@@ -132,6 +146,7 @@ int exec(const char *filename, const char *argv[])
         lprintf("fucked up");
         MAGIC_BREAK;
     }
+    lprintf("here");
     return -1;
 }
 

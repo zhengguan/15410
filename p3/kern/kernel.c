@@ -13,7 +13,7 @@
 #include <console.h>
 #include <vm.h>
 #include <thread.h>
-#include <exec.h>
+#include <syscall.h>
 
 /* libc includes. */
 #include <stdio.h>
@@ -26,7 +26,7 @@
 #include <x86/asm.h>                /* enable_interrupts() */
 
 /** @brief Kernel entrypoint.
- *  
+ *
  *  This is the entrypoint for the kernel.
  *
  * @return Does not return
@@ -38,18 +38,18 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
      * You should delete this comment, and enable them --
      * when you are ready.
      */
-     
-    
+
+
     vm_init();
     new_process();
-    
+
     clear_console();
-    
-    const char *arg[] = {NULL};
-    
+
+    char *arg[] = {NULL};
+
     lprintf("Beginning exec");
-    
-    exec("idle", arg); 
+
+    exec("idle", arg);
 
     return 0;
 }
