@@ -22,6 +22,7 @@
 #include <common_kern.h>
 #include <simics.h>
 #include <exec_run.h>
+#include <exec.h>
 
 #define USER_STACK_TOP ((unsigned)0xFFFFFFFF)
 

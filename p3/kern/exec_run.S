@@ -9,6 +9,6 @@
 .globl exec_run
 
 exec_run:
-    mov 8(%esp) %ecx
-    mov 4(%esp) %esp
+    mov 8(%esp), %ecx
+    mov 4(%esp), %esp
     jmp %ecx
