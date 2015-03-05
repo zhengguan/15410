@@ -26,6 +26,9 @@
 /* x86 specific includes */
 #include <x86/asm.h>                /* enable_interrupts() */
 
+#include <x86/cr.h>
+#include <malloc.h>
+
 /** @brief Kernel entrypoint.
  *
  *  This is the entrypoint for the kernel.
@@ -39,16 +42,19 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
      * You should delete this comment, and enable them --
      * when you are ready.
      */
+
+    //FIXME: hardcoded
+    set_esp0((unsigned)malloc(2*PAGE_SIZE));
+
     idt_init();
     vm_init();
 
-    // new_process();
+    thread_init();
+    new_process();
 
     clear_console();
 
     char *arg[] = {NULL};
-
-    lprintf("Beginning exec");
 
     if (exec("ck1", arg) < 0)
         lprintf("not idle");

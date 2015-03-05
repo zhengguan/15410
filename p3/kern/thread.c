@@ -21,9 +21,10 @@ hashtable_t tcbs;
 int cur_pid;
 int cur_tid;
 
-void thread_init() {
+int thread_init() {
      hashtable_init(&pcbs, PCB_HT_SIZE);
      hashtable_init(&tcbs, TCB_HT_SIZE);
+     return 0;
 }
 
 int new_process() {
@@ -35,6 +36,8 @@ int new_process() {
     pcb->pid = next_pid++;
     cur_pid = pcb->pid;
     // TODO do more stuff
+
+    new_thread();
 
     hashtable_add(&pcbs, pcb->pid, (void *)pcb);
 
@@ -49,6 +52,7 @@ int new_thread() {
 
     tcb->tid = next_tid++;
     tcb->pid = cur_pid;
+    cur_tid = tcb->tid;
 
     // TODO do more stuff
 
@@ -72,5 +76,5 @@ int new_thread() {
 int gettid()
 {
     // FIXME implement this
-    return 42;
+    return cur_tid;
 }

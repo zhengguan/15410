@@ -12,9 +12,15 @@
 #include <x86/asm.h>
 #include <x86/seg.h>
 #include <thread.h>
+#include <asm_noop.h>
 
 extern int new_pages(void *base, int len);
 extern int remove_pages(void *base);
+
+void noop()
+{
+    return;
+}
 
 /** @brief Initializes the IDT entries for each interrupt that must be handled.
  *
@@ -23,8 +29,8 @@ extern int remove_pages(void *base);
 void idt_init() {
 
     // /* Add timer and keyboard interrupt gate descriptors */
-    // idt_add_desc(TIMER_IDT_ENTRY, 0, IDT_INT, IDT_DPL_KERNEL);
-    // idt_add_desc(KEY_IDT_ENTRY, 0, IDT_INT, IDT_DPL_KERNEL);
+    idt_add_desc(TIMER_IDT_ENTRY, asm_noop, IDT_INT, IDT_DPL_KERNEL);
+    idt_add_desc(KEY_IDT_ENTRY, asm_noop, IDT_INT, IDT_DPL_KERNEL);
 
     // /* Add system call trap gate descriptors */
     // idt_add_desc(SYSCALL_INT, 0, IDT_TRAP, IDT_DPL_USER);

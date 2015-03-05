@@ -17,8 +17,8 @@
 stackinfo_t g_stackinfo;
 void *main_exception_stack;
 
-static void register_exception_handler(void *esp3, ureg_t *newureg);
-static void exception_handler(void *arg, ureg_t *ureg);
+// static void register_exception_handler(void *esp3, ureg_t *newureg);
+// static void exception_handler(void *arg, ureg_t *ureg);
 
 void install_autostack(void *stack_high, void *stack_low)
 {
@@ -29,7 +29,7 @@ void install_autostack(void *stack_high, void *stack_low)
         exit(-1);
     }
 
-    register_exception_handler(main_exception_stack, NULL);
+    // register_exception_handler(main_exception_stack, NULL);
 }
 
 /** @brief Registers the exception handler responsible for  performing
@@ -39,9 +39,9 @@ void install_autostack(void *stack_high, void *stack_low)
  *  @param newureg New register values.
  *  @return Void.
  */
-static void register_exception_handler(void *esp3, ureg_t *newureg) {
-    swexn(esp3, exception_handler, NULL, newureg);
-}
+// static void register_exception_handler(void *esp3, ureg_t *newureg) {
+//     swexn(esp3, exception_handler, NULL, newureg);
+// }
 
 /** @brief Handles page-faults by performing automatic stack growth.
  *
@@ -49,21 +49,21 @@ static void register_exception_handler(void *esp3, ureg_t *newureg) {
  *  @param ureg Register values.
  *  @return Void.
  */
-static void exception_handler(void *arg, ureg_t *ureg) {
-    if ((ureg == NULL) || (ureg->cause != SWEXN_CAUSE_PAGEFAULT)) {
-        exit(-1);
-    }
+// static void exception_handler(void *arg, ureg_t *ureg) {
+//     if ((ureg == NULL) || (ureg->cause != SWEXN_CAUSE_PAGEFAULT)) {
+//         exit(-1);
+//     }
 
-    void *fault_addr = (void *)ureg->cr2;
+//     void *fault_addr = (void *)ureg->cr2;
 
-    void *base = (void *)((unsigned int)fault_addr & PAGE_MASK);
-    int len = (int)(g_stackinfo.stack_low - base);
+//     void *base = (void *)((unsigned int)fault_addr & PAGE_MASK);
+//     int len = (int)(g_stackinfo.stack_low - base);
 
-    if (new_pages(base, len) < 0) {
-        exit(-2);
-    }
+//     if (new_pages(base, len) < 0) {
+//         exit(-2);
+//     }
 
-    g_stackinfo.stack_low = base;
+//     g_stackinfo.stack_low = base;
 
-    register_exception_handler(main_exception_stack, ureg);
-}
+//     register_exception_handler(main_exception_stack, ureg);
+// }

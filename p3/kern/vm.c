@@ -77,8 +77,7 @@ unsigned vm_new_pd()
 
     if (pd == NULL)
         lprintf("malloc fail");
-    else
-        lprintf("malloc success: %p", pd);
+
     // FIXME check for failure
     set_cr3((unsigned)pd);
 
@@ -91,7 +90,7 @@ unsigned vm_new_pd()
     for(va = KERNEL_MEM_START; va < USER_MEM_START; va += PAGE_SIZE) {
         vm_new_pte((void *)va, va, PTE_SU_SUPER);
     }
-    
+
     pde_t *pde = &GET_PDE(pd);
     *pde |= PTE_SU_USER;
 
@@ -120,8 +119,6 @@ void vm_new_pt(pde_t *pde, unsigned su)
     pt_t pt = smemalign(PAGE_SIZE, PAGE_SIZE);
     if (pt == NULL)
         lprintf("malloc fail");
-    else
-        lprintf("malloc success: %p", pt);
     // FIXME check for failure
 
     int i;

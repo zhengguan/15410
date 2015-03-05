@@ -25,7 +25,7 @@
 #include <seg.h>
 #include <eflags.h>
 
-#define USER_STACK_TOP ((unsigned)0xFFFFFFFF)
+#define USER_STACK_TOP ((unsigned)0xBFFFFFFF)
 #define USER_MODE_CPL 3
 
 
@@ -115,10 +115,8 @@ unsigned fillmem(const simple_elf_t *se_hdr, const exec2obj_userapp_TOC_entry *e
 
     memset((char*)se_hdr->e_bssstart, 0, se_hdr->e_bsslen);
 
-    lprintf("1");
     int arglen;
     for (arglen = 0; argv[arglen] != NULL; arglen++);
-    lprintf("2");
 
     unsigned stack_low = USER_STACK_TOP-PAGE_SIZE+1;
     new_pages((void*)(stack_low), PAGE_SIZE);
@@ -141,8 +139,7 @@ void user_run(unsigned eip, unsigned esp)
 {
     //TODO: should this look at currently set eflags?
     //TODO: more flags?
-    unsigned eflags = EFL_RESV1;// | EFL_IF;
-    MAGIC_BREAK;
+    unsigned eflags = EFL_RESV1 | EFL_IF;
     exec_run(SEGSEL_USER_DS, eip, SEGSEL_USER_CS, eflags, esp, SEGSEL_USER_DS);
 }
 
@@ -167,12 +164,8 @@ int exec(char *filename, char *argv[])
         if (!elf_valid(&se_hdr, entry)) {
             return -2;
         }
-        lprintf("filling mem");
-
         /* start new elf */
         unsigned esp = fillmem(&se_hdr, entry, argv);
-
-        lprintf("filled");
 
         user_run(se_hdr.e_entry, esp);
 
@@ -180,7 +173,6 @@ int exec(char *filename, char *argv[])
         lprintf("fucked up");
         MAGIC_BREAK;
     }
-    lprintf("here");
     return -1;
 }
 
