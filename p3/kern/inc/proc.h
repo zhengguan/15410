@@ -1,15 +1,13 @@
-/** @file thread.h
- *  @brief Prototypes for managing kernel threads.
- *
- *  This contains prototypes for managing kernel threads.
+/** @file proc.h
+ *  @brief Prototypes for managing kernel processes and threads.
  *
  *  @author Patrick Koenig (phkoenig)
  *  @author Jack Sorrell (jsorrell)
  *  @bug No known bugs.
  */
 
-#ifndef _THREAD_H
-#define _THREAD_H
+#ifndef _PROC_H
+#define _PROC_H
 
 #include <linklist.h>
 
@@ -27,11 +25,9 @@ typedef struct tcb {
     int pid;
 } tcb_t;
 
-int thread_init();
+/* Process and thread functions */
+int proc_init();
+int proc_new_process();
+int proc_new_thread();
 
-int new_process();
-int new_thread();
-
-int gettid();
-
-#endif /* _THREAD_H */
+#endif /* _PROC_H */

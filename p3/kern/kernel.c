@@ -10,11 +10,11 @@
  */
 
 #include <common_kern.h>
-#include <console.h>
-#include <vm.h>
-#include <thread.h>
 #include <syscall.h>
 #include <idt.h>
+#include <vm.h>
+#include <proc.h>
+#include <console.h>
 
 /* libc includes. */
 #include <stdio.h>
@@ -29,6 +29,11 @@
 #include <x86/cr.h>
 #include <malloc.h>
 
+#define INT_STACK_SIZE (2 * PAGE_SIZE)
+
+#define MAIN_NAME "ck1"
+#define MAIN_ARG {NULL}
+
 /** @brief Kernel entrypoint.
  *
  *  This is the entrypoint for the kernel.
@@ -37,27 +42,25 @@
  */
 int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
 {
-    /*
-     * When kernel_main() begins, interrupts are DISABLED.
-     * You should delete this comment, and enable them --
-     * when you are ready.
-     */
-
-    //FIXME: hardcoded
-    set_esp0((unsigned)malloc(2*PAGE_SIZE));
+    set_esp0((unsigned)malloc(INT_STACK_SIZE));
 
     idt_init();
+    
     vm_init();
 
-    thread_init();
-    new_process();
+    proc_init();
+    proc_new_process();
 
     clear_console();
 
-    char *arg[] = {NULL};
-
-    if (exec("ck1", arg) < 0)
-        lprintf("not idle");
+    char *arg[] = MAIN_ARG;
+    if (exec(MAIN_NAME, arg) < 0) {
+        lprintf("Failed to run main process.");
+    }
+    
+    while (1) {
+        continue;
+    }
 
     return 0;
 }

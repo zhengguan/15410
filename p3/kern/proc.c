@@ -1,16 +1,16 @@
-/** @file thread.c
- *  @brief Handles threads.
+/** @file proc.c
+ *  @brief Manages kernel processes and threads.
  *
  *  @author Patrick Koenig (phkoenig)
  *  @author Jack Sorrell (jsorrell)
  *  @bug No known bugs.
  */
 
-#include <thread.h>
+#include <proc.h>
 #include <syscall.h>
 #include <stdlib.h>
+#include <linklist.h>
 #include <hashtable.h>
-#include <simics.h>
 
 int next_pid = 1;
 int next_tid = 1;
@@ -21,30 +21,46 @@ hashtable_t tcbs;
 int cur_pid;
 int cur_tid;
 
-int thread_init() {
+/** @brief Initializes the PCB and TCB data structures.
+ *
+ *  @return 0 on success, negative error code otherwise.
+ */
+int proc_init() {
      hashtable_init(&pcbs, PCB_HT_SIZE);
      hashtable_init(&tcbs, TCB_HT_SIZE);
+     
      return 0;
 }
 
-int new_process() {
+/** @brief Creates a new PCB for a process.
+ *
+ *  @return 0 on success, negative error code otherwise.
+ */
+int proc_new_process() {
     pcb_t *pcb = malloc(sizeof(pcb_t));
     if (pcb == NULL) {
         return -1;
     }
+    
+    if (linklist_init(&pcb->threads) < 0) {
+        return -2;
+    }
 
     pcb->pid = next_pid++;
     cur_pid = pcb->pid;
-    // TODO do more stuff
-
-    new_thread();
 
     hashtable_add(&pcbs, pcb->pid, (void *)pcb);
+    
+    proc_new_thread();
 
     return 0;
 }
 
-int new_thread() {
+/** @brief Creates a new TCB for a thread.
+ *
+ *  @return 0 on success, negative error code otherwise.
+ */
+int proc_new_thread() {
     tcb_t *tcb = malloc(sizeof(tcb_t));
     if (tcb == NULL) {
         return -1;
@@ -54,20 +70,13 @@ int new_thread() {
     tcb->pid = cur_pid;
     cur_tid = tcb->tid;
 
-    // TODO do more stuff
-
-    hashtable_add(&tcbs, tcb->tid, (void*)tcb);
-
     pcb_t *pcb;
     if (!hashtable_get(&pcbs, tcb->pid, (void**)&pcb)) {
-        //FIXME do something
-        lprintf("fucked up");
-        MAGIC_BREAK;
+        return -2;
     }
 
+    hashtable_add(&tcbs, tcb->tid, (void*)tcb);
     linklist_add_tail(&pcb->threads, tcb);
-
-    // TODO add to pcb linklist
 
     return 0;
 }
@@ -75,6 +84,6 @@ int new_thread() {
 
 int gettid()
 {
-    // FIXME implement this
     return cur_tid;
 }
+

@@ -7,11 +7,10 @@
  */
 
 #include <idt.h>
-#include <asm_syscall.h>
-#include <syscall_int.h>
 #include <x86/asm.h>
 #include <x86/seg.h>
-#include <thread.h>
+#include <syscall_int.h>
+#include <handler.h>
 #include <asm_noop.h>
 
 extern int new_pages(void *base, int len);
@@ -28,11 +27,11 @@ void noop()
  */
 void idt_init() {
 
-    // /* Add timer and keyboard interrupt gate descriptors */
+    /* Add timer and keyboard interrupt gate descriptors */
     idt_add_desc(TIMER_IDT_ENTRY, asm_noop, IDT_INT, IDT_DPL_KERNEL);
     idt_add_desc(KEY_IDT_ENTRY, asm_noop, IDT_INT, IDT_DPL_KERNEL);
 
-    // /* Add system call trap gate descriptors */
+    /* Add system call trap gate descriptors */
     // idt_add_desc(SYSCALL_INT, 0, IDT_TRAP, IDT_DPL_USER);
     // idt_add_desc(FORK_INT, 0, IDT_TRAP, IDT_DPL_USER);
     // idt_add_desc(EXEC_INT, 0, IDT_TRAP, IDT_DPL_USER);
@@ -40,8 +39,8 @@ void idt_init() {
     // idt_add_desc(YIELD_INT, 0, IDT_TRAP, IDT_DPL_USER);
     // idt_add_desc(DESCHEDULE_INT, 0, IDT_TRAP, IDT_DPL_USER);
     // idt_add_desc(MAKE_RUNNABLE_INT, 0, IDT_TRAP, IDT_DPL_USER);
-    idt_add_desc(GETTID_INT, asm_gettid, IDT_TRAP, IDT_DPL_USER);
-    idt_add_desc(NEW_PAGES_INT, asm_new_pages, IDT_TRAP, IDT_DPL_USER);
+    idt_add_desc(GETTID_INT, gettid_int, IDT_TRAP, IDT_DPL_USER);
+    idt_add_desc(NEW_PAGES_INT, new_pages_int, IDT_TRAP, IDT_DPL_USER);
     //idt_add_desc(REMOVE_PAGES_INT, remove_pages, IDT_TRAP, IDT_DPL_USER);
     // idt_add_desc(SLEEP_INT, 0, IDT_TRAP, IDT_DPL_USER);
     // idt_add_desc(GETCHAR_INT, 0, IDT_TRAP, IDT_DPL_USER);

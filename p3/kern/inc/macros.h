@@ -1,11 +1,21 @@
-#ifndef __MACROS_H__
-#define __MACROS_H__
+/** @file macros.h
+ *  @brief Prototypes for commonly used macros.
+ *
+ *  @author Patrick Koenig (phkoenig)
+ *  @author Jack Sorrell (jsorrell)
+ *  @bug No known bugs.
+ */
+
+#ifndef _MACROS_H
+#define _MACROS_H
+
 #include <syscall.h>
 
 #define MIN(X,Y) ((X) < (Y) ? (X) : (Y))
 #define MAX(X,Y) ((X) > (Y) ? (X) : (Y))
 
-#define ROUND_DOWN_TO_PAGE(x) ((x)&(~(PAGE_SIZE-1)))
-#define ROUND_UP_TO_PAGE(x) (ROUND_DOWN_TO_PAGE((x)+PAGE_SIZE-1))
+#define PAGE_MASK (~(PAGE_SIZE - 1))
+#define ROUND_DOWN_PAGE(ADDR) ((unsigned)(ADDR) & PAGE_MASK)
+#define ROUND_UP_PAGE(ADDR) (ROUND_DOWN_PAGE((ADDR) + PAGE_SIZE - 1))
 
-#endif /* __MACROS_H__ */
+#endif /* _MACROS_H */

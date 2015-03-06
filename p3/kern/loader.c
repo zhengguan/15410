@@ -16,16 +16,17 @@
 #include <stdio.h>
 #include <malloc.h>
 #include <exec2obj.h>
-#include <loader.h>
 #include <elf_410.h>
-#include <macros.h>
-#include <common_kern.h>
-#include <simics.h>
-#include <exec_run.h>
-#include <seg.h>
 #include <eflags.h>
+#include <seg.h>
+#include <common_kern.h>
+#include <loader.h>
+#include <exec_run.h>
+#include <macros.h>
 
-#define USER_STACK_TOP ((unsigned)0xBFFFFFFF)
+// TODO change this (top of stack?)
+#define USER_STACK_TOP 0xBFFFFFFF
+#define USER_STACK_SIZE PAGE_SIZE 
 #define USER_MODE_CPL 3
 
 
@@ -46,19 +47,21 @@ int getbytes(const char *filename, int offset, int size, char *buf)
 {
     int i;
     for (i = 0; i < MAX_NUM_APP_ENTRIES; i++) {
-        const exec2obj_userapp_TOC_entry *entry = exec2obj_userapp_TOC+i;
+        const exec2obj_userapp_TOC_entry *entry = &exec2obj_userapp_TOC[i];
         if (!strncmp(entry->execname, filename, MAX_EXECNAME_LEN)) {
-            if (offset >= entry->execlen)
+            if (offset >= entry->execlen) {
                 return -1;
-            int min = MIN(entry->execlen-offset, size);
-            memcpy(buf, entry->execbytes+offset, min);
-            return min;
+            }
+            int len = MIN(entry->execlen - offset, size);
+            memcpy(buf, entry->execbytes + offset, len);
+            return len;
         }
     }
 
     return -1;
 }
 
+// TODO is this necessary?
 int elf_valid(const simple_elf_t *se_hdr, const exec2obj_userapp_TOC_entry *entry)
 {
     //TODO: add more checks
@@ -81,53 +84,57 @@ int elf_valid(const simple_elf_t *se_hdr, const exec2obj_userapp_TOC_entry *entr
         return 0;
 
     return 1;
-
 }
 
-void allocate_pages(unsigned start, unsigned len)
+/** @brief Allocate page-aligned memory one page at a time.
+ *
+ *  @param start The start of the memory region to allocate.
+ *  @param su The length of the memory region to allocate.
+ *  @return Void.
+ */
+void alloc_pages(unsigned start, unsigned len)
 {
-    unsigned end = start + len;
-
-    unsigned cur = ROUND_DOWN_TO_PAGE(start);
-
-    while (cur < end) {
-        new_pages((void*)cur, PAGE_SIZE);
-        cur += PAGE_SIZE;
+    unsigned base;
+    for (base = ROUND_DOWN_PAGE(start); base < start + len; base += PAGE_SIZE) {
+        new_pages((void*)base, PAGE_SIZE);
     }
 }
 
-unsigned fillmem(const simple_elf_t *se_hdr, const exec2obj_userapp_TOC_entry *entry, char *argv[])
+/** @brief Fill memory regions needed to run a program.
+ *
+ *  @param se_efl The ELF header.
+ *  @param argv The function arguments.
+ *  @return The inital value of the stack pointer for the function.
+ */
+unsigned fill_mem(const simple_elf_t *se_hdr, char *argv[])
 {
-    //TODO: who you gonna call? new pages!
+    alloc_pages(se_hdr->e_txtstart, se_hdr->e_txtlen);
+    alloc_pages(se_hdr->e_datstart, se_hdr->e_datlen);
+    alloc_pages(se_hdr->e_rodatstart, se_hdr->e_rodatlen);
+    alloc_pages(se_hdr->e_bssstart, se_hdr->e_bsslen);
 
-    //TODO: errors
-    //TODO: page align
-    allocate_pages(se_hdr->e_txtstart, se_hdr->e_txtlen);
-    allocate_pages(se_hdr->e_datstart, se_hdr->e_datlen);
-    allocate_pages(se_hdr->e_rodatstart, se_hdr->e_rodatlen);
-    allocate_pages(se_hdr->e_bssstart, se_hdr->e_bsslen);
-
-    memcpy((char*)se_hdr->e_txtstart, entry->execbytes + se_hdr->e_txtoff, se_hdr->e_txtlen);
-
-    memcpy((char*)se_hdr->e_datstart, entry->execbytes + se_hdr->e_datoff, se_hdr->e_datlen);
-    //TODO: make this read only?
-    memcpy((char*)se_hdr->e_rodatstart, entry->execbytes + se_hdr->e_rodatoff, se_hdr->e_rodatlen);
-
+    // TODO make txt and rodata read only
+    getbytes(se_hdr->e_fname, se_hdr->e_txtoff, se_hdr->e_txtlen,
+        (char *)se_hdr->e_txtstart);
+    getbytes(se_hdr->e_fname, se_hdr->e_datoff, se_hdr->e_datlen,
+        (char *)se_hdr->e_datstart);
+    getbytes(se_hdr->e_fname, se_hdr->e_rodatoff, se_hdr->e_rodatlen,
+        (char *)se_hdr->e_rodatstart);
     memset((char*)se_hdr->e_bssstart, 0, se_hdr->e_bsslen);
 
     int arglen;
     for (arglen = 0; argv[arglen] != NULL; arglen++);
 
-    unsigned stack_low = USER_STACK_TOP-PAGE_SIZE+1;
-    new_pages((void*)(stack_low), PAGE_SIZE);
+    unsigned stack_low = USER_STACK_TOP - USER_STACK_SIZE + 1;
+    new_pages((void*)(stack_low), USER_STACK_SIZE);
 
-    unsigned esp = USER_STACK_TOP+1;
+    unsigned esp = USER_STACK_TOP + 1;
     esp -= sizeof(int);
-    *(int*)esp = stack_low;
+    *(int *)esp = stack_low;
     esp -= sizeof(int);
-    *(int*)esp = USER_STACK_TOP;
+    *(int *)esp = USER_STACK_TOP;
     esp -= sizeof(char**);
-    *(char***)esp = argv;
+    *(char ***)esp = argv;
     esp -= sizeof(int);
     *(int*)esp = arglen;
     esp -= sizeof(int);
@@ -135,6 +142,12 @@ unsigned fillmem(const simple_elf_t *se_hdr, const exec2obj_userapp_TOC_entry *e
     return esp;
 }
 
+/** @brief Begins running a user program.
+ *
+ *  @param eip The initial value of the instruction pointer.
+ *  @param esp The inital value of the stack pointer.
+ *  @return Does not return.
+ */
 void user_run(unsigned eip, unsigned esp)
 {
     //TODO: should this look at currently set eflags?
@@ -145,35 +158,19 @@ void user_run(unsigned eip, unsigned esp)
 
 int exec(char *filename, char *argv[])
 {
-    const exec2obj_userapp_TOC_entry *entry;
-
-    int i;
-    for (i = 0; i < MAX_NUM_APP_ENTRIES; i++) {
-        entry = exec2obj_userapp_TOC+i;
-        if (!strncmp(entry->execname, filename, MAX_EXECNAME_LEN)) {
-            break;
-        }
-    }
-
-    if (i == MAX_NUM_APP_ENTRIES)
+    if (elf_check_header(filename) != ELF_SUCCESS) {
         return -1;
-
-    simple_elf_t se_hdr;
-
-    if (elf_load_helper(&se_hdr, filename) == ELF_SUCCESS) {
-        if (!elf_valid(&se_hdr, entry)) {
-            return -2;
-        }
-        /* start new elf */
-        unsigned esp = fillmem(&se_hdr, entry, argv);
-
-        user_run(se_hdr.e_entry, esp);
-
-        //should not get here
-        lprintf("fucked up");
-        MAGIC_BREAK;
     }
-    return -1;
+    
+    simple_elf_t se_hdr;
+    if (elf_load_helper(&se_hdr, filename) != ELF_SUCCESS) {
+        return -2;
+    }
+    
+    unsigned esp = fill_mem(&se_hdr, argv);
+    user_run(se_hdr.e_entry, esp);
+
+    return -3;
 }
 
 /*@}*/

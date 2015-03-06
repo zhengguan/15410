@@ -33,8 +33,8 @@ typedef struct idt_desc {
     uint16_t offset_h;
 } idt_desc_t;
 
+/* IDT functions */
 void idt_init();
-
 void idt_add_desc(int idt_entry, void *handler, unsigned gate_type, unsigned dpl);
 
 #endif /* _IDT_H */

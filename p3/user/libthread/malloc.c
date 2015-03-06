@@ -3,8 +3,7 @@
  *
  *  @author Patrick Koenig (phkoenig)
  *  @author Jack Sorrell (jsorrell)
- *  @bug Mutex initialization is implementation dependent but allows
- *  for mutex use before threads are initialized
+ *  @bug No known bugs.
  */
 
 #include <mutex.h>
@@ -12,7 +11,6 @@
 #include <stdlib.h>
 #include <types.h>
 
-//initialize the mutex
 mutex_t malloc_mutex = {
     .valid = 1,
     .lock = 0,
