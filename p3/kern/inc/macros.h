@@ -18,4 +18,9 @@
 #define ROUND_DOWN_PAGE(ADDR) ((unsigned)(ADDR) & PAGE_MASK)
 #define ROUND_UP_PAGE(ADDR) (ROUND_DOWN_PAGE((ADDR) + PAGE_SIZE - 1))
 
+typedef enum {
+    false = 0,
+    true    
+} bool;
+
 #endif /* _MACROS_H */

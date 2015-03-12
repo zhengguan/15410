@@ -8,11 +8,11 @@
 
 #include <vm.h>
 #include <x86/cr.h>
-#include <stdlib.h>
 #include <malloc.h>
 #include <syscall.h>
 #include <common_kern.h>
 #include <linklist.h>
+#include <macros.h>
 
 unsigned next_frame = USER_MEM_START;
 // TODO Improve space complexity of this data structure
@@ -39,17 +39,17 @@ static unsigned get_frame()
  *
  *  @return True if present, false otherwise.
  */
-static int is_present(void *va)
+static bool is_present(void *va)
 {
     pde_t pde = GET_PDE(va);
     if (GET_PRESENT(pde)) {
         pte_t pte = GET_PTE(pde, va);
         if (GET_PRESENT(pte)) {
-            return TRUE;
+            return true;
         }
     }
 
-    return FALSE;
+    return false;
 }
 
 /** @brief Initializes the virtual memory.

@@ -61,29 +61,29 @@ int getbytes(const char *filename, int offset, int size, char *buf)
     return -1;
 }
 
-// TODO is this necessary?
-int elf_valid(const simple_elf_t *se_hdr, const exec2obj_userapp_TOC_entry *entry)
+static bool elf_valid(const simple_elf_t *se_hdr)
 {
-    //TODO: add more checks
-    if (se_hdr->e_entry < se_hdr->e_txtstart || se_hdr->e_entry >= se_hdr->e_txtstart+se_hdr->e_txtlen)
-        return 0;
-    if (se_hdr->e_txtstart < USER_MEM_START)
-        return 0;
-    if (se_hdr->e_datstart < USER_MEM_START && se_hdr->e_datlen != 0)
-        return 0;
-    if (se_hdr->e_rodatstart < USER_MEM_START && se_hdr->e_rodatlen != 0)
-        return 0;
-    if (se_hdr->e_bssstart < USER_MEM_START && se_hdr->e_bsslen != 0)
-        return 0;
-
-    if (se_hdr->e_txtoff >= entry->execlen)
-        return 0;
-    if (se_hdr->e_datoff >= entry->execlen)
-        return 0;
-    if (se_hdr->e_rodatoff >= entry->execlen)
-        return 0;
-
-    return 1;
+    if (se_hdr->e_entry < se_hdr->e_txtstart || se_hdr->e_entry >= se_hdr->e_txtstart + se_hdr->e_txtlen) {
+        return false;
+    }
+    
+    if (se_hdr->e_txtstart < USER_MEM_START) {
+        return false;
+    }
+    
+    if (se_hdr->e_datstart < USER_MEM_START && se_hdr->e_datlen != 0) {
+        return false;
+    }
+    
+    if (se_hdr->e_rodatstart < USER_MEM_START && se_hdr->e_rodatlen != 0) {
+        return false;
+    }
+    
+    if (se_hdr->e_bssstart < USER_MEM_START && se_hdr->e_bsslen != 0) {
+        return false;
+    }
+    
+    return true;
 }
 
 /** @brief Allocate page-aligned memory one page at a time.
@@ -92,7 +92,7 @@ int elf_valid(const simple_elf_t *se_hdr, const exec2obj_userapp_TOC_entry *entr
  *  @param su The length of the memory region to allocate.
  *  @return Void.
  */
-void alloc_pages(unsigned start, unsigned len)
+static void alloc_pages(unsigned start, unsigned len)
 {
     unsigned base;
     for (base = ROUND_DOWN_PAGE(start); base < start + len; base += PAGE_SIZE) {
@@ -106,7 +106,7 @@ void alloc_pages(unsigned start, unsigned len)
  *  @param argv The function arguments.
  *  @return The inital value of the stack pointer for the function.
  */
-unsigned fill_mem(const simple_elf_t *se_hdr, char *argv[])
+static unsigned fill_mem(const simple_elf_t *se_hdr, char *argv[])
 {
     alloc_pages(se_hdr->e_txtstart, se_hdr->e_txtlen);
     alloc_pages(se_hdr->e_datstart, se_hdr->e_datlen);
@@ -114,12 +114,18 @@ unsigned fill_mem(const simple_elf_t *se_hdr, char *argv[])
     alloc_pages(se_hdr->e_bssstart, se_hdr->e_bsslen);
 
     // TODO make txt and rodata read only
-    getbytes(se_hdr->e_fname, se_hdr->e_txtoff, se_hdr->e_txtlen,
-        (char *)se_hdr->e_txtstart);
-    getbytes(se_hdr->e_fname, se_hdr->e_datoff, se_hdr->e_datlen,
-        (char *)se_hdr->e_datstart);
-    getbytes(se_hdr->e_fname, se_hdr->e_rodatoff, se_hdr->e_rodatlen,
-        (char *)se_hdr->e_rodatstart);
+    if (getbytes(se_hdr->e_fname, se_hdr->e_txtoff, se_hdr->e_txtlen,
+        (char *)se_hdr->e_txtstart) < 0) {
+        return 0;
+    }
+    if (getbytes(se_hdr->e_fname, se_hdr->e_datoff, se_hdr->e_datlen,
+        (char *)se_hdr->e_datstart) < 0) {
+        return 0;
+    }
+    if (getbytes(se_hdr->e_fname, se_hdr->e_rodatoff, se_hdr->e_rodatlen,
+        (char *)se_hdr->e_rodatstart) < 0) {
+        return 0;
+    }
     memset((char*)se_hdr->e_bssstart, 0, se_hdr->e_bsslen);
 
     int arglen;
@@ -167,10 +173,18 @@ int exec(char *filename, char *argv[])
         return -2;
     }
     
+    if (!elf_valid(&se_hdr)) {
+        return -3;
+    }
+    
     unsigned esp = fill_mem(&se_hdr, argv);
+    if (esp == 0) {
+        return -4;
+    }
+    
     user_run(se_hdr.e_entry, esp);
 
-    return -3;
+    return -5;
 }
 
 /*@}*/
