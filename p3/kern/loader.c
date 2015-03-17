@@ -23,10 +23,11 @@
 #include <loader.h>
 #include <exec_run.h>
 #include <macros.h>
+#include <cr.h>
 
 // TODO change this (top of stack?)
 #define USER_STACK_TOP 0xBFFFFFFF
-#define USER_STACK_SIZE PAGE_SIZE 
+#define USER_STACK_SIZE PAGE_SIZE
 #define USER_MODE_CPL 3
 
 
@@ -61,32 +62,40 @@ int getbytes(const char *filename, int offset, int size, char *buf)
     return -1;
 }
 
+/**
+ * @brief Performs simple checks to determine if a ELF file is valid
+ *
+ * @param se_hdr simple_elf_t
+ * @return False iff the elf fails a validity check.
+ */
 static bool elf_valid(const simple_elf_t *se_hdr)
 {
     if (se_hdr->e_entry < se_hdr->e_txtstart || se_hdr->e_entry >= se_hdr->e_txtstart + se_hdr->e_txtlen) {
         return false;
     }
-    
+
     if (se_hdr->e_txtstart < USER_MEM_START) {
         return false;
     }
-    
+
     if (se_hdr->e_datstart < USER_MEM_START && se_hdr->e_datlen != 0) {
         return false;
     }
-    
+
     if (se_hdr->e_rodatstart < USER_MEM_START && se_hdr->e_rodatlen != 0) {
         return false;
     }
-    
+
     if (se_hdr->e_bssstart < USER_MEM_START && se_hdr->e_bsslen != 0) {
         return false;
     }
-    
+
     return true;
 }
 
 /** @brief Allocate page-aligned memory one page at a time.
+
+ *  Allows for the allocation of pages to overlap previously allocated memory.
  *
  *  @param start The start of the memory region to allocate.
  *  @param su The length of the memory region to allocate.
@@ -104,7 +113,8 @@ static void alloc_pages(unsigned start, unsigned len)
  *
  *  @param se_efl The ELF header.
  *  @param argv The function arguments.
- *  @return The inital value of the stack pointer for the function.
+ *  @return The inital value of the stack pointer for the function
+ *  or 0 on error.
  */
 static unsigned fill_mem(const simple_elf_t *se_hdr, char *argv[])
 {
@@ -113,7 +123,7 @@ static unsigned fill_mem(const simple_elf_t *se_hdr, char *argv[])
     alloc_pages(se_hdr->e_rodatstart, se_hdr->e_rodatlen);
     alloc_pages(se_hdr->e_bssstart, se_hdr->e_bsslen);
 
-    // TODO make txt and rodata read only
+    // TODO make txt and rodata read only?
     if (getbytes(se_hdr->e_fname, se_hdr->e_txtoff, se_hdr->e_txtlen,
         (char *)se_hdr->e_txtstart) < 0) {
         return 0;
@@ -135,14 +145,21 @@ static unsigned fill_mem(const simple_elf_t *se_hdr, char *argv[])
     new_pages((void*)(stack_low), USER_STACK_SIZE);
 
     unsigned esp = USER_STACK_TOP + 1;
+
+    //push arguments for _main
     esp -= sizeof(int);
     *(int *)esp = stack_low;
+
     esp -= sizeof(int);
     *(int *)esp = USER_STACK_TOP;
+
     esp -= sizeof(char**);
     *(char ***)esp = argv;
+
     esp -= sizeof(int);
     *(int*)esp = arglen;
+
+    //push return address (isn't one)
     esp -= sizeof(int);
 
     return esp;
@@ -158,7 +175,8 @@ void user_run(unsigned eip, unsigned esp)
 {
     //TODO: should this look at currently set eflags?
     //TODO: more flags?
-    unsigned eflags = EFL_RESV1 | EFL_IF;
+    set_cr4(get_cr4() | CR4_PGE);
+    unsigned eflags = EFL_RESV1 | EFL_IF | EFL_IOPL_RING1;
     exec_run(SEGSEL_USER_DS, eip, SEGSEL_USER_CS, eflags, esp, SEGSEL_USER_DS);
 }
 
@@ -167,21 +185,21 @@ int exec(char *filename, char *argv[])
     if (elf_check_header(filename) != ELF_SUCCESS) {
         return -1;
     }
-    
+
     simple_elf_t se_hdr;
     if (elf_load_helper(&se_hdr, filename) != ELF_SUCCESS) {
         return -2;
     }
-    
+
     if (!elf_valid(&se_hdr)) {
         return -3;
     }
-    
+
     unsigned esp = fill_mem(&se_hdr, argv);
     if (esp == 0) {
         return -4;
     }
-    
+
     user_run(se_hdr.e_entry, esp);
 
     return -5;
