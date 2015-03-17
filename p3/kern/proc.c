@@ -81,7 +81,10 @@ int proc_new_thread() {
     return 0;
 }
 
-
+/** @brief Returns the thread ID of the invoking thread.
+ *
+ *  @return The thread ID of the invoking thread.
+ */
 int gettid()
 {
     return cur_tid;

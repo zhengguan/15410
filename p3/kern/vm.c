@@ -12,11 +12,14 @@
 #include <syscall.h>
 #include <common_kern.h>
 #include <linklist.h>
+#include <hashtable.h>
 #include <macros.h>
+#include <simics.h>
 
 unsigned next_frame = USER_MEM_START;
 // TODO Improve space complexity of this data structure
 linklist_t free_frames;
+hashtable_t alloc_pages;
 
 /** @brief Gets a free physical frame.
  *
@@ -52,6 +55,25 @@ static bool is_present(void *va)
     return false;
 }
 
+/** @brief Checks whether the page table referenced by a page directory entry
+ *  is empty.
+ *
+ *  @param pde The page directory entry.
+ *  @return True if empty, false otherwise.
+ */
+static bool is_pt_empty(pde_t *pde) {
+    pt_t pt = GET_PT(*pde);
+
+    int i;
+    for (i = 0; i < PT_SIZE; i++) {
+        if (GET_PRESENT(pt[i])) {
+            return false;
+        }
+    }
+    
+    return true;
+}
+
 /** @brief Initializes the virtual memory.
  *
  *  @return Void.
@@ -59,6 +81,7 @@ static bool is_present(void *va)
 void vm_init()
 {
     linklist_init(&free_frames);
+    hashtable_init(&alloc_pages, PAGES_HT_SIZE);
     
     vm_new_pd();
     
@@ -142,6 +165,55 @@ void vm_new_pte(void *va, unsigned pa, unsigned flags)
     *pte = (ROUND_DOWN_PAGE(pa) | PTE_PRESENT_YES | flags);
 }
 
+/** @brief Removes the page directory.
+ *
+ *  @return Void.
+ */
+void vm_remove_pd() {
+    // TODO do we need this? Probably on exiting
+}
+
+/** @brief Removes a page directory entry.
+ *
+ *  @param pde The page directory entry.
+ *  @return Void.
+ */
+void vm_remove_pde(pde_t *pde) {
+    *pde = SET_PRESENT(*pde, PTE_PRESENT_NO);
+}
+
+/** @brief Removes a page table.
+ *
+ *  @param pde The page directory entry of the page table to be removed.
+ *  @return Void.
+ */
+void vm_remove_pt(pde_t *pde) {
+    pt_t pt = GET_PT(*pde);
+    sfree(pt, PAGE_SIZE);
+    linklist_add_tail(&free_frames, (void *)pt);
+    
+    vm_remove_pde(pde); 
+}
+
+/** @brief Removes a page table entry for a virtual address.
+ *
+ *  @param va The virtual address.
+ *  @return Mapped physical address of the removed page table.
+ */
+unsigned vm_remove_pte(void *va) {
+    // TODO maybe possible race condition here
+
+    pde_t *pde = &GET_PDE(va);
+    pte_t *pte = &GET_PTE(*pde, va);
+    *pte = SET_PRESENT(*pte, PTE_PRESENT_NO);
+    
+    if (is_pt_empty(pde)) {
+        vm_remove_pt(pde);
+    }
+    
+    return ROUND_DOWN_PAGE(*pte);
+}
+
 /** @brief Allocated memory starting at base and extending for len bytes.
  *
  *  @param base The base of the memory region to allocate.
@@ -168,6 +240,8 @@ int new_pages(void *base, int len)
     for (va = base; va < base + len - 1; va += PAGE_SIZE) {
         vm_new_pte(va, get_frame(), PTE_RW_WRITE | PTE_SU_USER);
     }
+    
+    hashtable_add(&alloc_pages, PAGE_NUM(base), (void *)len);
 
     return 0;
 }
@@ -179,6 +253,24 @@ int new_pages(void *base, int len)
  */
 int remove_pages(void *base)
 {
-    // TODO How to keep track of allocated region len?
+    return 0;
+    
+    if (((unsigned)base % PAGE_SIZE) != 0) {
+        return -1;
+    }
+    
+    int len;
+    if (!hashtable_get(&alloc_pages, PAGE_NUM(base), (void**)&len)) {
+        return -2;
+    }
+    
+    hashtable_remove(&alloc_pages, PAGE_NUM(base));
+    
+    void *va;
+    for (va = base; va < base + len - 1; va += PAGE_SIZE) {
+        unsigned pa = vm_remove_pte(va);
+        linklist_add_tail(&free_frames, (void *)pa); 
+    }
+    
     return 0;
 }

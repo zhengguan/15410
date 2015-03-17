@@ -42,7 +42,7 @@
  */
 int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
 {
-    set_esp0((unsigned)malloc(INT_STACK_SIZE));
+    set_esp0((unsigned)malloc(INT_STACK_SIZE) + INT_STACK_SIZE);
 
     idt_init();
     

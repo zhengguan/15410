@@ -19,6 +19,7 @@
 #include <elf_410.h>
 #include <eflags.h>
 #include <seg.h>
+#include <syscall.h>
 #include <common_kern.h>
 #include <loader.h>
 #include <exec_run.h>
@@ -180,6 +181,14 @@ void user_run(unsigned eip, unsigned esp)
     exec_run(SEGSEL_USER_DS, eip, SEGSEL_USER_CS, eflags, esp, SEGSEL_USER_DS);
 }
 
+/** @brief Replaces the program currently running in the invoking task with
+ *  the program stored in the file named execname.  The argument points to a
+ *  null-terminated vector of null-terminated string arguments.
+ *
+ *  @param filename The program file name.
+ *  @param argv The argument vector.
+ *  @return Does not return, returns a negative error code on failure.
+ */
 int exec(char *filename, char *argv[])
 {
     if (elf_check_header(filename) != ELF_SUCCESS) {
