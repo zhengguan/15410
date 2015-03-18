@@ -25,6 +25,9 @@ typedef struct tcb {
     int pid;
 } tcb_t;
 
+extern hashtable_t pcbs;
+extern hashtable_t tcbs;
+
 /* Process and thread functions */
 int proc_init();
 int proc_new_process();
