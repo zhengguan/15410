@@ -10,6 +10,7 @@
 #define _PROC_H
 
 #include <linklist.h>
+#include <hashtable.h>
 
 #define PCB_HT_SIZE 128
 #define TCB_HT_SIZE 128
