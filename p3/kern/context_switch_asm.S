@@ -8,43 +8,69 @@
 
 //TODO: take stack segment as arg
 
+
+
 .globl context_switch_asm
-context_switch_asm:
+.globl store_registers_asm
+
+
+//prob dont need to save caller save registers or eip
+//combine these functions, copy virtual memory
+
+store_registers_asm:
     push %ebp
     mov %esp, %ebp
-    push $RETURN
-    pusha
+    push %eax #get register to use
+    mov 8(%ebp), %eax
+    pop (%eax)
+    mov %ebx, 4(%eax)
+    mov %ecx, 8(%eax)
+    mov %edx, 12(%eax)
+    mov %esi, 16(%eax)
+    mov %edi, 20(%eax)
+    mov %esp, 24(%eax)
+    mov %ebp, 28(%eax)
+    mov $RETURN, 32(%eax)
     pushf
-    call get_cr0
-    push %eax
-    call get_cr2
-    push %eax
-    call get_cr3
-    push %eax
-    call get_cr4
-    push %eax
-    //push %cs
-    push %ds
-    push %es
-    push %fs
-    push %gs
-    mov 4(%ebp), %esp
-    pop %gs
-    pop %fs
-    pop %es
-    pop %ds
-    //pop %cs
-    call set_cr4
-    addl 4, %esp
-    call set_cr3
-    addl 4, %esp
-    call set_cr2
-    addl 4, %esp
-    call set_cr0
-    addl 4, %esp
-    popf
-    popa
-    ret
-  RETURN:
+    pop 36(%eax)
+    mov %cr0, 40(%eax)
+    mov %cr2, 44(%eax)
+    mov %cr3, 48(%eax)
+    mov %cr4, 52(%eax)
+    mov %cs, 56(%eax)
+    mov %ds, 60(%eax)
+    mov %es, 64(%eax)
+    mov %fs, 68(%eax)
+    mov %gs, 72(%eax)
+    mov %ss, 76(%eax)
+    mov $0, %esp
     leave
     ret
+  RETURN:
+    mov $1, %esp
+    leave
+    ret
+
+
+context_switch_asm:
+    mov 4(%esp), %eax
+    mov 4(%eax), %ebx
+    mov 8(%eax), %ecx
+    mov 12(%eax), %edx
+    mov 16(%eax), %esi
+    mov 20(%eax), %edi
+    push 36(%eax)
+    popf
+    mov 40(%eax), %cr0
+    mov 44(%eax), %cr2
+    mov 48(%eax), %cr3
+    mov 52(%eax), %cr4
+    // mov 56(%eax), %cs
+    mov 60(%eax), %ds
+    mov 64(%eax), %es
+    mov 68(%eax), %fs
+    mov 72(%eax), %gs
+    mov 76(%eax), %ss
+    mov 24(%eax), %esp
+    mov 28(%eax), %ebp
+    jmp 32(%eax)

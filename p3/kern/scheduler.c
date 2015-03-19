@@ -17,13 +17,23 @@ int scheduler_init()
 
 int ctx_switch(int tid)
 {
-  tcb_t *tcb;
-  if (hashtable_get(&tcbs, tid, (void**)&tcb) < 0)
+  tcb_t *new_tcb;
+  if (hashtable_get(&tcbs, tid, (void**)&new_tcb) < 0)
     return -1;
 
-  context_switch_asm(tcb->esp);
+  tcb_t *old_tcb;
+  hashtable_get(&tcbs, gettid(), (void**)&old_tcb);
 
-  enable_interrupts();
+
+  disable_interrupts();
+  if (store_registers_asm(old_tcb)) {
+    enable_interrupts();
+    return;
+  }
+  else {
+    context_switch_asm(new_tcb);
+  }
+
   return 0;
 }
 
@@ -38,8 +48,5 @@ void scheduler_tick(unsigned num_ticks)
 
   linklist_add_tail(&scheduler_queue, (void*)gettid());
 
-  if (ctx_switch(tid) < 0) {
-    lprintf("fucked up1");
-    MAGIC_BREAK;
-  }
+  ctx_switch(tid);
 }
