@@ -9,6 +9,10 @@
 #ifndef __SCHEDULER_INIT_H__
 #define __SCHEDULER_INIT_H__
 
+#include <linklist.h>
+
+extern linklist_t scheduler_queue;
+
 int scheduler_init();
 void scheduler_tick(unsigned num_ticks);
 int ctx_switch(int tid);

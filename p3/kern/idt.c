@@ -12,6 +12,7 @@
 #include <syscall_int.h>
 #include <handler.h>
 #include <asm_noop.h>
+#include <scheduler.h>
 
 extern int new_pages(void *base, int len);
 extern int remove_pages(void *base);
@@ -28,7 +29,7 @@ void noop()
 void idt_init() {
 
     /* Add timer and keyboard interrupt gate descriptors */
-    idt_add_desc(TIMER_IDT_ENTRY, asm_noop, IDT_INT, IDT_DPL_KERNEL);
+    idt_add_desc(TIMER_IDT_ENTRY, scheduler_tick, IDT_INT, IDT_DPL_KERNEL);
     idt_add_desc(KEY_IDT_ENTRY, asm_noop, IDT_INT, IDT_DPL_KERNEL);
 
     /* Add system call trap gate descriptors */

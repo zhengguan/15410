@@ -1,19 +1,17 @@
 #include <context_switch_asm.h>
-#include <linklist.h>
 #include <proc.h>
 #include <syscall.h>
 #include <simics.h>
 #include <scheduler.h>
 #include <asm.h>
 
-static linklist_t scheduler_queue;
+linklist_t scheduler_queue;
 
 int scheduler_init()
 {
   if (linklist_init(&scheduler_queue) < 0)
     return -1;
 
-  linklist_add_head(&scheduler_queue, (void*)gettid());
   return 0;
 }
 
@@ -31,16 +29,17 @@ int ctx_switch(int tid)
 
 void scheduler_tick(unsigned num_ticks)
 {
+  lprintf("tick");
   int tid;
   if (linklist_remove_head(&scheduler_queue, (void**)&tid) < 0) {
-    lprintf("fucked up");
+    lprintf("fucked up0");
     MAGIC_BREAK;
   }
 
   linklist_add_tail(&scheduler_queue, (void*)gettid());
 
   if (ctx_switch(tid) < 0) {
-    lprintf("fucked up");
+    lprintf("fucked up1");
     MAGIC_BREAK;
   }
 }

@@ -28,6 +28,8 @@
 
 #include <x86/cr.h>
 #include <malloc.h>
+#include <scheduler.h>
+#include <driver_core.h>
 
 #define INT_STACK_SIZE (2 * PAGE_SIZE)
 
@@ -44,12 +46,17 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
 {
     set_esp0((unsigned)malloc(INT_STACK_SIZE) + INT_STACK_SIZE);
 
+    if (scheduler_init() < 0) {
+        lprintf("failed to init scheduler");
+    }
+
     idt_init();
-    
+
     vm_init();
 
     proc_init();
-    proc_new_process();
+    if (proc_new_process() < 0)
+        lprintf("failed to make new process");
 
     clear_console();
 
@@ -57,7 +64,7 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
     if (exec(MAIN_NAME, arg) < 0) {
         lprintf("Failed to run main process.");
     }
-    
+
     while (1) {
         continue;
     }
