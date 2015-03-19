@@ -15,6 +15,28 @@
 #define PCB_HT_SIZE 128
 #define TCB_HT_SIZE 128
 
+typedef struct regs {
+    unsigned eax;
+    unsigned ebx;
+    unsigned ecx;
+    unsigned edx;
+    unsigned esi;
+    unsigned edi;
+    unsigned esp;
+    unsigned ebp;
+    unsigned eflags;
+    unsigned cr0;
+    unsigned cr2;
+    unsigned cr3;
+    unsigned cr4;
+    unsigned cs;
+    unsigned ds;
+    unsigned es;
+    unsigned fs;
+    unsigned gs;
+    unsigned ss;
+} regs_t;
+
 typedef struct pcb {
     int pid;
     linklist_t threads;
@@ -22,8 +44,8 @@ typedef struct pcb {
 
 typedef struct tcb {
     int tid;
-    int esp;
     int pid;
+    regs_t regs;
 } tcb_t;
 
 extern hashtable_t pcbs;

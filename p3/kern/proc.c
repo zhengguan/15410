@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <linklist.h>
 #include <hashtable.h>
+#include <scheduler.h>
 
 int next_pid = 1;
 int next_tid = 1;
@@ -18,6 +19,7 @@ int next_tid = 1;
 hashtable_t pcbs;
 hashtable_t tcbs;
 
+// TODO get rid of cur_tid, use scheduler queue instead
 int cur_pid;
 int cur_tid;
 
@@ -34,7 +36,8 @@ int proc_init() {
 
 /** @brief Creates a new PCB for a process.
  *
- *  @return 0 on success, negative error code otherwise.
+ *  @return The thread ID of the newly created thread on success, negative
+ *  error code otherwise.
  */
 int proc_new_process() {
     pcb_t *pcb = malloc(sizeof(pcb_t));
@@ -51,16 +54,17 @@ int proc_new_process() {
 
     hashtable_add(&pcbs, pcb->pid, (void *)pcb);
     
-    proc_new_thread();
-
-    return 0;
+    return proc_new_thread();
 }
 
 /** @brief Creates a new TCB for a thread.
  *
- *  @return 0 on success, negative error code otherwise.
+ *  @return The thread ID of the newly created thread on success, negative
+ *  error code otherwise.
  */
 int proc_new_thread() {
+    // TODO may need to disable interrupts to prevent context swtiching in here
+    
     tcb_t *tcb = malloc(sizeof(tcb_t));
     if (tcb == NULL) {
         return -1;
@@ -77,8 +81,10 @@ int proc_new_thread() {
 
     hashtable_add(&tcbs, tcb->tid, (void*)tcb);
     linklist_add_tail(&pcb->threads, tcb);
+    
+    linklist_add_head(&scheduler_queue, (void *)tcb->tid);
 
-    return 0;
+    return tcb->tid;
 }
 
 /** @brief Returns the thread ID of the invoking thread.
