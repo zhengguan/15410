@@ -24,17 +24,12 @@ int ctx_switch(int tid)
   tcb_t *old_tcb;
   hashtable_get(&tcbs, gettid(), (void**)&old_tcb);
 
-
-
   disable_interrupts();
-
-  lprintf("ctx_switch time, tid = %d", gettid());
-  MAGIC_BREAK;
-  context_switch_asm(&old_tcb->regs, &new_tcb->regs);
-  cur_tid = tid;
-  lprintf("ctx switched, tid = %d", gettid());
-
-  enable_interrupts();
+  if (store_regs(&old_tcb->regs)) {
+    restore_regs(&new_tcb->regs);
+  } else {
+    enable_interrupts();
+  }
 
   return 0;
 }

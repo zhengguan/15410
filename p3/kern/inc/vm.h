@@ -24,6 +24,9 @@
 #define PD_SIZE (PAGE_SIZE / sizeof(pde_t))
 #define PT_SIZE (PAGE_SIZE / sizeof(pte_t))
 
+#define FLAG_MASK (~(PAGE_MASK))
+#define GET_FLAGS(PTE) ((unsigned)PTE & FLAG_MASK)
+
 #define PD_MASK 0xFFC00000
 #define PD_SHIFT 22
 #define GET_PD() ((pd_t)get_cr3())
@@ -34,7 +37,9 @@
 #define PT_SHIFT 12
 #define GET_PT(PDE) ((pt_t)((PDE) & PAGE_MASK))
 #define GET_PT_IDX(ADDR) (((unsigned)(ADDR) & PT_MASK) >> PT_SHIFT)
-#define GET_PTE(PDE,ADDR) (GET_PT(PDE)[GET_PT_IDX(ADDR)])
+#define GET_PTE(PDE, ADDR) (GET_PT(PDE)[GET_PT_IDX(ADDR)])
+
+#define GET_VA(PD_IDX, PT_IDX) ((PD_IDX << PD_SHIFT) || (PT_IDX << PT_SHIFT))
 
 #define PAGES_HT_SIZE 128
 
@@ -59,5 +64,4 @@ void vm_remove_pd();
 void vm_remove_pde(pde_t *pde);
 void vm_remove_pt(pde_t *pde);
 unsigned vm_remove_pte(void *va);
-
-unsigned copy_vm();
+unsigned vm_copy();

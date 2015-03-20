@@ -9,6 +9,7 @@
 #include <vm.h>
 #include <x86/cr.h>
 #include <malloc.h>
+#include <string.h>
 #include <syscall.h>
 #include <common_kern.h>
 #include <linklist.h>
@@ -83,7 +84,6 @@ void vm_init()
 {
     linklist_init(&free_frames);
     hashtable_init(&alloc_pages, PAGES_HT_SIZE);
-
     set_cr3((unsigned)vm_new_pd());
 
     set_cr0(get_cr0() | CR0_PG);
@@ -91,11 +91,10 @@ void vm_init()
 
 /** @brief Creates a new page directory.
  *
- *  @return Void.
+ *  @return The physical address of the new page directory.
  */
 pd_t vm_new_pd()
 {
-    // TODO maybe move PDs to top of address space rather than in kernel mem
 
     pd_t pd = smemalign(PAGE_SIZE, PAGE_SIZE);
     // FIXME check for failure
@@ -118,7 +117,7 @@ pd_t vm_new_pd()
  *  @param pde The page directory entry.
  *  @param pt The page table for the page directory entry.
  *  @param su The page directory entry flags.
- *  @return Physical address of base of the new page table.
+ *  @return Void.
  */
 void vm_new_pde(pde_t *pde, pt_t pt, unsigned flags)
 {
@@ -131,7 +130,7 @@ void vm_new_pde(pde_t *pde, pt_t pt, unsigned flags)
  *  @param su The page directory entry flags for the new page table.
  *  @return Physical address of base of the new page table.
  */
-void vm_new_pt(pde_t *pde, unsigned flags)
+pt_t vm_new_pt(pde_t *pde, unsigned flags)
 {
     pt_t pt = smemalign(PAGE_SIZE, PAGE_SIZE);
     // FIXME check for failure
@@ -142,6 +141,8 @@ void vm_new_pt(pde_t *pde, unsigned flags)
     }
 
     vm_new_pde(pde, pt, flags);
+
+    return pt;
 }
 
 /** @brief Creates a new page table entry for a virtual address.
@@ -149,7 +150,7 @@ void vm_new_pt(pde_t *pde, unsigned flags)
  *  @param va The virtual address.
  *  @param pa The mapped physical address.
  *  @param su The page table entry flags.
- *  @return Physical address of base of the new page table.
+ *  @return Void.
  */
 void vm_new_pte(pd_t pd, void *va, unsigned pa, unsigned flags)
 {
@@ -211,6 +212,7 @@ unsigned vm_remove_pte(void *va) {
 
     return ROUND_DOWN_PAGE(*pte);
 }
+
 
 /** @brief Allocated memory starting at base and extending for len bytes.
  *
@@ -275,7 +277,7 @@ int remove_pages(void *base)
 }
 
 
-unsigned copy_vm()
+unsigned vm_copy()
 {
     pd_t old_pd = (pt_t)get_cr3();
     pd_t new_pd = vm_new_pd();
