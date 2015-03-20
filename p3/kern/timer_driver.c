@@ -12,7 +12,7 @@
 #include <x86/asm.h>
 #include <x86/timer_defines.h>
 
-#define TICKS_PER_SECOND 100
+#define TICKS_PER_SECOND TIMER_RATE
 #define CYCLES_BTW_INTER ((unsigned)(TIMER_RATE / TICKS_PER_SECOND))
 
 static unsigned ticks = 0;

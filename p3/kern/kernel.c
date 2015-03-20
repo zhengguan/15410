@@ -62,6 +62,7 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
     clear_console();
 
     char *arg[] = MAIN_ARG;
+    MAGIC_BREAK;
     if (exec(MAIN_NAME, arg) < 0) {
         lprintf("Failed to run main process.");
     }

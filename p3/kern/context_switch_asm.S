@@ -8,62 +8,58 @@
 
 .globl store_regs
 store_regs:
-    mov     4(%esp), %eax
-    mov     %ebx, (%eax)
-    mov     %esi, 4(%eax)
-    mov     %edi, 8(%eax)
-    mov     %esp, %ecx
-    addl    $4, %ecx
-    mov     %ecx, 12(%eax)
-    mov     %ebp, 16(%eax)
-    mov     (%esp), %ecx
-    mov     %ecx, 20(%eax)
+    mov     4(%esp), %ecx
+    mov     %ebx, (%ecx)
+    mov     %esi, 4(%ecx)
+    mov     %edi, 8(%ecx)
+    mov     %esp, %edx
+    addl    $4, %edx
+    mov     %edx, 12(%ecx)
+    mov     %ebp, 16(%ecx)
+    mov     (%esp), %edx
+    mov     %edx, 20(%ecx)
     pushf
-    pop     24(%eax)
-    mov     %cr0, %ecx
-    mov     %ecx, 28(%eax)
-    mov     %cr2, %ecx
-    mov     %ecx, 32(%eax)
-    mov     %cr3, %ecx
-    mov     %ecx, 36(%eax)
-    mov     %cr4, %ecx
-    mov     %ecx, 40(%eax)
-    mov     %cs, 44(%eax)
-    mov     %ds, 48(%eax)
-    mov     %es, 52(%eax)
-    mov     %fs, 56(%eax)
-    mov     %gs, 60(%eax)
-    mov     %ss, 64(%eax)
+    pop     24(%ecx)
+    mov     %cr0, %edx
+    mov     %edx, 28(%ecx)
+    mov     %cr2, %edx
+    mov     %edx, 32(%ecx)
+    mov     %cr3, %edx
+    mov     %edx, 36(%ecx)
+    mov     %cr4, %edx
+    mov     %edx, 40(%ecx)
+    mov     %cs, 44(%ecx)
+    mov     %ds, 48(%ecx)
+    mov     %es, 52(%ecx)
+    mov     %fs, 56(%ecx)
+    mov     %gs, 60(%ecx)
+    mov     %ss, 64(%ecx)
     mov     $1, %eax
-    ret
-  RETURN:
-    mov $1, %esp
-    leave
     ret
 
 .globl restore_regs
 restore_regs:
-    mov     4(%esp), %eax
-    mov     (%eax), %ebx
-    mov     8(%eax), %esi
-    mov     12(%eax), %edi
-    mov     16(%eax), %esp
-    mov     20(%eax), %ebp
-    push    24(%eax)
+    mov     4(%esp), %ecx
+    mov     (%ecx), %ebx
+    mov     4(%ecx), %esi
+    mov     8(%ecx), %edi
+    mov     12(%ecx), %esp
+    mov     16(%ecx), %ebp
+    push    24(%ecx)
     popf
-    mov     28(%eax), %ecx
-    mov     %ecx, %cr0
-    mov     32(%eax), %ecx
-    mov     %ecx, %cr2
-    mov     36(%eax), %ecx
-    mov     %ecx, %cr3
-    mov     40(%eax), %ecx
-    mov     %ecx, %cr4
-    // mov  44(%eax), %cs
-    mov     48(%eax), %ds
-    mov     52(%eax), %es
-    mov     56(%eax), %fs
-    mov     60(%eax), %gs
-    mov     64(%eax), %ss
+    mov     28(%ecx), %edx
+    mov     %edx, %cr0
+    mov     32(%ecx), %edx
+    mov     %edx, %cr2
+    mov     36(%ecx), %edx
+    mov     %edx, %cr3
+    mov     40(%ecx), %edx
+    mov     %edx, %cr4
+    // mov  44(%ecx), %cs
+    mov     48(%ecx), %ds
+    mov     52(%ecx), %es
+    mov     56(%ecx), %fs
+    mov     60(%ecx), %gs
+    mov     64(%ecx), %ss
     mov     $0, %eax
-    jmp     32(%eax)
+    jmp     20(%ecx)

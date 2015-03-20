@@ -30,7 +30,7 @@ int cur_tid;
 int proc_init() {
      hashtable_init(&pcbs, PCB_HT_SIZE);
      hashtable_init(&tcbs, TCB_HT_SIZE);
-     
+
      return 0;
 }
 
@@ -44,7 +44,7 @@ int proc_new_process() {
     if (pcb == NULL) {
         return -1;
     }
-    
+
     if (linklist_init(&pcb->threads) < 0) {
         return -2;
     }
@@ -53,7 +53,7 @@ int proc_new_process() {
     cur_pid = pcb->pid;
 
     hashtable_add(&pcbs, pcb->pid, (void *)pcb);
-    
+
     return proc_new_thread();
 }
 
@@ -63,11 +63,11 @@ int proc_new_process() {
  *  error code otherwise.
  */
 int proc_new_thread() {
-    // TODO may need to disable interrupts to prevent context swtiching in here
-    
+    // TODO may need to disable interrupts to prevent context switching in here
+
     tcb_t *tcb = malloc(sizeof(tcb_t));
     if (tcb == NULL) {
-        return -1;
+        return -3;
     }
 
     tcb->tid = next_tid++;
@@ -75,14 +75,14 @@ int proc_new_thread() {
     cur_tid = tcb->tid;
 
     pcb_t *pcb;
-    if (!hashtable_get(&pcbs, tcb->pid, (void**)&pcb)) {
-        return -2;
+    if (hashtable_get(&pcbs, tcb->pid, (void**)&pcb) < 0) {
+        return -4;
     }
 
     hashtable_add(&tcbs, tcb->tid, (void*)tcb);
     linklist_add_tail(&pcb->threads, tcb);
-    
-    linklist_add_head(&scheduler_queue, (void *)tcb->tid);
+
+    linklist_add_tail(&scheduler_queue, (void *)tcb->tid);
 
     return tcb->tid;
 }

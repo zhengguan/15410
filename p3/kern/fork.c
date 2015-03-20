@@ -13,6 +13,8 @@
 #include <syscall.h>
 #include <context_switch_asm.h>
 #include <asm.h>
+#include <cr.h>
+#include <vm.h>
 
 int fork()
 {
@@ -21,14 +23,32 @@ int fork()
 
     disable_interrupts();
 
-    int pid;
-    if ((pid = proc_new_process()) < 0) {
-        lprintf("fucked up7");
-        MAGIC_BREAK;
-    }
-    MAGIC_BREAK;
-    int ret = context_switch_fork_asm(&old_tcb->regs) ? pid : 0;
+    int tid = 0;
 
-    enable_interrupts();
-    return ret;
+    if (store_regs(&old_tcb->regs)) {
+        MAGIC_BREAK;
+        if ((tid = proc_new_process()) < 0) {
+            lprintf("fucked up7");
+            MAGIC_BREAK;
+        }
+
+        lprintf("1: %d", tid);
+
+        //may be bad?
+        unsigned cr3 = vm_copy();
+        lprintf("1.5: %d", tid);
+        set_cr3(cr3);
+
+        lprintf("2: %d", tid);
+
+        enable_interrupts();
+        return 0;
+
+    } else {
+        MAGIC_BREAK;
+        enable_interrupts();
+        MAGIC_BREAK;
+        lprintf("3: %d", tid);
+        return tid;
+    }
 }

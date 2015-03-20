@@ -9,11 +9,12 @@ int main() {
   int newtid;
 
   if ( (newtid = fork()) ) {
-    lprintf("hello from %d", newtid);
+    lprintf("hello from old, other guy: %d", newtid);
     while(1);
 
   } else {
-    lprintf("hello from %d", oldtid);
+    lprintf("hello from new %d", oldtid);
+    while(1);
   }
 
   return 0;

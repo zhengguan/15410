@@ -21,17 +21,18 @@ typedef struct regs {
     unsigned edi; //8
     unsigned esp; //12
     unsigned ebp; //16
-    unsigned eflags; //20
-    unsigned cr0; //24
-    unsigned cr2; //28
-    unsigned cr3; //32
-    unsigned cr4; //36
-    unsigned cs; //40
-    unsigned ds; //44
-    unsigned es; //48
-    unsigned fs; //52
-    unsigned gs; //56
-    unsigned ss; //60
+    unsigned eip; //20
+    unsigned eflags; //24
+    unsigned cr0; //28
+    unsigned cr2; //32
+    unsigned cr3; //36
+    unsigned cr4; //40
+    unsigned cs; //44
+    unsigned ds; //48
+    unsigned es; //52
+    unsigned fs; //56
+    unsigned gs; //60
+    unsigned ss; //64
 } regs_t;
 
 typedef struct pcb {
