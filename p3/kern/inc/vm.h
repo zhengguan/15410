@@ -24,9 +24,6 @@
 #define PD_SIZE (PAGE_SIZE / sizeof(pde_t))
 #define PT_SIZE (PAGE_SIZE / sizeof(pte_t))
 
-#define FLAG_MASK (~(PAGE_MASK))
-#define GET_FLAGS(PTE) ((unsigned)PTE & FLAG_MASK)
-
 #define PD_MASK 0xFFC00000
 #define PD_SHIFT 22
 #define GET_PD() ((pd_t)get_cr3())
@@ -58,7 +55,7 @@ typedef pte_t* pt_t;
 void vm_init();
 pd_t vm_new_pd();
 void vm_new_pde(pde_t *pde, pt_t pt, unsigned flags);
-void vm_new_pt(pde_t *pde, unsigned flags);
+pt_t vm_new_pt(pde_t *pde, unsigned flags);
 void vm_new_pte(pd_t pd, void *va, unsigned pa, unsigned flags);
 void vm_remove_pd();
 void vm_remove_pde(pde_t *pde);

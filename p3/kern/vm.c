@@ -121,7 +121,7 @@ pd_t vm_new_pd()
  */
 void vm_new_pde(pde_t *pde, pt_t pt, unsigned flags)
 {
-    *pde = (ROUND_DOWN_PAGE(pt) | PTE_PRESENT_YES | flags);
+    *pde = (GET_PA((unsigned)pt) | PTE_PRESENT_YES | flags);
 }
 
 /** @brief Creates a new page table.
@@ -161,7 +161,7 @@ void vm_new_pte(pd_t pd, void *va, unsigned pa, unsigned flags)
     }
 
     pte_t *pte = &GET_PTE(*pde, va);
-    *pte = (ROUND_DOWN_PAGE(pa) | PTE_PRESENT_YES | flags);
+    *pte = (GET_PA(pa) | PTE_PRESENT_YES | flags);
 }
 
 /** @brief Removes the page directory.
@@ -210,7 +210,7 @@ unsigned vm_remove_pte(void *va) {
         vm_remove_pt(pde);
     }
 
-    return ROUND_DOWN_PAGE(*pte);
+    return GET_PA(*pte);
 }
 
 
@@ -284,7 +284,7 @@ unsigned vm_copy()
 
     char *tmp = malloc(PAGE_SIZE);
 
-    char *addr = USER_MEM_START;
+    char *addr = (char*)USER_MEM_START;
     do {
         pde_t pde = GET_PDE(old_pd, addr);
         if (!GET_PRESENT(pde)) {
