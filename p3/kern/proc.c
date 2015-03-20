@@ -7,6 +7,7 @@
  */
 
 #include <proc.h>
+#include <cr.h>
 #include <syscall.h>
 #include <stdlib.h>
 #include <linklist.h>
@@ -73,6 +74,8 @@ int proc_new_thread() {
     tcb->tid = next_tid++;
     tcb->pid = cur_pid;
     cur_tid = tcb->tid;
+    
+    set_esp0((unsigned)malloc(KERNEL_STACK_SIZE) + KERNEL_STACK_SIZE);
 
     pcb_t *pcb;
     if (hashtable_get(&pcbs, tcb->pid, (void**)&pcb) < 0) {

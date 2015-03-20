@@ -34,6 +34,8 @@ store_regs:
     mov     %fs, 56(%ecx)
     mov     %gs, 60(%ecx)
     mov     %ss, 64(%ecx)
+    call    get_esp0
+    mov     %eax, 68(%ecx)     
     mov     $1, %eax
     ret
 
@@ -61,5 +63,8 @@ restore_regs:
     mov     56(%ecx), %fs
     mov     60(%ecx), %gs
     mov     64(%ecx), %ss
+    push    68(%ecx)
+    call    set_esp0
+    addl    $4, %esp
     mov     $0, %eax
     jmp     20(%ecx)

@@ -15,6 +15,8 @@
 #define PCB_HT_SIZE 128
 #define TCB_HT_SIZE 128
 
+#define KERNEL_STACK_SIZE (2 * PAGE_SIZE)
+
 typedef struct regs {
     unsigned ebx; //0
     unsigned esi; //4
@@ -33,6 +35,7 @@ typedef struct regs {
     unsigned fs; //56
     unsigned gs; //60
     unsigned ss; //64
+    unsigned esp0; //68
 } regs_t;
 
 typedef struct pcb {

@@ -31,8 +31,6 @@
 #include <scheduler.h>
 #include <driver_core.h>
 
-#define INT_STACK_SIZE (2 * PAGE_SIZE)
-
 #define MAIN_NAME "fork_test"
 #define MAIN_ARG {NULL}
 
@@ -44,8 +42,6 @@
  */
 int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
 {
-    set_esp0((unsigned)malloc(INT_STACK_SIZE) + INT_STACK_SIZE);
-
     if (scheduler_init() < 0) {
         lprintf("failed to init scheduler");
     }
