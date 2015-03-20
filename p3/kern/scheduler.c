@@ -25,7 +25,6 @@ int ctx_switch(int tid)
   hashtable_get(&tcbs, gettid(), (void**)&old_tcb);
 
   disable_interrupts();
-  MAGIC_BREAK;
   if (store_regs(&old_tcb->regs)) {
     restore_regs(&new_tcb->regs);
   } else {

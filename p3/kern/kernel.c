@@ -48,17 +48,16 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
 
     idt_init();
 
-    lprintf("hi");
     vm_init();
+    
     proc_init();
-    lprintf("hi");
+    
     if (proc_new_process() < 0)
         lprintf("failed to make new process");
 
     clear_console();
 
     char *arg[] = MAIN_ARG;
-    MAGIC_BREAK;
     if (exec(MAIN_NAME, arg) < 0) {
         lprintf("Failed to run main process.");
     }
