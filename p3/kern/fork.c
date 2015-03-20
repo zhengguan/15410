@@ -16,9 +16,11 @@
 #include <cr.h>
 #include <vm.h>
 #include <string.h>
+#include "driver_core.h"
 
 int fork()
 {
+    lprintf("fork");
     tcb_t *old_tcb;
     hashtable_get(&tcbs, gettid(), (void**)&old_tcb);
 
@@ -30,10 +32,10 @@ int fork()
         lprintf("fucked up7");
         MAGIC_BREAK;
     }
-        
+
     if (store_regs(&old_tcb->regs)) {
         unsigned new_esp0 = get_esp0();
-        
+
         int i;
         for (i = 0; i < KERNEL_STACK_SIZE; i++)
             ((char *)(new_esp0 - KERNEL_STACK_SIZE))[i] = ((char *)(old_esp0 - KERNEL_STACK_SIZE))[i];
@@ -45,6 +47,7 @@ int fork()
         return 0;
 
     } else {
+        notify_interrupt_complete(); //we are returning from timer but didn't come from timer
         enable_interrupts();
         return tid;
     }

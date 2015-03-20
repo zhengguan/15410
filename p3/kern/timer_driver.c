@@ -11,8 +11,9 @@
 #include <stdlib.h>
 #include <x86/asm.h>
 #include <x86/timer_defines.h>
+#include <simics.h>
 
-#define TICKS_PER_SECOND TIMER_RATE
+#define TICKS_PER_SECOND 1
 #define CYCLES_BTW_INTER ((unsigned)(TIMER_RATE / TICKS_PER_SECOND))
 
 static unsigned ticks = 0;

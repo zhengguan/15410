@@ -5,6 +5,7 @@
 #include <scheduler.h>
 #include <asm.h>
 
+
 linklist_t scheduler_queue;
 
 int scheduler_init()
@@ -24,8 +25,8 @@ int ctx_switch(int tid)
   tcb_t *old_tcb;
   hashtable_get(&tcbs, gettid(), (void**)&old_tcb);
 
-  disable_interrupts();
   if (store_regs(&old_tcb->regs)) {
+    cur_tid = new_tcb->tid;
     restore_regs(&new_tcb->regs);
   } else {
     enable_interrupts();
@@ -36,16 +37,17 @@ int ctx_switch(int tid)
 
 void scheduler_tick(unsigned num_ticks)
 {
-  lprintf("tick");
   int tid;
 
+  lprintf("tick");
+  disable_interrupts();
 
   if (linklist_remove_head(&scheduler_queue, (void**)&tid) < 0) {
     lprintf("fucked up0");
     MAGIC_BREAK;
   }
 
-  linklist_add_tail(&scheduler_queue, (void*)gettid());
+  linklist_add_tail(&scheduler_queue, (void*)tid);
 
   ctx_switch(tid);
 }

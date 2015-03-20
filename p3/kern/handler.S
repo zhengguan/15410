@@ -35,9 +35,14 @@ remove_pages_int:
     call    remove_pages
     iret
 
-.globl scheduler_tick_int
-scheduler_tick_int:
-    call    scheduler_tick
+.globl timer_handler_int
+timer_handler_int:
+    call    timer_handler
+    iret
+
+.globl keyboard_int
+keyboard_int:
+    call    keyboard_handler
     iret
 
 .globl fork_int
@@ -47,6 +52,18 @@ fork_int:
     call    fork
     mov $SEGSEL_USER_DS, %ecx
     mov %ecx, %ds
+    iret
+
+.globl exec_int
+exec_int:
+    mov $SEGSEL_KERNEL_DS, %ecx
+    mov %ecx, %ds
+    pushl   4(%esi)
+    pushl   (%esi)
+    call    exec
+    mov $SEGSEL_USER_DS, %ecx
+    mov %ecx, %ds
+    addl    $8, %esp
     iret
 
 

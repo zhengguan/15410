@@ -7,13 +7,13 @@ int main() {
   lprintf("initial hello from %d", oldtid);
 
   int newtid;
-
+  MAGIC_BREAK;
   if ( (newtid = fork()) ) {
-    lprintf("hello from old, other guy: %d", newtid);
+    lprintf("parent: %d\t\tchild:%d", gettid(), newtid);
     while(1);
 
   } else {
-    lprintf("hello from new %d", oldtid);
+    lprintf("child: %d", gettid());
     while(1);
   }
 

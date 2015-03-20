@@ -13,6 +13,7 @@
 #include <handler.h>
 #include <asm_noop.h>
 #include <scheduler.h>
+#include <timer_driver.h>
 
 extern int new_pages(void *base, int len);
 extern int remove_pages(void *base);
@@ -29,20 +30,23 @@ void noop()
 void idt_init() {
 
     /* Add timer and keyboard interrupt gate descriptors */
-    idt_add_desc(TIMER_IDT_ENTRY, scheduler_tick_int, IDT_INT, IDT_DPL_KERNEL);
-    idt_add_desc(KEY_IDT_ENTRY, asm_noop, IDT_INT, IDT_DPL_KERNEL);
+    if (timer_setup()) {
+        idt_add_desc(TIMER_IDT_ENTRY, timer_handler_int, IDT_INT, IDT_DPL_KERNEL);
+        tick_callback = scheduler_tick;
+    }
+    //idt_add_desc(KEY_IDT_ENTRY, keyboard_int, IDT_INT, IDT_DPL_KERNEL);
 
     /* Add system call trap gate descriptors */
     // idt_add_desc(SYSCALL_INT, 0, IDT_TRAP, IDT_DPL_USER);
     idt_add_desc(FORK_INT, fork_int, IDT_TRAP, IDT_DPL_USER);
-    // idt_add_desc(EXEC_INT, 0, IDT_TRAP, IDT_DPL_USER);
+    idt_add_desc(EXEC_INT, exec_int, IDT_TRAP, IDT_DPL_USER);
     // idt_add_desc(WAIT_INT, 0, IDT_TRAP, IDT_DPL_USER);
     // idt_add_desc(YIELD_INT, 0, IDT_TRAP, IDT_DPL_USER);
     // idt_add_desc(DESCHEDULE_INT, 0, IDT_TRAP, IDT_DPL_USER);
     // idt_add_desc(MAKE_RUNNABLE_INT, 0, IDT_TRAP, IDT_DPL_USER);
     idt_add_desc(GETTID_INT, gettid_int, IDT_TRAP, IDT_DPL_USER);
     idt_add_desc(NEW_PAGES_INT, new_pages_int, IDT_TRAP, IDT_DPL_USER);
-    //idt_add_desc(REMOVE_PAGES_INT, remove_pages, IDT_TRAP, IDT_DPL_USER);
+    // idt_add_desc(REMOVE_PAGES_INT, remove_pages, IDT_TRAP, IDT_DPL_USER);
     // idt_add_desc(SLEEP_INT, 0, IDT_TRAP, IDT_DPL_USER);
     // idt_add_desc(GETCHAR_INT, 0, IDT_TRAP, IDT_DPL_USER);
     // idt_add_desc(READLINE_INT, 0, IDT_TRAP, IDT_DPL_USER);

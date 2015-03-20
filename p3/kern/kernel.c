@@ -31,7 +31,7 @@
 #include <scheduler.h>
 #include <driver_core.h>
 
-#define MAIN_NAME "fork_test"
+#define MAIN_NAME "knife"
 #define MAIN_ARG {NULL}
 
 /** @brief Kernel entrypoint.
@@ -49,9 +49,9 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
     idt_init();
 
     vm_init();
-    
+
     proc_init();
-    
+
     if (proc_new_process() < 0)
         lprintf("failed to make new process");
 
