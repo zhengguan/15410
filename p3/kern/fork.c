@@ -15,6 +15,7 @@
 #include <asm.h>
 #include <cr.h>
 #include <vm.h>
+#include <string.h>
 
 int fork()
 {
@@ -25,12 +26,24 @@ int fork()
 
     int tid = 0;
 
-    if (store_regs(&old_tcb->regs)) {
+    if ((tid = proc_new_process()) < 0) {
+        lprintf("fucked up7");
         MAGIC_BREAK;
-        if ((tid = proc_new_process()) < 0) {
-            lprintf("fucked up7");
-            MAGIC_BREAK;
-        }
+    }
+        
+    if (store_regs(&old_tcb->regs)) {
+        
+        unsigned old_esp0 = get_esp0();
+        lprintf("old_esp0: %u\n", old_esp0);
+        
+        // Hoepfully this is the new value
+        unsigned new_esp0 = get_esp0();
+        lprintf("new_esp0: %u\n", new_esp0);
+
+        int i;
+        for (i = 0; i < KERNEL_STACK_SIZE; i++)
+            ((char *)(new_esp0 - KERNEL_STACK_SIZE))[i] = ((char *)(old_esp0 - KERNEL_STACK_SIZE))[i];
+        // memcpy((void *)(new_esp0 - KERNEL_STACK_SIZE), (void *)(old_esp0 - KERNEL_STACK_SIZE), KERNEL_STACK_SIZE);
 
         lprintf("1: %d", tid);
 
@@ -45,10 +58,10 @@ int fork()
         return 0;
 
     } else {
-        MAGIC_BREAK;
         enable_interrupts();
         MAGIC_BREAK;
         lprintf("3: %d", tid);
+        
         return tid;
     }
 }

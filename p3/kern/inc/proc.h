@@ -21,7 +21,7 @@ typedef struct regs {
     unsigned ebx; //0
     unsigned esi; //4
     unsigned edi; //8
-    unsigned esp; //12
+    unsigned esp_offset; //12
     unsigned ebp; //16
     unsigned eip; //20
     unsigned eflags; //24
