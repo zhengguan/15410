@@ -24,14 +24,11 @@ int ctx_switch(int tid)
   tcb_t *old_tcb;
   hashtable_get(&tcbs, gettid(), (void**)&old_tcb);
 
-
   disable_interrupts();
-  if (store_registers_asm(old_tcb)) {
+  if (store_regs(&old_tcb->regs)) {
+    restore_regs(&new_tcb->regs);
+  } else {
     enable_interrupts();
-    return;
-  }
-  else {
-    context_switch_asm(new_tcb);
   }
 
   return 0;

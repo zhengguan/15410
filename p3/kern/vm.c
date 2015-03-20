@@ -9,6 +9,7 @@
 #include <vm.h>
 #include <x86/cr.h>
 #include <malloc.h>
+#include <string.h>
 #include <syscall.h>
 #include <common_kern.h>
 #include <linklist.h>
@@ -83,18 +84,19 @@ void vm_init()
     linklist_init(&free_frames);
     hashtable_init(&alloc_pages, PAGES_HT_SIZE);
     
-    vm_new_pd();
+    set_cr3((unsigned)vm_new_pd());
+    
     
     set_cr0(get_cr0() | CR0_PG);
 }
 
 /** @brief Creates a new page directory and sets the %cr3 register.
  *
- *  @return Void.
+ *  @return The physical address of the new page directory.
  */
-void vm_new_pd()
+pd_t vm_new_pd()
 {
-    // TODO maybe move PDs to top of address space rather than in kernel mem   
+    unsigned old_cr3 = get_cr3();  
     
     pd_t pd = smemalign(PAGE_SIZE, PAGE_SIZE);
     // FIXME check for failure
@@ -113,6 +115,10 @@ void vm_new_pd()
     // FIXME is this necessary
     pde_t *pde = &GET_PDE(pd);
     *pde |= PTE_SU_USER;
+    
+    set_cr3(old_cr3);
+    
+    return pd;
 }
 
 /** @brief Creates a new page directory entry.
@@ -120,7 +126,7 @@ void vm_new_pd()
  *  @param pde The page directory entry.
  *  @param pt The page table for the page directory entry.
  *  @param su The page directory entry flags.
- *  @return Physical address of base of the new page table.
+ *  @return Void.
  */
 void vm_new_pde(pde_t *pde, pt_t pt, unsigned flags)
 {
@@ -133,7 +139,7 @@ void vm_new_pde(pde_t *pde, pt_t pt, unsigned flags)
  *  @param su The page directory entry flags for the new page table.
  *  @return Physical address of base of the new page table.
  */
-void vm_new_pt(pde_t *pde, unsigned flags)
+pt_t vm_new_pt(pde_t *pde, unsigned flags)
 {
     pt_t pt = smemalign(PAGE_SIZE, PAGE_SIZE);
     // FIXME check for failure
@@ -144,6 +150,8 @@ void vm_new_pt(pde_t *pde, unsigned flags)
     }
 
     vm_new_pde(pde, pt, flags);
+    
+    return pt;
 }
 
 /** @brief Creates a new page table entry for a virtual address.
@@ -151,7 +159,7 @@ void vm_new_pt(pde_t *pde, unsigned flags)
  *  @param va The virtual address.
  *  @param pa The mapped physical address.
  *  @param su The page table entry flags.
- *  @return Physical address of base of the new page table.
+ *  @return Void.
  */
 void vm_new_pte(void *va, unsigned pa, unsigned flags)
 {
@@ -214,6 +222,49 @@ unsigned vm_remove_pte(void *va) {
     return ROUND_DOWN_PAGE(*pte);
 }
 
+unsigned vm_copy() {
+    void *buf = malloc(PAGE_SIZE);
+    // FIXME add null check
+
+    pd_t old_pd = GET_PD();
+    pd_t new_pd = (pd_t)vm_new_pd();
+    
+    int pd_idx;
+    for (pd_idx = 0; pd_idx < PD_SIZE; pd_idx++) {
+        
+        pde_t old_pde = old_pd[pd_idx];
+       
+        if (GET_PRESENT(old_pde)) {
+            set_cr3((unsigned)new_pd);
+            pd_t new_pt = vm_new_pt(&new_pd[pd_idx], GET_FLAGS(old_pde));
+            set_cr3((unsigned)old_pd);
+            
+            pt_t old_pt = GET_PT(old_pde);
+            
+            int pt_idx;
+            for (pt_idx = 0; pt_idx < PT_SIZE; pt_idx++) {
+            
+                pte_t old_pte = old_pt[pt_idx];
+                
+                if (GET_PRESENT(old_pte)) {
+                    void *va = (void *)GET_VA(pd_idx, pt_idx);
+                
+                    memcpy(buf, va, PAGE_SIZE);
+                
+                    set_cr3((unsigned)new_pd);
+                    new_pt[pt_idx] = (ROUND_DOWN_PAGE(va) | GET_FLAGS(old_pte));
+                    memcpy(va, buf, PAGE_SIZE);
+                    set_cr3((unsigned)old_pd);              
+                }
+            }
+        }
+    }   
+    
+    free(buf);
+    
+    return (unsigned)new_pd;
+}
+
 /** @brief Allocated memory starting at base and extending for len bytes.
  *
  *  @param base The base of the memory region to allocate.
@@ -253,7 +304,7 @@ int new_pages(void *base, int len)
  */
 int remove_pages(void *base)
 {
-    return 0;
+    // TODO Handle VM copy
     
     if (((unsigned)base % PAGE_SIZE) != 0) {
         return -1;

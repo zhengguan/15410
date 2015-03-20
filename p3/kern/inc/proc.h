@@ -24,6 +24,7 @@ typedef struct regs {
     unsigned edi;
     unsigned esp;
     unsigned ebp;
+    unsigned eip;
     unsigned eflags;
     unsigned cr0;
     unsigned cr2;

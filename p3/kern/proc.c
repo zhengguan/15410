@@ -82,7 +82,7 @@ int proc_new_thread() {
     hashtable_add(&tcbs, tcb->tid, (void*)tcb);
     linklist_add_tail(&pcb->threads, tcb);
     
-    linklist_add_head(&scheduler_queue, (void *)tcb->tid);
+    linklist_add_tail(&scheduler_queue, (void *)tcb->tid);
 
     return tcb->tid;
 }

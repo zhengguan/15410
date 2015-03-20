@@ -10,7 +10,9 @@
 #ifndef __CTX_SWITCH_ASM_H__
 #define __CTX_SWITCH_ASM_H__
 
-void store_registers_asm(regs_t *regs);
-void context_switch_asm(regs_t *regs);
+#include <proc.h>
+
+int store_regs(regs_t *regs);
+void restore_regs(regs_t *regs);
 
 #endif /* __CTX_SWITCH_ASM_H__ */

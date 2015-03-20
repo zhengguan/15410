@@ -15,44 +15,37 @@
 
 
 //prob dont need to save caller save registers or eip
-//combine these functions, copy virtual memory
 
-store_registers_asm:
-    push %ebp
-    mov %esp, %ebp
-    push %eax #get register to use
-    mov 8(%ebp), %eax
-    pop (%eax)
-    mov %ebx, 4(%eax)
-    mov %ecx, 8(%eax)
-    mov %edx, 12(%eax)
-    mov %esi, 16(%eax)
-    mov %edi, 20(%eax)
-    mov %esp, 24(%eax)
-    mov %ebp, 28(%eax)
-    mov $RETURN, 32(%eax)
+store_regs:
+    push    %ebp
+    mov     %esp, %ebp     
+    mov     8(%ebp), %eax       # use %eax because it is caller-saved
+    mov     $0, (%eax)
+    mov     %ebx, 4(%eax)
+    mov     %ecx, 8(%eax)
+    mov     %edx, 12(%eax)
+    mov     %esi, 16(%eax)
+    mov     %edi, 20(%eax)
+    mov     %esp, 24(%eax)
+    mov     %ebp, 28(%eax)
+    mov     4(%ebp), 32(%eax)   # jump to the return address later
     pushf
-    pop 36(%eax)
-    mov %cr0, 40(%eax)
-    mov %cr2, 44(%eax)
-    mov %cr3, 48(%eax)
-    mov %cr4, 52(%eax)
-    mov %cs, 56(%eax)
-    mov %ds, 60(%eax)
-    mov %es, 64(%eax)
-    mov %fs, 68(%eax)
-    mov %gs, 72(%eax)
-    mov %ss, 76(%eax)
-    mov $0, %esp
-    leave
-    ret
-  RETURN:
-    mov $1, %esp
+    pop     36(%eax)
+    mov     %cr0, 40(%eax)
+    mov     %cr2, 44(%eax)
+    mov     %cr3, 48(%eax)
+    mov     %cr4, 52(%eax)
+    mov     %cs, 56(%eax)
+    mov     %ds, 60(%eax)
+    mov     %es, 64(%eax)
+    mov     %fs, 68(%eax)
+    mov     %gs, 72(%eax)
+    mov     %ss, 76(%eax)
+    mov     $1, %eax
     leave
     ret
 
-
-context_switch_asm:
+restore_regs:
     mov 4(%esp), %eax
     mov 4(%eax), %ebx
     mov 8(%eax), %ecx
