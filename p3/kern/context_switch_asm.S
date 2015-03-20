@@ -6,64 +6,60 @@
  *  @bug No known bugs.
  */
 
-//TODO: take stack segment as arg
-
-
-
-.globl context_switch_asm
-.globl store_registers_asm
-
-
-//prob dont need to save caller save registers or eip
-
-store_regs:
-    push    %ebp
-    mov     %esp, %ebp     
-    mov     8(%ebp), %eax       # use %eax because it is caller-saved
-    mov     $0, (%eax)
-    mov     %ebx, 4(%eax)
-    mov     %ecx, 8(%eax)
-    mov     %edx, 12(%eax)
-    mov     %esi, 16(%eax)
-    mov     %edi, 20(%eax)
-    mov     %esp, 24(%eax)
-    mov     %ebp, 28(%eax)
-    mov     4(%ebp), 32(%eax)   # jump to the return address later
+.globl store_regs
+store_regs:  
+    mov     4(%esp), %eax
+    mov     %ebx, (%eax)
+    mov     %esi, 4(%eax)
+    mov     %edi, 8(%eax)
+    mov     %esp, %ecx
+    addl    $4, %ecx
+    mov     %ecx, 12(%eax)
+    mov     %ebp, 16(%eax)
+    mov     (%esp), %ecx
+    mov     %ecx, 20(%eax)
     pushf
-    pop     36(%eax)
-    mov     %cr0, 40(%eax)
-    mov     %cr2, 44(%eax)
-    mov     %cr3, 48(%eax)
-    mov     %cr4, 52(%eax)
-    mov     %cs, 56(%eax)
-    mov     %ds, 60(%eax)
-    mov     %es, 64(%eax)
-    mov     %fs, 68(%eax)
-    mov     %gs, 72(%eax)
-    mov     %ss, 76(%eax)
+    pop     24(%eax)
+    mov     %cr0, %ecx
+    mov     %ecx, 28(%eax)
+    mov     %cr2, %ecx
+    mov     %ecx, 32(%eax)
+    mov     %cr3, %ecx
+    mov     %ecx, 36(%eax)
+    mov     %cr4, %ecx
+    mov     %ecx, 40(%eax)
+    mov     %cs, 44(%eax)
+    mov     %ds, 48(%eax)
+    mov     %es, 52(%eax)
+    mov     %fs, 56(%eax)
+    mov     %gs, 60(%eax)
+    mov     %ss, 64(%eax)
     mov     $1, %eax
-    leave
     ret
 
+.globl restore_regs
 restore_regs:
-    mov 4(%esp), %eax
-    mov 4(%eax), %ebx
-    mov 8(%eax), %ecx
-    mov 12(%eax), %edx
-    mov 16(%eax), %esi
-    mov 20(%eax), %edi
-    push 36(%eax)
+    mov     4(%esp), %eax
+    mov     (%eax), %ebx
+    mov     8(%eax), %esi
+    mov     12(%eax), %edi
+    mov     16(%eax), %esp
+    mov     20(%eax), %ebp
+    push    24(%eax)
     popf
-    mov 40(%eax), %cr0
-    mov 44(%eax), %cr2
-    mov 48(%eax), %cr3
-    mov 52(%eax), %cr4
-    // mov 56(%eax), %cs
-    mov 60(%eax), %ds
-    mov 64(%eax), %es
-    mov 68(%eax), %fs
-    mov 72(%eax), %gs
-    mov 76(%eax), %ss
-    mov 24(%eax), %esp
-    mov 28(%eax), %ebp
-    jmp 32(%eax)
+    mov     28(%eax), %ecx
+    mov     %ecx, %cr0
+    mov     32(%eax), %ecx
+    mov     %ecx, %cr2
+    mov     36(%eax), %ecx
+    mov     %ecx, %cr3
+    mov     40(%eax), %ecx
+    mov     %ecx, %cr4
+    // mov  44(%eax), %cs
+    mov     48(%eax), %ds
+    mov     52(%eax), %es
+    mov     56(%eax), %fs
+    mov     60(%eax), %gs
+    mov     64(%eax), %ss
+    mov     $0, %eax
+    jmp     32(%eax)

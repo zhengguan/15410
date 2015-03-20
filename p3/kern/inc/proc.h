@@ -16,10 +16,7 @@
 #define TCB_HT_SIZE 128
 
 typedef struct regs {
-    unsigned eax;
     unsigned ebx;
-    unsigned ecx;
-    unsigned edx;
     unsigned esi;
     unsigned edi;
     unsigned esp;
