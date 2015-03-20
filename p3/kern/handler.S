@@ -8,6 +8,8 @@
 
 /* Life cycle */
 
+#include <seg.h>
+
 
 /* Thread management */
 
@@ -26,11 +28,25 @@ new_pages_int:
     call    new_pages
     addl    $8, %esp
     iret
-    
+
 .globl remove_pages_int
 remove_pages_int:
     push    %esi
     call    remove_pages
+    iret
+
+.globl scheduler_tick_int
+scheduler_tick_int:
+    call    scheduler_tick
+    iret
+
+.globl fork_int
+fork_int:
+    mov $SEGSEL_KERNEL_DS, %ecx
+    mov %ecx, %ds
+    call    fork
+    mov $SEGSEL_USER_DS, %ecx
+    mov %ecx, %ds
     iret
 
 

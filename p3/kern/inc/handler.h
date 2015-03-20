@@ -17,6 +17,9 @@ int gettid_int(void);
 /* Memory management */
 int new_pages_int(void * addr, int len);
 int remove_pages_int(void * addr);
+void scheduler_tick_int();
+int fork_int();
+
 
 /* Console I/O */
 

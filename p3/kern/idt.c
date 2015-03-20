@@ -29,12 +29,12 @@ void noop()
 void idt_init() {
 
     /* Add timer and keyboard interrupt gate descriptors */
-    idt_add_desc(TIMER_IDT_ENTRY, scheduler_tick, IDT_INT, IDT_DPL_KERNEL);
+    idt_add_desc(TIMER_IDT_ENTRY, scheduler_tick_int, IDT_INT, IDT_DPL_KERNEL);
     idt_add_desc(KEY_IDT_ENTRY, asm_noop, IDT_INT, IDT_DPL_KERNEL);
 
     /* Add system call trap gate descriptors */
     // idt_add_desc(SYSCALL_INT, 0, IDT_TRAP, IDT_DPL_USER);
-    // idt_add_desc(FORK_INT, 0, IDT_TRAP, IDT_DPL_USER);
+    idt_add_desc(FORK_INT, fork_int, IDT_TRAP, IDT_DPL_USER);
     // idt_add_desc(EXEC_INT, 0, IDT_TRAP, IDT_DPL_USER);
     // idt_add_desc(WAIT_INT, 0, IDT_TRAP, IDT_DPL_USER);
     // idt_add_desc(YIELD_INT, 0, IDT_TRAP, IDT_DPL_USER);

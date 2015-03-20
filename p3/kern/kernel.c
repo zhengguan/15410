@@ -33,7 +33,7 @@
 
 #define INT_STACK_SIZE (2 * PAGE_SIZE)
 
-#define MAIN_NAME "ck1"
+#define MAIN_NAME "fork_test"
 #define MAIN_ARG {NULL}
 
 /** @brief Kernel entrypoint.
@@ -52,9 +52,10 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
 
     idt_init();
 
+    lprintf("hi");
     vm_init();
-
     proc_init();
+    lprintf("hi");
     if (proc_new_process() < 0)
         lprintf("failed to make new process");
 

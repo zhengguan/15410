@@ -28,17 +28,21 @@
 #define PD_SHIFT 22
 #define GET_PD() ((pd_t)get_cr3())
 #define GET_PD_IDX(ADDR) (((unsigned)(ADDR) & PD_MASK) >> PD_SHIFT)
-#define GET_PDE(ADDR) (GET_PD()[GET_PD_IDX(ADDR)])
+#define GET_PDE(PD, ADDR) ((PD)[GET_PD_IDX(ADDR)])
 
 #define PT_MASK 0x003FF000
 #define PT_SHIFT 12
-#define GET_PT(PDE) ((pt_t)(PDE & PAGE_MASK))
+#define GET_PT(PDE) ((pt_t)((PDE) & PAGE_MASK))
 #define GET_PT_IDX(ADDR) (((unsigned)(ADDR) & PT_MASK) >> PT_SHIFT)
 #define GET_PTE(PDE,ADDR) (GET_PT(PDE)[GET_PT_IDX(ADDR)])
 
 #define PAGES_HT_SIZE 128
 
 #define PAGE_NUM(ADDR) ((unsigned)(ADDR) >> PT_SHIFT)
+
+#define FLAG_MASK (~PAGE_MASK & ~1)
+#define GET_FLAGS(PDE) ((PDE) & FLAG_MASK)
+#define GET_PA(PTE) ((PTE) & PAGE_MASK)
 
 typedef unsigned pde_t;
 typedef unsigned pte_t;
@@ -47,11 +51,13 @@ typedef pte_t* pt_t;
 
 /* Virtual memory functions */
 void vm_init();
-void vm_new_pd();
+pd_t vm_new_pd();
 void vm_new_pde(pde_t *pde, pt_t pt, unsigned flags);
 void vm_new_pt(pde_t *pde, unsigned flags);
-void vm_new_pte(void *va, unsigned pa, unsigned flags);
+void vm_new_pte(pd_t pd, void *va, unsigned pa, unsigned flags);
 void vm_remove_pd();
 void vm_remove_pde(pde_t *pde);
 void vm_remove_pt(pde_t *pde);
 unsigned vm_remove_pte(void *va);
+
+unsigned copy_vm();
