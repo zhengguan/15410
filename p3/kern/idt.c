@@ -46,7 +46,7 @@ void idt_init() {
     // idt_add_desc(MAKE_RUNNABLE_INT, 0, IDT_TRAP, IDT_DPL_USER);
     idt_add_desc(GETTID_INT, gettid_int, IDT_TRAP, IDT_DPL_USER);
     idt_add_desc(NEW_PAGES_INT, new_pages_int, IDT_TRAP, IDT_DPL_USER);
-    // idt_add_desc(REMOVE_PAGES_INT, remove_pages, IDT_TRAP, IDT_DPL_USER);
+    idt_add_desc(REMOVE_PAGES_INT, remove_pages_int, IDT_TRAP, IDT_DPL_USER);
     // idt_add_desc(SLEEP_INT, 0, IDT_TRAP, IDT_DPL_USER);
     // idt_add_desc(GETCHAR_INT, 0, IDT_TRAP, IDT_DPL_USER);
     // idt_add_desc(READLINE_INT, 0, IDT_TRAP, IDT_DPL_USER);

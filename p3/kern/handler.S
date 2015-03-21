@@ -33,6 +33,7 @@ new_pages_int:
 remove_pages_int:
     push    %esi
     call    remove_pages
+    addl    $4, %esp
     iret
 
 .globl timer_handler_int
@@ -47,11 +48,7 @@ keyboard_int:
 
 .globl fork_int
 fork_int:
-    mov $SEGSEL_KERNEL_DS, %ecx
-    mov %ecx, %ds
     call    fork
-    mov $SEGSEL_USER_DS, %ecx
-    mov %ecx, %ds
     iret
 
 .globl exec_int
