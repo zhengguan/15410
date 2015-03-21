@@ -11,7 +11,7 @@
 #include <simics.h>
 #include <proc.h>
 #include <syscall.h>
-#include <context_switch_asm.h>
+#include <context_switch.h>
 #include <asm.h>
 #include <cr.h>
 #include <vm.h>

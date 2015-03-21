@@ -14,7 +14,7 @@
 extern linklist_t scheduler_queue;
 
 int scheduler_init();
-void scheduler_tick(unsigned num_ticks);
-int ctx_switch(int tid);
+void scheduler_tick();
+int context_switch(int tid);
 
 #endif /* __SCHEDULER_INIT_H__ */

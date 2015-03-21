@@ -118,11 +118,11 @@ int linklist_remove_head(linklist_t *list, void **data) {
  *
  *  @param list The list.
  *  @param data The data of the item to remove.
- *  @return Void.
+ *  @return 0 on success, negative error code otherwise.
  */
-void linklist_remove(linklist_t *list, void *data) {
+int linklist_remove(linklist_t *list, void *data) {
     if (list == NULL || list->head == NULL) {
-        return;
+        return -1;
     }
     
     listnode_t *node = list->head;
@@ -131,12 +131,12 @@ void linklist_remove(linklist_t *list, void *data) {
             listnode_t *tmp = node->next;
             node->next = tmp->next;
             free(tmp);
-            break;
+            return 0;
         }
         node = node->next;
     }
     
-    return;
+    return -2;
 }
 
 /** @brief Removes all nodes from a list.
