@@ -14,7 +14,6 @@
 #include <common_kern.h>
 #include <linklist.h>
 #include <hashtable.h>
-#include <macros.h>
 #include <simics.h>
 #include <string.h>
 
@@ -44,7 +43,7 @@ static unsigned get_frame()
  *
  *  @return True if present, false otherwise.
  */
-static bool is_present(void *va)
+bool vm_is_present(void *va)
 {
     pde_t pde = GET_PDE((pd_t)get_cr3(), va);
     if (GET_PRESENT(pde)) {
@@ -232,7 +231,7 @@ int new_pages(void *base, int len)
 
     void *va;
     for (va = base; va < base + len - 1; va += PAGE_SIZE) {
-        if (is_present(va)) {
+        if (vm_is_present(va)) {
             return -3;
         }
     }

@@ -6,6 +6,9 @@
  *  @bug No known bugs.
  */
 
+#ifndef __VM_H__
+#define __VM_H__
+
 #include <macros.h>
 
 #define KERNEL_MEM_START 0x00000000
@@ -62,3 +65,6 @@ void vm_remove_pde(pde_t *pde);
 void vm_remove_pt(pde_t *pde);
 unsigned vm_remove_pte(void *va);
 unsigned vm_copy();
+bool vm_is_present(void *va);
+
+#endif /* __VM_H__ */

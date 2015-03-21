@@ -31,7 +31,9 @@
 #include <scheduler.h>
 #include <driver_core.h>
 
-#define MAIN_NAME "knife"
+#include <loader.h>
+
+#define MAIN_NAME "coolness"
 #define MAIN_ARG {NULL}
 
 /** @brief Kernel entrypoint.
@@ -58,7 +60,7 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
     clear_console();
 
     char *arg[] = MAIN_ARG;
-    if (exec(MAIN_NAME, arg) < 0) {
+    if (load(MAIN_NAME, arg, true) < 0) {
         lprintf("Failed to run main process.");
     }
 

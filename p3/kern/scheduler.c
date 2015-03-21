@@ -28,8 +28,6 @@ int ctx_switch(int tid)
   if (store_regs(&old_tcb->regs)) {
     cur_tid = new_tcb->tid;
     restore_regs(&new_tcb->regs);
-  } else {
-    enable_interrupts();
   }
 
   return 0;
@@ -39,7 +37,7 @@ void scheduler_tick(unsigned num_ticks)
 {
   int tid;
 
-  lprintf("tick");
+  // lprintf("tick");
   disable_interrupts();
 
   if (linklist_remove_head(&scheduler_queue, (void**)&tid) < 0) {
@@ -50,4 +48,5 @@ void scheduler_tick(unsigned num_ticks)
   linklist_add_tail(&scheduler_queue, (void*)tid);
 
   ctx_switch(tid);
+  enable_interrupts();
 }
