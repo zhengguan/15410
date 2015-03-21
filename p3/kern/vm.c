@@ -18,6 +18,7 @@
 #include <string.h>
 
 unsigned next_frame = USER_MEM_START;
+
 // TODO Improve space complexity of this data structure
 linklist_t free_frames;
 hashtable_t alloc_pages;
@@ -39,23 +40,6 @@ static unsigned get_frame()
     return frame;
 }
 
-/** @brief Checks whether a virtual address in the page table.
- *
- *  @return True if present, false otherwise.
- */
-bool vm_is_present(void *va)
-{
-    pde_t pde = GET_PDE((pd_t)get_cr3(), va);
-    if (GET_PRESENT(pde)) {
-        pte_t pte = GET_PTE(pde, va);
-        if (GET_PRESENT(pte)) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
 /** @brief Checks whether the page table referenced by a page directory entry
  *  is empty.
  *
@@ -75,6 +59,23 @@ static bool is_pt_empty(pde_t *pde) {
     return true;
 }
 
+/** @brief Checks whether a virtual address in the page table.
+ *
+ *  @return True if present, false otherwise.
+ */
+bool vm_is_present(void *va)
+{
+    pde_t pde = GET_PDE(GET_PD(), va);
+    if (GET_PRESENT(pde)) {
+        pte_t pte = GET_PTE(pde, va);
+        if (GET_PRESENT(pte)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 /** @brief Initializes the virtual memory.
  *
  *  @return Void.
@@ -83,9 +84,11 @@ void vm_init()
 {
     linklist_init(&free_frames);
     hashtable_init(&alloc_pages, PAGES_HT_SIZE);
+
     set_cr3((unsigned)vm_new_pd());
 
     set_cr0(get_cr0() | CR0_PG);
+    // TODO also set cr4 register bit (remove from old setting location)
 }
 
 /** @brief Creates a new page directory.
@@ -105,7 +108,7 @@ pd_t vm_new_pd()
 
     unsigned addr;
     for (addr = KERNEL_MEM_START; addr < USER_MEM_START; addr += PAGE_SIZE) {
-        vm_new_pte(pd, (void *)addr, addr, PTE_RW_WRITE | PTE_SU_SUPER);
+        vm_new_pte(pd, (void *)addr, addr, KERNEL_FLAGS);
     }
 
     return pd;
@@ -120,7 +123,7 @@ pd_t vm_new_pd()
  */
 void vm_new_pde(pde_t *pde, pt_t pt, unsigned flags)
 {
-    *pde = (GET_PA((unsigned)pt) | PTE_PRESENT_YES | flags);
+    *pde = (GET_PA(pt) | PTE_PRESENT_YES | flags);
 }
 
 /** @brief Creates a new page table.
@@ -196,12 +199,15 @@ void vm_remove_pt(pde_t *pde) {
 /** @brief Removes a page table entry for a virtual address.
  *
  *  @param va The virtual address.
- *  @return Mapped physical address of the removed page table.
+ *  @return Mapped physical address of the removed page table entry, 0 if the
+ *  virtual address was not mapped.
  */
 unsigned vm_remove_pte(void *va) {
     // TODO maybe possible race condition here
 
-    pde_t *pde = &GET_PDE((pd_t) get_cr3(), va);
+    pde_t *pde = &GET_PDE(GET_PD(), va);
+
+
     pte_t *pte = &GET_PTE(*pde, va);
     *pte = SET_PRESENT(*pte, PTE_PRESENT_NO);
 
@@ -212,6 +218,74 @@ unsigned vm_remove_pte(void *va) {
     return GET_PA(*pte);
 }
 
+/** @brief Copies the virtual address space into new page directory.
+ *
+ *  @return The physical address of the new page directory.
+ */
+pd_t vm_copy()
+{
+    pd_t old_pd = GET_PD();
+    pd_t new_pd = vm_new_pd();
+
+    char *buf = malloc(PAGE_SIZE);
+
+    char *va = (char*)USER_MEM_START;
+    do {
+        pde_t pde = GET_PDE(old_pd, va);
+        if (!GET_PRESENT(pde)) {
+            va += (1 << PD_SHIFT);
+            continue;
+         }
+
+        pte_t pte = GET_PTE(pde, va);
+        if (!GET_PRESENT(pte)) {
+            va += (1 << PT_SHIFT);
+            continue;
+        }
+
+        vm_new_pte(new_pd, va, get_frame(), GET_FLAGS(pte));
+
+        // TODO figure out why memcpy doesnt work
+        int i;
+        for (i = 0; i < PAGE_SIZE; i++)
+            buf[i] = va[i];
+        set_cr3((unsigned)new_pd);
+        for (i = 0; i < PAGE_SIZE; i++)
+            va[i] = buf[i];
+        set_cr3((unsigned)old_pd);
+
+        va += PAGE_SIZE;
+    } while (va != 0);
+
+    free(buf);
+
+    return new_pd;
+}
+
+/** @brief Clear the virtual address space of all user memory.
+ *
+ *  @return Void.
+ */
+void vm_clear() {
+    char *va = (char*)USER_MEM_START;
+    do {
+        pde_t pde = GET_PDE(GET_PD(), va);
+        if (!GET_PRESENT(pde)) {
+            va += (1 << PD_SHIFT);
+            continue;
+         }
+
+        pte_t pte = GET_PTE(pde, va);
+        if (!GET_PRESENT(pte)) {
+            va += (1 << PT_SHIFT);
+            continue;
+        }
+
+        vm_remove_pte(va);
+
+        va += PAGE_SIZE;
+    } while (va != 0);
+}
 
 /** @brief Allocated memory starting at base and extending for len bytes.
  *
@@ -240,7 +314,6 @@ int new_pages(void *base, int len)
         vm_new_pte(GET_PD(), va, get_frame(), PTE_RW_WRITE | PTE_SU_USER);
     }
 
-    //FIXME: this is indexed by virtual addresses. Thus, can't work
     hashtable_add(&alloc_pages, PAGE_NUM(base), (void *)len);
 
     return 0;
@@ -248,19 +321,17 @@ int new_pages(void *base, int len)
 
 /** @brief Deallocate the memory region starting at base.
  *
- *  @param base The base of the memory region to deallocate.
+ *  @param base The base of the memory refgion to deallocate.
  *  @return 0 on success, negative error code otherwise.
  */
 int remove_pages(void *base)
 {
-    return 0;
-
     if (((unsigned)base % PAGE_SIZE) != 0) {
         return -1;
     }
 
     int len;
-    if (!hashtable_get(&alloc_pages, PAGE_NUM(base), (void**)&len)) {
+    if (hashtable_get(&alloc_pages, PAGE_NUM(base), (void**)&len) < 0) {
         return -2;
     }
 
@@ -273,48 +344,4 @@ int remove_pages(void *base)
     }
 
     return 0;
-}
-
-
-unsigned vm_copy()
-{
-    pd_t old_pd = (pt_t)get_cr3();
-    pd_t new_pd = vm_new_pd();
-
-    char *tmp = malloc(PAGE_SIZE);
-
-    char *addr = (char*)USER_MEM_START;
-    do {
-        pde_t pde = GET_PDE(old_pd, addr);
-        if (!GET_PRESENT(pde)) {
-            addr += 1 << PD_SHIFT;
-            continue;
-         }
-
-        pte_t pte = GET_PTE(pde, addr);
-        if (!GET_PRESENT(pte)) {
-            addr += 1 << PT_SHIFT;
-            continue;
-        }
-
-        //make pte
-        vm_new_pte(new_pd, addr, get_frame(), GET_FLAGS(pte));
-        //copy mem
-        int i;
-        for (i = 0; i < PAGE_SIZE; i++)
-            tmp[i] = addr[i];
-        set_cr3((unsigned)new_pd);
-        for (i = 0; i < PAGE_SIZE; i++)
-            addr[i] = tmp[i];
-        set_cr3((unsigned)old_pd);
-
-        addr += PAGE_SIZE;
-
-    } while (addr != 0);
-
-    free(tmp);
-
-    lprintf("copy vm done");
-
-    return (unsigned)new_pd;
 }

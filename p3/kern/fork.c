@@ -41,7 +41,7 @@ int fork()
             ((char *)(new_esp0 - KERNEL_STACK_SIZE))[i] = ((char *)(old_esp0 - KERNEL_STACK_SIZE))[i];
         // memcpy((void *)(new_esp0 - KERNEL_STACK_SIZE), (void *)(old_esp0 - KERNEL_STACK_SIZE), KERNEL_STACK_SIZE);
 
-        set_cr3(vm_copy());
+        set_cr3((unsigned)vm_copy());
 
         enable_interrupts();
         return 0;
