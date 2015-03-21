@@ -64,3 +64,4 @@ void vm_remove_pde(pde_t *pde);
 void vm_remove_pt(pde_t *pde);
 unsigned vm_remove_pte(void *va);
 pd_t vm_copy();
+void vm_clear();

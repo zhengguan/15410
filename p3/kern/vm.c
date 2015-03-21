@@ -200,12 +200,15 @@ void vm_remove_pt(pde_t *pde) {
 /** @brief Removes a page table entry for a virtual address.
  *
  *  @param va The virtual address.
- *  @return Mapped physical address of the removed page table entry.
+ *  @return Mapped physical address of the removed page table entry, 0 if the
+ *  virtual address was not mapped.
  */
 unsigned vm_remove_pte(void *va) {
     // TODO maybe possible race condition here
 
     pde_t *pde = &GET_PDE((pd_t) get_cr3(), va);
+    
+    
     pte_t *pte = &GET_PTE(*pde, va);
     *pte = SET_PRESENT(*pte, PTE_PRESENT_NO);
 
@@ -258,6 +261,31 @@ pd_t vm_copy()
     free(buf);
 
     return new_pd;
+}
+
+/** @brief Clear the virtual address space of all user memory.
+ *
+ *  @return Void.
+ */
+void vm_clear() {
+    char *va = (char*)USER_MEM_START;
+    do {
+        pde_t pde = GET_PDE(old_pd, va);
+        if (!GET_PRESENT(pde)) {
+            va += 1 << PD_SHIFT;
+            continue;
+         }
+
+        pte_t pte = GET_PTE(pde, va);
+        if (!GET_PRESENT(pte)) {
+            va += 1 << PT_SHIFT;
+            continue;
+        }
+
+        vm_remove_pte(va);
+        
+        va += PAGE_SIZE;
+    } while (va != 0);
 }
 
 /** @brief Allocated memory starting at base and extending for len bytes.
