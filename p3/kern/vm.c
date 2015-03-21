@@ -66,7 +66,7 @@ static bool is_pt_empty(pde_t *pde) {
  */
 bool vm_is_present(void *va)
 {
-    pde_t pde = GET_PDE((pd_t)get_cr3(), va);
+    pde_t pde = GET_PDE(GET_PD(), va);
     if (GET_PRESENT(pde)) {
         pte_t pte = GET_PTE(pde, va);
         if (GET_PRESENT(pte)) {
@@ -206,7 +206,7 @@ void vm_remove_pt(pde_t *pde) {
 unsigned vm_remove_pte(void *va) {
     // TODO maybe possible race condition here
 
-    pde_t *pde = &GET_PDE((pd_t) get_cr3(), va);
+    pde_t *pde = &GET_PDE(GET_PD(), va);
     
     
     pte_t *pte = &GET_PTE(*pde, va);
@@ -225,7 +225,7 @@ unsigned vm_remove_pte(void *va) {
  */
 pd_t vm_copy()
 {
-    pd_t old_pd = (pt_t)get_cr3();
+    pd_t old_pd = GET_PD();
     pd_t new_pd = vm_new_pd();
 
     char *buf = malloc(PAGE_SIZE);
@@ -234,13 +234,13 @@ pd_t vm_copy()
     do {
         pde_t pde = GET_PDE(old_pd, va);
         if (!GET_PRESENT(pde)) {
-            va += 1 << PD_SHIFT;
+            va += (1 << PD_SHIFT);
             continue;
          }
 
         pte_t pte = GET_PTE(pde, va);
         if (!GET_PRESENT(pte)) {
-            va += 1 << PT_SHIFT;
+            va += (1 << PT_SHIFT);
             continue;
         }
 
@@ -270,15 +270,15 @@ pd_t vm_copy()
 void vm_clear() {
     char *va = (char*)USER_MEM_START;
     do {
-        pde_t pde = GET_PDE(old_pd, va);
+        pde_t pde = GET_PDE(GET_PD(), va);
         if (!GET_PRESENT(pde)) {
-            va += 1 << PD_SHIFT;
+            va += (1 << PD_SHIFT);
             continue;
          }
 
         pte_t pte = GET_PTE(pde, va);
         if (!GET_PRESENT(pte)) {
-            va += 1 << PT_SHIFT;
+            va += (1 << PT_SHIFT);
             continue;
         }
 

@@ -114,6 +114,31 @@ int linklist_remove_head(linklist_t *list, void **data) {
     return 0;
 }
 
+/** @brief Removes the first instance of data in the list.
+ *
+ *  @param list The list.
+ *  @param data The data of the item to remove.
+ *  @return Void.
+ */
+void linklist_remove(linklist_t *list, void *data) {
+    if (list == NULL || list->head == NULL) {
+        return;
+    }
+    
+    listnode_t *node = list->head;
+    while (node->next != NULL) {
+        if (node->next->data == data) {
+            listnode_t *tmp = node->next;
+            node->next = tmp->next;
+            free(tmp);
+            break;
+        }
+        node = node->next;
+    }
+    
+    return;
+}
+
 /** @brief Removes all nodes from a list.
  *
  *  @param list The list.
@@ -128,6 +153,28 @@ int linklist_remove_all(linklist_t *list) {
     }
 
     return 0;
+}
+
+/** @brief Checks whether a list contains data.
+ *  
+ *  @param list The list.
+ *  @param data The data of the item to remove.
+ *  @return True if the list contains the data, false otherwise.
+ */
+bool linklist_contains(linklist_t *list, void *data) {
+    if (list == NULL || list->head == NULL) {
+        return false;
+    }
+    
+    listnode_t *node = list->head;
+    while (node->next != NULL) {
+        if (node->next->data == data) {
+            return true;
+        }
+        node = node->next;
+    }
+    
+    return false;
 }
 
 /** @brief Moves all nodes in a linked list to a new linked list
