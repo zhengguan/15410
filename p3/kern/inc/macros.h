@@ -10,6 +10,7 @@
 #define _MACROS_H
 
 #include <syscall.h>
+#include <string.h>
 
 #define MIN(X,Y) ((X) < (Y) ? (X) : (Y))
 #define MAX(X,Y) ((X) > (Y) ? (X) : (Y))

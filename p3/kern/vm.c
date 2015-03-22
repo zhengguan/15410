@@ -295,6 +295,10 @@ void vm_clear() {
  */
 int new_pages(void *base, int len)
 {
+    //TODO: should this be successful?
+    if (len == 0)
+        return 0;
+
     if (((unsigned)base % PAGE_SIZE) != 0) {
         return -1;
     }

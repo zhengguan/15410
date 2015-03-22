@@ -100,7 +100,8 @@ int hashtable_get(hashtable_t *table, int key, void **data) {
 
     while (node != NULL) {
         if (node->key == key) {
-            *data = node->data;
+            if (data)
+                *data = node->data;
             return 0;
         }
         node = node->next;
@@ -143,4 +144,15 @@ int hashtable_remove(hashtable_t *table, int key) {
     }
 
     return -2;
+}
+
+/** @brief Destroys a hashtable.
+ *
+ *  @param table The hashtable
+ */
+void hashtable_destroy(hashtable_t *table) {
+    if (table == NULL)
+      return;
+    
+    free(table->nodes);
 }

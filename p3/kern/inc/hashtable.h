@@ -21,5 +21,6 @@ int hashtable_init(hashtable_t *table, int size);
 void hashtable_add(hashtable_t *table, int key, void *data);
 int hashtable_get(hashtable_t *table, int key, void **data);
 int hashtable_remove(hashtable_t *table, int key);
+void hashtable_destroy(hashtable_t *table);
 
 #endif /* _HASHTABLE_H */
