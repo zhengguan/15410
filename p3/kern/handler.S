@@ -6,9 +6,37 @@
  *  @bug No known bugs.
  */
 
+/* Drivers */
+
+.globl timer_handler_int
+timer_handler_int:
+    pusha
+    call    timer_handler
+    popa
+    iret
+
+.globl keyboard_int
+keyboard_int:
+    pusha
+    call    keyboard_handler
+    popa
+    iret
+
+
 /* Life cycle */
 
-#include <seg.h>
+.globl fork_int
+fork_int:
+    call    fork
+    iret
+
+.globl exec_int
+exec_int:
+    pushl   4(%esi)
+    pushl   (%esi)
+    call    exec
+    addl    $8, %esp
+    iret
 
 
 /* Thread management */
@@ -31,36 +59,9 @@ new_pages_int:
 
 .globl remove_pages_int
 remove_pages_int:
-    push    %esi
+    pushl   %esi
     call    remove_pages
     addl    $4, %esp
-    iret
-
-.globl timer_handler_int
-timer_handler_int:
-    call    timer_handler
-    iret
-
-.globl keyboard_int
-keyboard_int:
-    call    keyboard_handler
-    iret
-
-.globl fork_int
-fork_int:
-    call    fork
-    iret
-
-.globl exec_int
-exec_int:
-    mov $SEGSEL_KERNEL_DS, %ecx
-    mov %ecx, %ds
-    pushl   4(%esi)
-    pushl   (%esi)
-    call    exec
-    mov $SEGSEL_USER_DS, %ecx
-    mov %ecx, %ds
-    addl    $8, %esp
     iret
 
 

@@ -123,8 +123,8 @@ AUTOSTACK_OBJS = autostack.o
 #
 KERNEL_OBJS = console.o kernel.o loader.o malloc_wrappers.o hashtable.o \
 linklist.o handler.o idt.o vm.o proc.o exec_run.o asm_noop.o scheduler.o \
-context_switch_asm.o int_handler_wrapper.o keyboard_driver.o timer_driver.o \
-driver_core.o driver_init.o circular_buffer.o fork.o
+context_switch.o keyboard_driver.o timer_driver.o \
+driver_core.o circular_buffer.o fork.o
 
 ###########################################################################
 # WARNING: Do not put **test** programs into the REQPROGS variables.  Your
