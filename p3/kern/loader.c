@@ -390,7 +390,7 @@ int load(char *filename, char *argv[], bool kernel_mode)
         arg_lens[i] = len;
     }
 
-    unsigned esp = fill_mem(&se_hdr, argc, argv, arg_lens, kernel_mode);
+    unsigned esp = fill_mem(&se_hdr, argc, argv, arg_lens);
 
     free(tmp_filename);
     free(arg_lens);
