@@ -20,7 +20,6 @@
 
 int fork()
 {
-    lprintf("fork");
     tcb_t *old_tcb;
     hashtable_get(&tcbs, gettid(), (void**)&old_tcb);
 

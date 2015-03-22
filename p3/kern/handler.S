@@ -22,7 +22,6 @@ keyboard_int:
     popa
     iret
 
-
 /* Life cycle */
 
 .globl fork_int
@@ -38,7 +37,6 @@ exec_int:
     addl    $8, %esp
     iret
 
-
 /* Thread management */
 
 .globl gettid_int
@@ -46,6 +44,26 @@ gettid_int:
     call    gettid
     iret
 
+.globl yield_int
+yield_int:
+    pushl   %esi
+    call    yield
+    addl    $4, %esp
+    iret
+
+.globl deschedule_int
+deschedule_int:
+    pushl   %esi
+    call    deschedule
+    addl    $4, %esp
+    iret
+
+.globl make_runnable_int
+make_runnable_int:
+    pushl   %esi
+    call    make_runnable
+    addl    $4, %esp
+    iret
 
 /* Memory management */
 

@@ -41,9 +41,9 @@ void idt_init() {
     idt_add_desc(FORK_INT, fork_int, IDT_TRAP, IDT_DPL_USER);
     idt_add_desc(EXEC_INT, exec_int, IDT_TRAP, IDT_DPL_USER);
     // idt_add_desc(WAIT_INT, 0, IDT_TRAP, IDT_DPL_USER);
-    idt_add_desc(YIELD_INT, 0, IDT_TRAP, IDT_DPL_USER);
-    idt_add_desc(DESCHEDULE_INT, 0, IDT_TRAP, IDT_DPL_USER);
-    idt_add_desc(MAKE_RUNNABLE_INT, 0, IDT_TRAP, IDT_DPL_USER);
+    idt_add_desc(YIELD_INT, yield_int, IDT_TRAP, IDT_DPL_USER);
+    idt_add_desc(DESCHEDULE_INT, deschedule_int, IDT_TRAP, IDT_DPL_USER);
+    idt_add_desc(MAKE_RUNNABLE_INT, make_runnable_int, IDT_TRAP, IDT_DPL_USER);
     idt_add_desc(GETTID_INT, gettid_int, IDT_TRAP, IDT_DPL_USER);
     idt_add_desc(NEW_PAGES_INT, new_pages_int, IDT_TRAP, IDT_DPL_USER);
     idt_add_desc(REMOVE_PAGES_INT, remove_pages_int, IDT_TRAP, IDT_DPL_USER);

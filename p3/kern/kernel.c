@@ -33,7 +33,7 @@
 
 #include <loader.h>
 
-#define MAIN_NAME "coolness"
+#define MAIN_NAME "myknife"
 #define MAIN_ARG {NULL}
 
 /** @brief Kernel entrypoint.
