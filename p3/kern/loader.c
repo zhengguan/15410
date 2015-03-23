@@ -37,10 +37,8 @@
 #define USER_STACK_SIZE PAGE_SIZE
 
 #define USER_MODE_CPL 3
+
 #define PAGE_HT_SIZE 10
-
-
-//TODO limit arg length
 
 /* --- Local function prototypes --- */
 
@@ -56,7 +54,6 @@ void *memcpy_tmp (void *destination, const void *source, size_t num) {
 }
 
 #define memcpy memcpy_tmp
-
 
 /**
  * Copies data from a file into a buffer.
@@ -91,14 +88,15 @@ int getbytes(const char *filename, int offset, int size, char *buf)
 }
 
 /**
- * @brief Performs simple checks to determine if a ELF file is valid
+ * @brief Performs simple checks to determine if a ELF file is valid.
  *
  * @param se_hdr simple_elf_t
- * @return False iff the elf fails a validity check.
+ * @return True if the elf header is valid, false otherwise.
  */
 static bool elf_valid(const simple_elf_t *se_hdr)
 {
-    if (se_hdr->e_entry < se_hdr->e_txtstart || se_hdr->e_entry >= se_hdr->e_txtstart + se_hdr->e_txtlen) {
+    if (se_hdr->e_entry < se_hdr->e_txtstart ||
+        se_hdr->e_entry >= se_hdr->e_txtstart + se_hdr->e_txtlen) {
         return false;
     }
 
@@ -121,46 +119,20 @@ static bool elf_valid(const simple_elf_t *se_hdr)
     return true;
 }
 
-/** @brief Allocate memory one page at a time if the page is not in a hashtable.
- *  Adds allocated pages to the hashtable.
- *  Allows for the allocation of pages to overlap previously allocated memory.
- *
- *  @param start The start of the memory region to allocate.
- *  @param len The length of the memory region to allocate.
- *  @param ht The hashtable
- *  @return 0 on success or a negative error code on error
- */
-static int alloc_pages(unsigned start, unsigned len, hashtable_t *ht)
-{
-    unsigned base;
-    for (base = ROUND_DOWN_PAGE(start); base < start + len; base += PAGE_SIZE) {
-        if (hashtable_get(ht, base, NULL) < 0) {
-            if (new_pages((void*)base, PAGE_SIZE) < 0)
-                return -1;
-            else
-                hashtable_add(ht, base, NULL);
-        }
-    }
-    return 0;
-}
-
 /**
  * @brief Check a null terminated argv for validity.
  *
- * @param argv The argv pointer
- * @return The number of elements in argv on success or a negative error code
- * on error
+ * @param argv The argv pointer.
+ * @return The number of elements in argv on success, a negative error code on
+ * failure.
  */
-
 static int argv_check(char *argv[])
 {
     int len = 0;
-    char **cur = argv;
-    while (vm_is_present(cur)) {
-        if (*cur == NULL)
+    while (vm_is_present(argv[len])) {
+        if (argv[len] == NULL)
             return len;
         len++;
-        cur++;
     }
 
     return -1;
@@ -169,24 +141,41 @@ static int argv_check(char *argv[])
 /**
  * @brief Check a nil terminated string for validity.
  *
- * @param str The string to check
- * @return The length of the string on success of a negative error code
- * on error.
+ * @param str The string.
+ * @return The length of the string on success, a negative error code on
+ * failure.
  */
 static int str_check(char *str)
 {
     int len = 0;
-    char *cur = str;
-    while (vm_is_present(cur)) {
-        if (*cur == '\0')
+    while (vm_is_present(&str[len])) {
+        if (str[len] == '\0')
             return len;
         len++;
-        cur++;
     }
 
     return -1;
 }
 
+/** @brief Allocate memory one page at a time if the page is not already
+ *  allocated
+ *
+ *  @param start The start of the memory region to allocate.
+ *  @param len The length of the memory region to allocate.
+ *  @return 0 on success, negative error code otherwise.
+ */
+static int alloc_pages(unsigned start, unsigned len)
+{
+    unsigned base;
+    for (base = ROUND_DOWN_PAGE(start); base < start + len; base += PAGE_SIZE) {
+        if (!vm_is_present((void *)base) &&
+            (new_pages((void*)base, PAGE_SIZE) < 0)) {
+            return -1;
+        }
+    }
+    
+    return 0;
+}
 
 /** @brief Fill memory regions needed to run a program.
  *
@@ -196,83 +185,71 @@ static int str_check(char *str)
  *  @param argc The number strings in argv.
  *  @param argv The function arguments.
  *  @param arg_lens The length of each string in argv.
- *  @return The inital value of the stack pointer for the function
- *  or 0 on error.
+ *  @return The inital value of the stack pointer for the function, 0 on
+ *  failure.
  */
-static unsigned fill_mem(const simple_elf_t *se_hdr, int argc, char *argv[], int arg_lens[])
+static unsigned fill_mem(const simple_elf_t *se_hdr, int argc, char *argv[],
+                         int arg_lens[])
 {
-    int i;
+    //TODO limit arg length
 
     char *bottom_arg_ptr = USER_ARGV_TOP;
 
     int total_arg_len = 0;
-
+    int i;
     for (i = 0; i < argc; i++) {
         total_arg_len += arg_lens[i] + 1;
     }
 
-    int arg_mem_needed = ROUND_UP_PAGE(sizeof(char) * total_arg_len + sizeof(char*) * argc);
+    int arg_mem_needed = ROUND_UP_PAGE(sizeof(char) * total_arg_len +
+                                       sizeof(char*) * argc);
 
     //TODO: better check
-    if (arg_mem_needed > USER_ARGV_TOP - USER_STACK_TOP)
-        return 0;
-
-    char **tmp_argv = NULL;
-    if (argc > 0)
-        if ( (tmp_argv = malloc(sizeof(char*)*argc)) == NULL)
-            return 0;
-
-    //txtlen can't be 0
-    char *txt_buf = malloc(se_hdr->e_txtlen + se_hdr->e_datlen + se_hdr->e_rodatlen);
-    if (txt_buf == 0) {
-        free(tmp_argv);
+    if (arg_mem_needed > USER_ARGV_TOP - USER_STACK_TOP) {
         return 0;
     }
 
+    char *txt_buf = malloc(se_hdr->e_txtlen + se_hdr->e_datlen +
+                           se_hdr->e_rodatlen);
+    if (txt_buf == NULL) {
+        return 0;
+    }
     char *dat_buf = txt_buf + se_hdr->e_txtlen;
     char *rodat_buf = dat_buf + se_hdr->e_datlen;
 
-    if (getbytes(se_hdr->e_fname, se_hdr->e_txtoff, se_hdr->e_txtlen, txt_buf) < 0 ||
-        getbytes(se_hdr->e_fname, se_hdr->e_datoff, se_hdr->e_datlen, dat_buf) < 0 ||
-        getbytes(se_hdr->e_fname, se_hdr->e_rodatoff, se_hdr->e_rodatlen, rodat_buf) < 0) {
-        free(tmp_argv);
+    if (getbytes(se_hdr->e_fname, se_hdr->e_txtoff,
+                 se_hdr->e_txtlen, txt_buf) < 0 ||
+        getbytes(se_hdr->e_fname, se_hdr->e_datoff,
+                 se_hdr->e_datlen, dat_buf) < 0 ||
+        getbytes(se_hdr->e_fname, se_hdr->e_rodatoff,
+                 se_hdr->e_rodatlen, rodat_buf) < 0) {
         free(txt_buf);
         return 0;
     }
-
-    hashtable_t ht;
-    if (hashtable_init(&ht, PAGE_HT_SIZE) < 0) {
-        free(tmp_argv);
-        free(txt_buf);
-    };
-
-    //NO GOING BACK. MUST BE SUCCESSFUL FROM HERE
+    
     vm_clear();
-    if (arg_mem_needed && (new_pages((void*)bottom_arg_ptr - arg_mem_needed, arg_mem_needed) < 0) )
-        MAGIC_BREAK;; //die
-
-    for (i = argc - 1; i >= 0; i--) {
-        //copy string to memory
-        bottom_arg_ptr -= arg_lens[i]+1;
-        strncpy(bottom_arg_ptr, argv[i], arg_lens[i]+1);
-        tmp_argv[i] = bottom_arg_ptr;
-    }
-
-    char **new_argv = ((char**)bottom_arg_ptr) - argc;
-
-    memcpy(new_argv, tmp_argv, sizeof(char*)*argc);
-
-    free(tmp_argv);
-    if (
-    alloc_pages(se_hdr->e_txtstart, se_hdr->e_txtlen, &ht) < 0 ||
-    alloc_pages(se_hdr->e_datstart, se_hdr->e_datlen, &ht) < 0 ||
-    alloc_pages(se_hdr->e_rodatstart, se_hdr->e_rodatlen, &ht) < 0 ||
-    alloc_pages(se_hdr->e_bssstart, se_hdr->e_bsslen, &ht) < 0) {
+    
+    if (arg_mem_needed > 0 && (new_pages((void*)(bottom_arg_ptr -
+        arg_mem_needed), arg_mem_needed) < 0) ) {
+        // TODO handle this
         MAGIC_BREAK;
-        //die
     }
-    hashtable_destroy(&ht);
 
+    char **new_argv = (char**)((void *)bottom_arg_ptr - arg_mem_needed);
+    for (i = argc - 1; i >= 0; i--) {
+        bottom_arg_ptr -= arg_lens[i] + 1;
+        strncpy(bottom_arg_ptr, argv[i], arg_lens[i] + 1);
+        new_argv[i] = bottom_arg_ptr;
+    }
+    
+    if (alloc_pages(se_hdr->e_txtstart, se_hdr->e_txtlen) < 0 ||
+        alloc_pages(se_hdr->e_datstart, se_hdr->e_datlen) < 0 ||
+        alloc_pages(se_hdr->e_rodatstart, se_hdr->e_rodatlen) < 0 ||
+        alloc_pages(se_hdr->e_bssstart, se_hdr->e_bsslen) < 0) {
+        // TODO handle this
+        MAGIC_BREAK;
+    }
+    
     // TODO make txt and rodata read only?
     memcpy((char*)se_hdr->e_txtstart, txt_buf, se_hdr->e_txtlen);
     memcpy((char*)se_hdr->e_datstart, dat_buf, se_hdr->e_datlen);
@@ -285,12 +262,13 @@ static unsigned fill_mem(const simple_elf_t *se_hdr, int argc, char *argv[], int
 
     char *stack_low = USER_STACK_TOP - USER_STACK_SIZE;
 
-    if (new_pages(stack_low, USER_STACK_SIZE) < 0)
-        MAGIC_BREAK; //die
+    if (new_pages(stack_low, USER_STACK_SIZE) < 0) {
+        // TODO handle this
+        MAGIC_BREAK;
+    }
 
     unsigned esp = (unsigned)USER_STACK_TOP;
 
-    //push arguments for _main
     esp -= sizeof(int);
     *(unsigned*)esp = (unsigned)stack_low;
 
@@ -321,12 +299,11 @@ static void user_run(unsigned eip, unsigned esp)
     //TODO: should this look at currently set eflags?
     //TODO: more flags?
     set_cr0((get_cr0() & ~CR0_AM & ~CR0_WP) | CR0_PE);
-    set_cr4(get_cr4() | CR4_PGE);
     unsigned eflags = EFL_RESV1 | EFL_IF | EFL_IOPL_RING1;
     exec_run(SEGSEL_USER_DS, eip, SEGSEL_USER_CS, eflags, esp, SEGSEL_USER_DS);
 }
 
-/** @brief Load a user program
+/** @brief Loads a user program.
  *
  *  Replaces the program currently running in the invoking task with
  *  the program stored in the file named execname.  The argument points to a
@@ -336,45 +313,44 @@ static void user_run(unsigned eip, unsigned esp)
  *  @param argv The argument vector.
  *  @param kernel_mode A boolean indicating whether it is legal for arguments
  *  to point to kernel memory.
- *  @return Does not return on success.
- *  Returns a negative error code on failure.
+ *  @return Does not return on success, a negative error code on
+ *  failure.
  */
 int load(char *filename, char *argv[], bool kernel_mode)
 {
-    if (!kernel_mode && ((unsigned)filename < USER_MEM_START || (unsigned)argv < USER_MEM_START))
+    // TODO what is the purpose of kernel_mode?
+    if (!kernel_mode && ((unsigned)filename < USER_MEM_START ||
+        (unsigned)argv < USER_MEM_START)) {
         return -1;
+    }
 
     int len = str_check(filename);
-    if (len < 1) {
+    if (len < 0) {
         return -1;
     }
 
     if (elf_check_header(filename) != ELF_SUCCESS) {
         return -2;
     }
+    
     simple_elf_t se_hdr;
     if (elf_load_helper(&se_hdr, filename) != ELF_SUCCESS) {
         return -3;
     }
+    
     if (!elf_valid(&se_hdr)) {
         return -4;
     }
 
-    int argc;
-    if ( (argc = argv_check(argv)) < 0)
+    int argc = argv_check(argv);
+    if (argc < 0) {
         return -5;
+    }
 
-    char *tmp_filename;
-    if ( (tmp_filename = malloc(sizeof(char)*(len+1))) == NULL )
-        return -6;
-    strncpy(tmp_filename, filename, len+1);
-
-    int *arg_lens = NULL;
-    if (argc > 0)
-        if ( (arg_lens = malloc(argc*sizeof(int))) == NULL ) {
-            free(tmp_filename);
-            return -7;
-        }
+    int *arg_lens  = malloc(argc*sizeof(int));
+    if (argc > 0 && arg_lens == NULL) {
+        return -7;
+    }
 
     //get lengths of arguments and ensure they are valid strings
     int i;
@@ -382,7 +358,6 @@ int load(char *filename, char *argv[], bool kernel_mode)
         int len;
         if ( (!kernel_mode && (unsigned)argv[i] < USER_MEM_START) ||
              (len = str_check(argv[i])) < 0) {
-            free(tmp_filename);
             free(arg_lens);
             return -8;
         }
@@ -392,7 +367,6 @@ int load(char *filename, char *argv[], bool kernel_mode)
 
     unsigned esp = fill_mem(&se_hdr, argc, argv, arg_lens);
 
-    free(tmp_filename);
     free(arg_lens);
 
     if (esp == 0) {
@@ -406,14 +380,14 @@ int load(char *filename, char *argv[], bool kernel_mode)
     return -10;
 }
 
-/** @brief Load a user program
+/** @brief Loads a user program.
  *
- *  A wrapper for load with kernel_mode set to false
+ *  A wrapper for load with kernel_mode set to false.
  *
  *  @param filename The program file name.
  *  @param argv The argument vector.
- *  @return Does not return on success.
- *  Returns a negative error code on failure.
+ *  @return Does not return on success, a negative error code on
+ *  failure.
  */
 int exec(char *filename, char *argv[])
 {

@@ -11,7 +11,6 @@
 #include <x86/seg.h>
 #include <syscall_int.h>
 #include <handler.h>
-#include <asm_noop.h>
 #include <scheduler.h>
 #include <timer_driver.h>
 

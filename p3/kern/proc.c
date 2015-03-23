@@ -29,8 +29,13 @@ int cur_tid;
  *  @return 0 on success, negative error code otherwise.
  */
 int proc_init() {
-     hashtable_init(&pcbs, PCB_HT_SIZE);
-     hashtable_init(&tcbs, TCB_HT_SIZE);
+     if (hashtable_init(&pcbs, PCB_HT_SIZE) < 0) {
+        return -1;
+     }
+     
+     if (hashtable_init(&tcbs, TCB_HT_SIZE)) {
+        return -2;
+     }
 
      return 0;
 }

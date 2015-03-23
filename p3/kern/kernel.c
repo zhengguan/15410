@@ -33,14 +33,14 @@
 
 #include <loader.h>
 
-#define MAIN_NAME "myknife"
+#define MAIN_NAME "coolness"
 #define MAIN_ARG {NULL}
 
 /** @brief Kernel entrypoint.
  *
  *  This is the entrypoint for the kernel.
  *
- * @return Does not return
+ * @return Does not return.
  */
 int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
 {
@@ -50,13 +50,17 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
 
     idt_init();
 
-    vm_init();
+    if (vm_init() < 0) {
+        lprintf("failed to init vm");
+    }
 
-    proc_init();
-
-    if (proc_new_process() < 0)
-        lprintf("failed to make new process");
-
+    if (proc_init() < 0) {
+        lprintf("failed to init proc");
+    }
+    if (proc_new_process() < 0) {
+        lprintf("failed to create new process");
+    }
+    
     clear_console();
 
     char *arg[] = MAIN_ARG;

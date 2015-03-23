@@ -28,15 +28,11 @@ int scheduler_init()
  */
 void scheduler_tick(unsigned num_ticks)
 {
-    lprintf("Begin tick");    
-    
     int tid;
     linklist_remove_head(&scheduler_queue, (void**)&tid);
     linklist_add_tail(&scheduler_queue, (void*)tid);
 
-    context_switch(tid);
-    
-    lprintf("End tick");    
+    context_switch(tid);    
 }
 
 /** @brief Context switches to the thread with ID tid.

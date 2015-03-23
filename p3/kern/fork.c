@@ -24,14 +24,14 @@ int fork()
     hashtable_get(&tcbs, gettid(), (void**)&old_tcb);
 
     disable_interrupts();
-
+    
     unsigned old_esp0 = get_esp0();
+    
     int tid = proc_new_process();
     if (tid < 0) {
-        lprintf("fucked up7");
-        MAGIC_BREAK;
+        return -1;
     }
-
+        
     if (store_regs(&old_tcb->regs)) {
         unsigned new_esp0 = get_esp0();
 
@@ -44,7 +44,6 @@ int fork()
 
         enable_interrupts();
         return 0;
-
     } else {
         notify_interrupt_complete(); //we are returning from timer but didn't come from timer
         enable_interrupts();

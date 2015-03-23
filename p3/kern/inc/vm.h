@@ -57,7 +57,7 @@ typedef pte_t* pt_t;
 
 /* Virtual memory functions */
 bool vm_is_present(void *va);
-void vm_init();
+int vm_init();
 pd_t vm_new_pd();
 void vm_new_pde(pde_t *pde, pt_t pt, unsigned flags);
 pt_t vm_new_pt(pde_t *pde, unsigned flags);
