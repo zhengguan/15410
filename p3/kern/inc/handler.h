@@ -10,14 +10,13 @@
 #define _HANDLER_H
 
 /* Drivers */
-
 void timer_handler_int();
 void keyboard_int();
 
 /* Life cycle */
-
 int fork_int();
 int exec_int(char *execname, char *argvec[]);
+void set_status_int(int status);
 
 /* Thread management */
 int gettid_int(void);

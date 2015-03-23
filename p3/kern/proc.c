@@ -20,7 +20,6 @@ int next_tid = 1;
 hashtable_t pcbs;
 hashtable_t tcbs;
 
-// TODO get rid of cur_tid, use scheduler queue instead
 int cur_pid;
 int cur_tid;
 
@@ -68,7 +67,7 @@ int proc_new_process() {
  *  @return The thread ID of the newly created thread on success, negative
  *  error code otherwise.
  */
-int proc_new_thread() {
+int proc_new_thread(int pid) {
     // TODO may need to disable interrupts to prevent context switching in here
 
     tcb_t *tcb = malloc(sizeof(tcb_t));
@@ -77,7 +76,9 @@ int proc_new_thread() {
     }
 
     tcb->tid = next_tid++;
+    // TODO this is broken
     tcb->pid = cur_pid;
+    tcb->status = 0;
     cur_tid = tcb->tid;
     
     set_esp0((unsigned)malloc(KERNEL_STACK_SIZE) + KERNEL_STACK_SIZE);
@@ -104,3 +105,8 @@ int gettid()
     return cur_tid;
 }
 
+void set_status(int status) {
+    tcb_t *tcb;
+    hashtable_get(&tcbs, gettid(), (void **)&tcb);
+    tcb->status = status;
+}

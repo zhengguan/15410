@@ -37,6 +37,13 @@ exec_int:
     addl    $8, %esp
     iret
 
+.globl set_status_int
+set_status_int:
+    pushl   %esi
+    call    set_status
+    addl    $4, %esp
+    iret
+
 /* Thread management */
 
 .globl gettid_int
