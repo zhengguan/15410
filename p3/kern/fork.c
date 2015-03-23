@@ -33,6 +33,8 @@ int fork()
     }
         
     if (store_regs(&old_tcb->regs)) {
+        cur_tid = tid;
+    
         unsigned new_esp0 = get_esp0();
 
         int i;
@@ -45,6 +47,8 @@ int fork()
         enable_interrupts();
         return 0;
     } else {
+        cur_tid = old_tcb->tid;
+    
         notify_interrupt_complete(); //we are returning from timer but didn't come from timer
         enable_interrupts();
         return tid;
