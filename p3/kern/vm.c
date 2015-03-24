@@ -30,7 +30,6 @@ hashtable_t alloc_pages;
  */
 static unsigned get_frame()
 {
-    // TODO add locking mechanism?
     unsigned frame;
     if (linklist_empty(&free_frames)) {
         frame = next_frame;
@@ -177,15 +176,22 @@ pd_t vm_new_pd()
  *
  *  @return Void.
  */
-void vm_init()
+int vm_init()
 {
-    linklist_init(&free_frames);
-    hashtable_init(&alloc_pages, PAGES_HT_SIZE);
+    if (linklist_init(&free_frames) < 0) {
+        return -1;
+    }
+
+    if (hashtable_init(&alloc_pages, PAGES_HT_SIZE) < 0) {
+        return -2;
+    }
 
     set_cr3((unsigned)vm_new_pd());
 
     set_cr0(get_cr0() | CR0_PG);
-    // TODO also set cr4 register bit (remove from old setting location)
+    set_cr4(get_cr4() | CR4_PGE);
+
+    return 0;
 }
 
 /** @brief Removes the page directory.
@@ -225,8 +231,6 @@ void vm_remove_pt(pde_t *pde) {
  *  virtual address was not mapped.
  */
 unsigned vm_remove_pte(void *va) {
-    // TODO maybe possible race condition here
-
     pde_t *pde = &GET_PDE(GET_PD(), va);
 
 
@@ -317,10 +321,6 @@ void vm_clear() {
  */
 int new_pages(void *base, int len)
 {
-    //TODO: should this be successful?
-    if (len == 0)
-        return 0;
-
     if (((unsigned)base % PAGE_SIZE) != 0) {
         return -1;
     }

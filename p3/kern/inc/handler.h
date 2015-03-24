@@ -9,10 +9,20 @@
 #ifndef _HANDLER_H
 #define _HANDLER_H
 
+/* Drivers */
+void timer_handler_int();
+void keyboard_int();
+
 /* Life cycle */
+int fork_int();
+int exec_int(char *execname, char *argvec[]);
+void set_status_int(int status);
 
 /* Thread management */
 int gettid_int(void);
+int yield_int(int tid);
+int deschedule_int(int *flag);
+int make_runnable_int(int tid);
 
 /* Memory management */
 int new_pages_int(void * addr, int len);
@@ -22,7 +32,6 @@ void keyboard_int();
 int fork_int();
 int exec_int(char *execname, char *argvec[]);
 void swexn_int();
-
 
 /* Console I/O */
 

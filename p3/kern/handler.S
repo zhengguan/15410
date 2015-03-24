@@ -22,7 +22,6 @@ keyboard_int:
     call set_user_segs
     iret
 
-
 /* Life cycle */
 
 .globl fork_int
@@ -46,6 +45,12 @@ exec_int:
     addl    $8, %esp
     iret
 
+.globl set_status_int
+set_status_int:
+    pushl   %esi
+    call    set_status
+    addl    $4, %esp
+    iret
 
 /* Thread management */
 
@@ -58,6 +63,26 @@ gettid_int:
     pop %eax
     iret
 
+.globl yield_int
+yield_int:
+    pushl   %esi
+    call    yield
+    addl    $4, %esp
+    iret
+
+.globl deschedule_int
+deschedule_int:
+    pushl   %esi
+    call    deschedule
+    addl    $4, %esp
+    iret
+
+.globl make_runnable_int
+make_runnable_int:
+    pushl   %esi
+    call    make_runnable
+    addl    $4, %esp
+    iret
 
 /* Memory management */
 

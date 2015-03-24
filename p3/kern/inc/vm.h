@@ -58,7 +58,7 @@ typedef pte_t* pt_t;
 /* Virtual memory functions */
 bool vm_is_present(void *va);
 bool vm_is_present_len(void *va, unsigned len);
-void vm_init();
+int vm_init();
 pd_t vm_copy();
 void vm_clear();
 #endif /* __VM_H__ */
