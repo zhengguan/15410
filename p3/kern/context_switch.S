@@ -10,12 +10,13 @@
 store_regs:
     call    get_esp0
     movl     4(%esp), %ecx
-    mov     %eax, 68(%ecx)
-    
+    mov     %eax, 44(%ecx)
+
+    mov     8(%esp), %eax
     subl    %esp, %eax
     subl    $4, %eax
     mov     %eax, 12(%ecx)
-    
+
     mov     %ebx, (%ecx)
     mov     %esi, 4(%ecx)
     mov     %edi, 8(%ecx)
@@ -32,23 +33,17 @@ store_regs:
     movl    %edx, 36(%ecx)
     mov     %cr4, %edx
     movl    %edx, 40(%ecx)
-    mov     %cs, 44(%ecx)
-    mov     %ds, 48(%ecx)
-    mov     %es, 52(%ecx)
-    mov     %fs, 56(%ecx)
-    mov     %gs, 60(%ecx)
-    mov     %ss, 64(%ecx)    
     movl     $1, %eax
     ret
 
 .globl restore_regs
 restore_regs:
     movl     4(%esp), %ecx
-    
-    mov     68(%ecx), %edx
+
+    mov     44(%ecx), %edx
     subl    12(%ecx), %edx
     mov     %edx, %esp
-    
+
     mov     (%ecx), %ebx
     mov     4(%ecx), %esi
     mov     8(%ecx), %edi
@@ -63,14 +58,8 @@ restore_regs:
     mov     %edx, %cr3
     movl    40(%ecx), %edx
     mov     %edx, %cr4
-    // mov  44(%ecx), %cs
-    mov     48(%ecx), %ds
-    mov     52(%ecx), %es
-    mov     56(%ecx), %fs
-    mov     60(%ecx), %gs
-    mov     64(%ecx), %ss
     pushl    %ecx
-    pushl    68(%ecx)
+    pushl    44(%ecx)
     call    set_esp0
     addl    $4, %esp
     popl     %ecx

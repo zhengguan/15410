@@ -12,7 +12,7 @@
 
 #include <proc.h>
 
-int store_regs(regs_t *regs);
+int store_regs(regs_t *regs, unsigned old_esp0);
 void restore_regs(regs_t *regs);
 
 #endif /* __CTX_SWITCH_ASM_H__ */

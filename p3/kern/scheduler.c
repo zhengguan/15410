@@ -5,6 +5,7 @@
 #include <simics.h>
 #include <scheduler.h>
 #include <asm.h>
+#include <cr.h>
 
 linklist_t scheduler_queue;
 
@@ -32,7 +33,7 @@ void scheduler_tick(unsigned num_ticks)
     linklist_remove_head(&scheduler_queue, (void**)&tid);
     linklist_add_tail(&scheduler_queue, (void*)tid);
 
-    context_switch(tid);    
+    context_switch(tid);
 }
 
 /** @brief Context switches to the thread with ID tid.
@@ -57,7 +58,7 @@ int context_switch(int tid)
     hashtable_get(&tcbs, gettid(), (void**)&old_tcb);
 
     disable_interrupts();
-    if (store_regs(&old_tcb->regs)) {
+    if (store_regs(&old_tcb->regs, get_esp0())) {
         cur_tid = new_tcb->tid;
         restore_regs(&new_tcb->regs);
     }

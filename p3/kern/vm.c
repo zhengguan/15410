@@ -271,13 +271,9 @@ pd_t vm_copy()
 
         vm_new_pte(new_pd, va, get_frame(), GET_FLAGS(pte));
 
-        // TODO figure out why memcpy doesnt work
-        int i;
-        for (i = 0; i < PAGE_SIZE; i++)
-            buf[i] = va[i];
+        memcpy(buf, va, PAGE_SIZE);
         set_cr3((unsigned)new_pd);
-        for (i = 0; i < PAGE_SIZE; i++)
-            va[i] = buf[i];
+        memcpy(va, buf, PAGE_SIZE);
         set_cr3((unsigned)old_pd);
 
         va += PAGE_SIZE;

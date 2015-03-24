@@ -29,13 +29,7 @@ typedef struct regs {
     unsigned cr2;           // 32
     unsigned cr3;           // 36
     unsigned cr4;           // 40
-    unsigned cs;            // 44
-    unsigned ds;            // 48
-    unsigned es;            // 52
-    unsigned fs;            // 56
-    unsigned gs;            // 60
-    unsigned ss;            // 64
-    unsigned esp0;          // 68
+    unsigned esp0;          // 44
 } regs_t;
 
 typedef struct pcb {

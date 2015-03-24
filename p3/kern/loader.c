@@ -42,19 +42,6 @@
 
 /* --- Local function prototypes --- */
 
-void *memcpy_tmp (void *destination, const void *source, size_t num) {
-    char *dest = destination;
-    const char* src = source;
-
-    int i;
-    for (i = 0; i < num; i++) {
-        dest[i] = src[i];
-    }
-    return destination;
-}
-
-#define memcpy memcpy_tmp
-
 /**
  * Copies data from a file into a buffer.
  *
