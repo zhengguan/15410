@@ -57,16 +57,8 @@ typedef pte_t* pt_t;
 
 /* Virtual memory functions */
 bool vm_is_present(void *va);
+bool vm_is_present_len(void *va, unsigned len);
 void vm_init();
-pd_t vm_new_pd();
-void vm_new_pde(pde_t *pde, pt_t pt, unsigned flags);
-pt_t vm_new_pt(pde_t *pde, unsigned flags);
-void vm_new_pte(pd_t pd, void *va, unsigned pa, unsigned flags);
-void vm_remove_pd();
-void vm_remove_pde(pde_t *pde);
-void vm_remove_pt(pde_t *pde);
-unsigned vm_remove_pte(void *va);
-bool vm_is_present(void *va);
 pd_t vm_copy();
 void vm_clear();
 #endif /* __VM_H__ */

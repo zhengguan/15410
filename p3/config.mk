@@ -65,7 +65,7 @@ UPDATE_METHOD = afs
 # A list of the test programs you want compiled in from the user/progs
 # directory.
 #
-STUDENTTESTS = fork_test
+STUDENTTESTS = fork_test swexn_test
 
 ###########################################################################
 # Data files provided by course staff to build into the RAM disk
@@ -104,7 +104,7 @@ SYSCALL_OBJS = fork.o exec.o wait.o yield.o deschedule.o \
 make_runnable.o gettid.o new_pages.o remove_pages.o sleep.o getchar.o \
 readline.o print.o set_term_color.o set_cursor_pos.o get_cursor_pos.o \
 get_ticks.o misbehave.o halt.o task_vanish.o set_status.o vanish.o \
-readfile.o swexn.o
+readfile.o swexn.o exception.o
 
 ###########################################################################
 # Object files for your automatic stack handling
@@ -122,9 +122,9 @@ AUTOSTACK_OBJS = autostack.o
 # Kernel object files you provide in from kern/
 #
 KERNEL_OBJS = console.o kernel.o loader.o malloc_wrappers.o hashtable.o \
-linklist.o handler.o idt.o vm.o proc.o exec_run.o asm_noop.o scheduler.o \
-context_switch.o keyboard_driver.o timer_driver.o \
-driver_core.o circular_buffer.o fork.o
+linklist.o handler.o idt_install.o vm.o proc.o exec_run.o asm_noop.o scheduler.o \
+context_switch.o keyboard_driver.o timer_driver.o asm_common.o \
+driver_core.o circular_buffer.o fork.o exception.o asm_exception.o
 
 ###########################################################################
 # WARNING: Do not put **test** programs into the REQPROGS variables.  Your

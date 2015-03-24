@@ -16,6 +16,7 @@
 #include <hashtable.h>
 #include <simics.h>
 #include <string.h>
+#include <macros.h>
 
 unsigned next_frame = USER_MEM_START;
 
@@ -65,6 +66,7 @@ static bool is_pt_empty(pde_t *pde) {
  */
 bool vm_is_present(void *va)
 {
+    va = (void*)ROUND_DOWN_PAGE(va);
     pde_t pde = GET_PDE(GET_PD(), va);
     if (GET_PRESENT(pde)) {
         pte_t pte = GET_PTE(pde, va);
@@ -76,43 +78,24 @@ bool vm_is_present(void *va)
     return false;
 }
 
-/** @brief Initializes the virtual memory.
- *
- *  @return Void.
- */
-void vm_init()
+bool vm_is_present_len(void *va, unsigned len)
 {
-    linklist_init(&free_frames);
-    hashtable_init(&alloc_pages, PAGES_HT_SIZE);
+    unsigned vau = (unsigned)va;
+    if (vau > vau+len)
+        return false;
+    if (vau + len == 0) {
+        if (len < PAGE_SIZE)
+            return vm_is_present((void*)(-PAGE_SIZE));
+        else return vm_is_present((void*)(-PAGE_SIZE)) && vm_is_present_len(va,len-PAGE_SIZE);
+    }
+    unsigned ptr;
+    for (ptr = (unsigned)ROUND_DOWN_PAGE(va); ptr < vau+len; ptr += PAGE_SIZE)
+        if (!vm_is_present((void*)ptr))
+            return false;
 
-    set_cr3((unsigned)vm_new_pd());
-
-    set_cr0(get_cr0() | CR0_PG);
-    // TODO also set cr4 register bit (remove from old setting location)
+    return true;
 }
 
-/** @brief Creates a new page directory.
- *
- *  @return The physical address of the new page directory.
- */
-pd_t vm_new_pd()
-{
-
-    pd_t pd = smemalign(PAGE_SIZE, PAGE_SIZE);
-    // FIXME check for failure
-
-    int i;
-    for (i = 0; i < PD_SIZE; i++) {
-        pd[i] = SET_PRESENT(pd[i], PTE_PRESENT_NO);
-    }
-
-    unsigned addr;
-    for (addr = KERNEL_MEM_START; addr < USER_MEM_START; addr += PAGE_SIZE) {
-        vm_new_pte(pd, (void *)addr, addr, KERNEL_FLAGS);
-    }
-
-    return pd;
-}
 
 /** @brief Creates a new page directory entry.
  *
@@ -147,6 +130,7 @@ pt_t vm_new_pt(pde_t *pde, unsigned flags)
     return pt;
 }
 
+
 /** @brief Creates a new page table entry for a virtual address.
  *
  *  @param va The virtual address.
@@ -164,6 +148,44 @@ void vm_new_pte(pd_t pd, void *va, unsigned pa, unsigned flags)
 
     pte_t *pte = &GET_PTE(*pde, va);
     *pte = (GET_PA(pa) | PTE_PRESENT_YES | flags);
+}
+
+/** @brief Creates a new page directory.
+ *
+ *  @return The physical address of the new page directory.
+ */
+pd_t vm_new_pd()
+{
+
+    pd_t pd = smemalign(PAGE_SIZE, PAGE_SIZE);
+    // FIXME check for failure
+
+    int i;
+    for (i = 0; i < PD_SIZE; i++) {
+        pd[i] = SET_PRESENT(pd[i], PTE_PRESENT_NO);
+    }
+
+    unsigned addr;
+    for (addr = KERNEL_MEM_START; addr < USER_MEM_START; addr += PAGE_SIZE) {
+        vm_new_pte(pd, (void *)addr, addr, KERNEL_FLAGS);
+    }
+
+    return pd;
+}
+
+/** @brief Initializes the virtual memory.
+ *
+ *  @return Void.
+ */
+void vm_init()
+{
+    linklist_init(&free_frames);
+    hashtable_init(&alloc_pages, PAGES_HT_SIZE);
+
+    set_cr3((unsigned)vm_new_pd());
+
+    set_cr0(get_cr0() | CR0_PG);
+    // TODO also set cr4 register bit (remove from old setting location)
 }
 
 /** @brief Removes the page directory.

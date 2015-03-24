@@ -5,18 +5,20 @@
  *  @author Jack Sorrell (jsorrell)
  *  @bug No known bugs.
  */
- 
+
 #include<syscall_int.h>
 
 .globl swexn
 
 swexn:
-    push    %ebp
-    mov     %esp, %ebp
+    push    16(%esp)
+    push    16(%esp)
+    push    16(%esp)
+    push    16(%esp)
+    push    $exception_wrapper //push exception_wrapper as additional arg
     push    %esi
-    lea     8(%ebp), %esi
+    lea     4(%esp), %esi
     int     $SWEXN_INT
     pop     %esi
-    mov     %ebp, %esp
-    pop     %ebp
+    addl    $20, %esp
     ret

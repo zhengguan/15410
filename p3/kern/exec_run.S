@@ -13,4 +13,5 @@ exec_run:
     movl $0, %ebp
     addl $4, %esp #Ignore exception address. This is trash.
     pop %ds #Update the data segment
+    pop %es
     iret
