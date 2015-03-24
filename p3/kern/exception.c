@@ -18,6 +18,7 @@
 #include <hashtable.h>
 #include <idt.h>
 #include <asm_common.h>
+#include <proc.h>
 
 #define HASHTABLE_SIZE 100
 
@@ -32,48 +33,54 @@ typedef struct {
     void *arg;
 } reg_handler_t;
 
-hashtable_t ht;
+hashtable_t handler_ht;
+hashtable_t ureg_ht;
+
 bool ht_inited = false;
-
-
-typedef struct {
-    unsigned ret;
-    swexn_handler_t eip;
-    void *arg;
-    ureg_t ureg;
-} handler_args_t;
 
 static int call_user_handler(ureg_t *exn_ureg)
 {
     if (!ht_inited)
         return -1;
-    disable_interrupts();
-    reg_handler_t *rhp;
 
-    if (hashtable_get(&ht, gettid(), (void**)&rhp) < 0) {
+    disable_interrupts();
+
+    reg_handler_t *rhp;
+    if (hashtable_get(&handler_ht, getpid(), (void**)&rhp) < 0) {
         return -1;
     }
 
-    hashtable_remove(&ht, gettid());
+    hashtable_remove(&handler_ht, getpid());
 
-    reg_handler_t rh = *rhp;
-    free(rhp);
+    typedef struct {
+        unsigned ret;
+        swexn_handler_t eip;
+        void *arg;
+        ureg_t ureg;
+    } handler_args_t;
 
-    char *esp = (char*)rh.esp3 - sizeof(handler_args_t);
+    char *esp = (char*)rhp->esp3 - sizeof(handler_args_t);
 
     if (!vm_is_present_len(esp, sizeof(handler_args_t))) {
         return -2;
     }
 
+    //save ureg
+    ureg_t *ureg = malloc(sizeof(ureg_t));
+    *ureg = *exn_ureg;
+    hashtable_add(&ureg_ht, getpid(), (void*)ureg);
+
     //setup args
-    ((handler_args_t *)esp)->eip = rh.eip;
-    ((handler_args_t *)esp)->arg = rh.arg;
+    ((handler_args_t *)esp)->eip = rhp->eip;
+    ((handler_args_t *)esp)->arg = rhp->arg;
     ((handler_args_t *)esp)->ureg = *exn_ureg;
 
     //where to switch to
     ureg_t handler_ureg = *exn_ureg;
     handler_ureg.esp = (unsigned)esp;
-    handler_ureg.eip = (unsigned)rh.wrapper;
+    handler_ureg.eip = (unsigned)rhp->wrapper;
+    free(rhp);
+
     lprintf("%p", exn_ureg);
 
     lprintf("calling user handler");
@@ -135,24 +142,31 @@ int kern_swexn(swexn_handler_wrapper_t wrapper, void *esp3, swexn_handler_t eip,
 
     disable_interrupts();
     if (!ht_inited) {
-        hashtable_init(&ht, HASHTABLE_SIZE);
+        if (hashtable_init(&handler_ht, HASHTABLE_SIZE) < 0 ||
+            hashtable_init(&ureg_ht, HASHTABLE_SIZE) < 0)
+            return -3;
+
         ht_inited = true;
     }
     enable_interrupts();
 
     if (esp3 == NULL || eip == NULL) {
-        hashtable_remove(&ht, gettid());
+        hashtable_remove(&handler_ht, getpid());
     } else {
-        reg_handler_t *rhp = malloc(sizeof(reg_handler_t));
-        if (rhp == NULL)
-            return -2;
+        reg_handler_t *rhp;
+        disable_interrupts();
+        if (hashtable_get(&handler_ht, getpid(), (void**)&rhp) < 0) {
+            rhp = malloc(sizeof(reg_handler_t));
+            if (rhp == NULL)
+                return -2;
+            hashtable_add(&handler_ht, getpid(), rhp);
+        }
 
         rhp->esp3 = esp3;
         rhp->eip = eip;
         rhp->arg = arg;
         rhp->wrapper = wrapper;
-
-        hashtable_add(&ht, gettid(), rhp);
+        enable_interrupts();
     }
 
     if (newureg == NULL)
@@ -168,5 +182,22 @@ int kern_swexn(swexn_handler_wrapper_t wrapper, void *esp3, swexn_handler_t eip,
     //FIXME: very unsafe. can set registers to anything.
     jmp_ureg(newureg); //reenables interrupts before jmp
 
+    return -2;
+}
+
+
+int exn_handler_complete()
+{
+    if (!ht_inited)
+        return -1;
+    ureg_t *ureg;
+    disable_interrupts();
+    if(hashtable_get(&ureg_ht, getpid(), (void**)&ureg) < 0)
+        return -1;
+    hashtable_remove(&ureg_ht, getpid());
+    ureg_t stack_ureg = *ureg;
+    free(ureg);
+    jmp_ureg(&stack_ureg);
+    //shouldnt get here
     return -2;
 }

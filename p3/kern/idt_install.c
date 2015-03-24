@@ -117,4 +117,7 @@ void idt_init() {
     idt_add_desc(IDT_MF, exn_fpufault_wrapper, IDT_INT, IDT_DPL_USER);
     idt_add_desc(IDT_AC, exn_alignfault_wrapper, IDT_INT, IDT_DPL_USER);
     idt_add_desc(IDT_XF, exn_simdfault_wrapper, IDT_INT, IDT_DPL_USER);
+
+    idt_add_desc(SYSCALL_RESERVED_0, exn_handler_complete_int, IDT_INT, IDT_DPL_USER);
+
 }

@@ -31,7 +31,7 @@ int proc_init() {
      if (hashtable_init(&pcbs, PCB_HT_SIZE) < 0) {
         return -1;
      }
-     
+
      if (hashtable_init(&tcbs, TCB_HT_SIZE)) {
         return -2;
      }
@@ -80,7 +80,7 @@ int proc_new_thread(int pid) {
     tcb->pid = cur_pid;
     tcb->status = 0;
     cur_tid = tcb->tid;
-    
+
     set_esp0((unsigned)malloc(KERNEL_STACK_SIZE) + KERNEL_STACK_SIZE);
 
     pcb_t *pcb;
@@ -105,7 +105,15 @@ int gettid()
     return cur_tid;
 }
 
-void set_status(int status) {
+int getpid()
+{
+    tcb_t *tcb;
+    hashtable_get(&tcbs, gettid(), (void**)&tcb);
+    return tcb->pid;
+}
+
+void set_status(int status)
+{
     tcb_t *tcb;
     hashtable_get(&tcbs, gettid(), (void **)&tcb);
     tcb->status = status;

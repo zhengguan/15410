@@ -11,7 +11,7 @@
 
 #include <common_kern.h>
 #include <syscall.h>
-#include <idt.h>
+#include <idt_install.h>
 #include <vm.h>
 #include <proc.h>
 #include <console.h>
@@ -33,7 +33,7 @@
 
 #include <loader.h>
 
-#define MAIN_NAME "coolness"
+#define MAIN_NAME "swexn_test"
 #define MAIN_ARG {NULL}
 
 /** @brief Kernel entrypoint.
@@ -60,7 +60,7 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
     if (proc_new_process() < 0) {
         lprintf("failed to create new process");
     }
-    
+
     clear_console();
 
     char *arg[] = MAIN_ARG;

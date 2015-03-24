@@ -129,3 +129,12 @@ swexn_int:
     pop %eax
     addl    $20, %esp
     iret
+
+.globl exn_handler_complete_int
+exn_handler_complete_int:
+    call set_kernel_segs
+    call    exn_handler_complete
+    push %eax
+    call set_user_segs
+    pop %eax
+    iret

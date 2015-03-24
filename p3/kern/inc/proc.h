@@ -58,5 +58,6 @@ extern int cur_tid;
 int proc_init();
 int proc_new_process();
 int proc_new_thread();
+int getpid();
 
 #endif /* _PROC_H */

@@ -32,6 +32,7 @@ void keyboard_int();
 int fork_int();
 int exec_int(char *execname, char *argvec[]);
 void swexn_int();
+void exn_handler_complete_int();
 
 /* Console I/O */
 
