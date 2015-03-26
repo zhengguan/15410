@@ -7,12 +7,12 @@
  */
 
 
-#ifndef __CTX_SWITCH_ASM_H__
-#define __CTX_SWITCH_ASM_H__
+#ifndef _CONTEXT_SWITCH_H
+#define _CONTEXT_SWITCH_H
 
 #include <proc.h>
 
 int store_regs(regs_t *regs, unsigned old_esp0);
 void restore_regs(regs_t *regs);
 
-#endif /* __CTX_SWITCH_ASM_H__ */
+#endif /* _CTX_SWITCH_ASM_H */

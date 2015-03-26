@@ -85,7 +85,7 @@ void linklist_add_tail(linklist_t *list, void *data) {
 /** @brief Removes the node at the head of a list.
  *
  *  @param list The list.
- *  @param data A location in memory to store the remove data.
+ *  @param data A location in memory to store the removed data.
  *  @return 0 on success, negative error code otherwise.
  */
 int linklist_remove_head(linklist_t *list, void **data) {

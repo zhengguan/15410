@@ -301,7 +301,6 @@ static void user_run(unsigned eip, unsigned esp)
  */
 int load(char *filename, char *argv[], bool kernel_mode)
 {
-    // TODO what is the purpose of kernel_mode?
     if (!kernel_mode && ((unsigned)filename < USER_MEM_START ||
         (unsigned)argv < USER_MEM_START)) {
         return -1;

@@ -1,4 +1,4 @@
-/** @file idt.c
+/** @file interrupt.c
  *  @brief Initializes the IDT entries.
  *
  *  @author Patrick Koenig (phkoenig)
@@ -6,15 +6,17 @@
  *  @bug No known bugs.
  */
 
-#include <idt_install.h>
-#include <idt.h>
+#include <interrupt.h>
+#include <x86/idt.h>
+#include <x86/asm.h>
 #include <x86/asm.h>
 #include <x86/seg.h>
 #include <syscall_int.h>
 #include <handler.h>
 #include <scheduler.h>
-#include <timer_driver.h>
 #include <asm_exception.h>
+#include <timer.h>
+#include <keyboard.h>
 
 extern int new_pages(void *base, int len);
 extern int remove_pages(void *base);
@@ -38,12 +40,6 @@ typedef struct idt_desc {
     uint8_t flags;
     uint16_t offset_h;
 } idt_desc_t;
-
-
-void noop()
-{
-    return;
-}
 
 /** @brief Add a descriptor entry to the IDT.
  *
@@ -69,11 +65,12 @@ void idt_add_desc(int idt_entry, void *handler, unsigned gate_type, unsigned dpl
 void idt_init() {
 
     /* Add timer and keyboard interrupt gate descriptors */
-    if (timer_setup()) {
+    if (timer_init() == 0) {
         idt_add_desc(TIMER_IDT_ENTRY, timer_handler_int, IDT_INT, IDT_DPL_KERNEL);
-        tick_callback = scheduler_tick;
     }
-    //idt_add_desc(KEY_IDT_ENTRY, keyboard_int, IDT_INT, IDT_DPL_KERNEL);
+    if (keyboard_init() == 0) {
+        idt_add_desc(KEY_IDT_ENTRY, keyboard_int, IDT_INT, IDT_DPL_KERNEL);
+    }
 
     /* Add system call trap gate descriptors */
     // idt_add_desc(SYSCALL_INT, 0, IDT_TRAP, IDT_DPL_USER);
@@ -119,5 +116,4 @@ void idt_init() {
     idt_add_desc(IDT_XF, exn_simdfault_wrapper, IDT_INT, IDT_DPL_USER);
 
     idt_add_desc(SYSCALL_RESERVED_0, exn_handler_complete_int, IDT_INT, IDT_DPL_USER);
-
 }

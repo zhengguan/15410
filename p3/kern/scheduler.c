@@ -24,10 +24,10 @@ int scheduler_init()
 
 /** @brief Scheduler timer interrupt handler.
  *
- *  @param num_ticks The number of ticks since the kernel began running.
+ *  @param ticks The number of ticks since the kernel began running.
  *  @return Void.
  */
-void scheduler_tick(unsigned num_ticks)
+void scheduler_tick(unsigned ticks)
 {
     int tid;
     linklist_remove_head(&scheduler_queue, (void**)&tid);

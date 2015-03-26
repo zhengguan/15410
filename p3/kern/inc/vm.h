@@ -6,8 +6,8 @@
  *  @bug No known bugs.
  */
 
-#ifndef __VM_H__
-#define __VM_H__
+#ifndef _VM_H
+#define _VM_H
 
 #include <macros.h>
 
@@ -61,4 +61,4 @@ bool vm_is_present_len(void *va, unsigned len);
 int vm_init();
 pd_t vm_copy();
 void vm_clear();
-#endif /* __VM_H__ */
+#endif /* _VM_H */

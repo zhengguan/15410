@@ -6,15 +6,15 @@
  *  @bug No known bugs.
  */
 
-#ifndef __SCHEDULER_INIT_H__
-#define __SCHEDULER_INIT_H__
+#ifndef _SCHEDULER_H
+#define _SCHEDULER_H
 
 #include <linklist.h>
 
 extern linklist_t scheduler_queue;
 
 int scheduler_init();
-void scheduler_tick(unsigned num_ticks);
+void scheduler_tick(unsigned ticks);
 int context_switch(int tid);
 
-#endif /* __SCHEDULER_INIT_H__ */
+#endif /* _SCHEDULER_INIT_H */

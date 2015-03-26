@@ -11,7 +11,7 @@
 
 #include <common_kern.h>
 #include <syscall.h>
-#include <idt_install.h>
+#include <interrupt.h>
 #include <vm.h>
 #include <proc.h>
 #include <console.h>
@@ -29,7 +29,6 @@
 #include <x86/cr.h>
 #include <malloc.h>
 #include <scheduler.h>
-#include <driver_core.h>
 
 #include <loader.h>
 

@@ -122,10 +122,9 @@ AUTOSTACK_OBJS = autostack.o
 # Kernel object files you provide in from kern/
 #
 KERNEL_OBJS = console.o kernel.o loader.o malloc_wrappers.o hashtable.o \
-linklist.o handler.o idt_install.o vm.o proc.o exec_run.o scheduler.o \
-context_switch.o keyboard_driver.o timer_driver.o asm_common.o \
-driver_core.o circular_buffer.o fork.o exception.o asm_exception.o
-
+linklist.o circbuf.o handler.o interrupt.o vm.o proc.o exec_run.o fork.o \
+scheduler.o context_switch.o driver.o keyboard.o timer.o asm_common.o \
+exception.o asm_exception.o
 
 ###########################################################################
 # WARNING: Do not put **test** programs into the REQPROGS variables.  Your

@@ -1,5 +1,5 @@
 /** @file exec_run.S
- *  @brief
+ *  @brief Runs a user program.
  *
  *  @author Patrick Koenig (phkoenig)
  *  @author Jack Sorrell (jsorrell)
@@ -7,11 +7,10 @@
  */
 
 .globl exec_run
-
 exec_run:
     cli
     movl $0, %ebp
-    addl $4, %esp #Ignore exception address. This is trash.
-    pop %ds #Update the data segment
-    pop %es
+    addl $4, %esp   # Ignore exception address
+    pop %ds         # Update the data segment
+    pop %es         # Update the extra segment
     iret
