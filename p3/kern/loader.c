@@ -209,20 +209,35 @@ static unsigned fill_mem(const simple_elf_t *se_hdr, int argc, char *argv[],
         return 0;
     }
 
+    char *tmp_args = malloc(sizeof(char) * total_arg_len);
+    if (tmp_args == NULL) {
+        free(txt_buf);
+        return 0;
+    }
+
+    for (i = 0; i < argc; i++) {
+        strncpy(tmp_args, argv[i], arg_lens[i] + 1);
+        tmp_args += arg_lens[i] + 1;
+    }
+
     vm_clear();
 
-    if (arg_mem_needed > 0 && (new_pages((void*)(bottom_arg_ptr -
-        arg_mem_needed), arg_mem_needed) < 0) ) {
+    if (arg_mem_needed > 0 && (new_pages(bottom_arg_ptr -
+        arg_mem_needed, arg_mem_needed) < 0) ) {
         // TODO handle this
+        lprintf("oops");
         MAGIC_BREAK;
     }
 
-    char **new_argv = (char**)((void *)bottom_arg_ptr - arg_mem_needed);
+    char **new_argv = (char**)(bottom_arg_ptr - arg_mem_needed);
     for (i = argc - 1; i >= 0; i--) {
         bottom_arg_ptr -= arg_lens[i] + 1;
-        strncpy(bottom_arg_ptr, argv[i], arg_lens[i] + 1);
+        tmp_args -= arg_lens[i] + 1;
+        strncpy(bottom_arg_ptr, tmp_args, arg_lens[i] + 1);
         new_argv[i] = bottom_arg_ptr;
     }
+
+    free(tmp_args);
 
     if (alloc_pages(se_hdr->e_txtstart, se_hdr->e_txtlen) < 0 ||
         alloc_pages(se_hdr->e_datstart, se_hdr->e_datlen) < 0 ||
@@ -239,8 +254,6 @@ static unsigned fill_mem(const simple_elf_t *se_hdr, int argc, char *argv[],
     memset((char*)se_hdr->e_bssstart, 0, se_hdr->e_bsslen);
 
     free(txt_buf);
-    free(dat_buf);
-    free(rodat_buf);
 
     char *stack_low = USER_STACK_TOP - USER_STACK_SIZE;
 
@@ -301,6 +314,7 @@ static void user_run(unsigned eip, unsigned esp)
  */
 int load(char *filename, char *argv[], bool kernel_mode)
 {
+    // TODO what is the purpose of kernel_mode?
     if (!kernel_mode && ((unsigned)filename < USER_MEM_START ||
         (unsigned)argv < USER_MEM_START)) {
         return -1;

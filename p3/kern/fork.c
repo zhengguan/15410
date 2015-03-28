@@ -1,11 +1,10 @@
 /** @file fork.c
- *  @brief Implements fork.
+ *  @brief Implements fork
  *
  *  @author Patrick Koenig (phkoenig)
  *  @author Jack Sorrell (jsorrell)
  *  @bug No known bugs.
  */
-
 #include <scheduler.h>
 #include <proc.h>
 #include <simics.h>
@@ -16,49 +15,84 @@
 #include <cr.h>
 #include <vm.h>
 #include <string.h>
-#include "driver.h"
+#include <stdlib.h>
+#include <driver.h>
 
-/** @brief Creates a new thread in the current task.
- *
- *  The new task contains a single thread which is a copy of the thread
- *  invoking fork() except for the return value of the system call.
- *
- *  @return The ID of the new task’s thread to the invoking thread, 0 to the
- *  newly created thread.
- */
 int fork()
 {
+    lprintf("fork");
     tcb_t *old_tcb;
     hashtable_get(&tcbs, gettid(), (void**)&old_tcb);
 
     disable_interrupts();
 
-    unsigned old_esp0 = get_esp0();
+    tcb_t *new_tcb;
 
-    int tid = proc_new_process();
-    if (tid < 0) {
+    if (proc_new_process(NULL, &new_tcb) < 0) {
         return -1;
     }
 
-    if (store_regs(&old_tcb->regs, old_esp0)) {
-        cur_tid = tid;
+    //swap esp0's for old and new threads
+    int cur_esp0 = old_tcb->esp0;
+    old_tcb->esp0 = new_tcb->esp0;
+    new_tcb->esp0 = cur_esp0;
 
-        unsigned new_esp0 = get_esp0();
-        set_esp0(old_esp0);
+    int new_tid = new_tcb->tid; //in case new thread dies before we return
 
-        memcpy((void *)(new_esp0 - KERNEL_STACK_SIZE), (void *)(old_esp0 - KERNEL_STACK_SIZE), KERNEL_STACK_SIZE);
+    lprintf("fork storing %d, %p, %p", gettid(), (void*)cur_esp0, (void*)get_cr3());
+    if (store_regs(&old_tcb->regs, cur_esp0)) { //new thread
 
         set_cr3((unsigned)vm_copy());
 
+        cur_tid = new_tcb->tid;
+
+        //give the old thread back his stack that the new one stole
+        memcpy((void *)(old_tcb->esp0 - KERNEL_STACK_SIZE), (void *)(new_tcb->esp0 - KERNEL_STACK_SIZE), KERNEL_STACK_SIZE);
+
+
+        linklist_add_tail(&scheduler_queue, (void *)new_tid);
+
         enable_interrupts();
         return 0;
-    } else {
-        cur_tid = old_tcb->tid;
-
-        // we are returning from a timer interrupt
-        notify_interrupt_complete();
+    } else { //old thread
+        notify_interrupt_complete(); //we are coming from timer call but not returning
         enable_interrupts();
-        
-        return tid;
+        return new_tid;
+    }
+}
+
+int thread_fork()
+{
+    tcb_t *old_tcb;
+    hashtable_get(&tcbs, gettid(), (void**)&old_tcb);
+
+    pcb_t *pcb;
+    hashtable_get(&pcbs, old_tcb->pid, (void**)&pcb);
+
+    disable_interrupts();
+
+    tcb_t *new_tcb;
+
+    if (proc_new_thread(pcb, &new_tcb) < 0) {
+        return -1;
+    }
+
+    int new_tid = new_tcb->tid;
+
+    //swap esp0's for old and new threads
+    unsigned cur_esp0 = old_tcb->esp0;
+    old_tcb->esp0 = new_tcb->esp0;
+    new_tcb->esp0 = cur_esp0;
+
+    if (store_regs(&old_tcb->regs, cur_esp0)) { //new_thread
+        cur_tid = new_tid;
+        linklist_add_tail(&scheduler_queue, (void *)new_tid);
+
+        enable_interrupts();
+        return 0;
+    } else { //old_thread
+        notify_interrupt_complete(); //we are returning from timer but didn't come from timer
+        enable_interrupts();
+        return new_tid;
     }
 }

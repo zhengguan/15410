@@ -219,8 +219,6 @@ void vm_remove_pde(pde_t *pde) {
 void vm_remove_pt(pde_t *pde) {
     pt_t pt = GET_PT(*pde);
     sfree(pt, PAGE_SIZE);
-    linklist_add_tail(&free_frames, (void *)pt);
-
     vm_remove_pde(pde);
 }
 
@@ -233,6 +231,7 @@ void vm_remove_pt(pde_t *pde) {
 unsigned vm_remove_pte(void *va) {
     pde_t *pde = &GET_PDE(GET_PD(), va);
 
+    //TODO: add pages back to free physical mem
 
     pte_t *pte = &GET_PTE(*pde, va);
     *pte = SET_PRESENT(*pte, PTE_PRESENT_NO);
@@ -307,6 +306,8 @@ void vm_clear() {
 
         va += PAGE_SIZE;
     } while (va != 0);
+
+    set_cr3(get_cr3()); //flush tlb
 }
 
 /** @brief Allocated memory starting at base and extending for len bytes.

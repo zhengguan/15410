@@ -8,9 +8,7 @@
 
 .globl store_regs
 store_regs:
-    call    get_esp0
-    movl     4(%esp), %ecx
-    mov     %eax, 44(%ecx)
+    mov     4(%esp), %ecx
 
     mov     8(%esp), %eax
     subl    %esp, %eax
@@ -40,7 +38,7 @@ store_regs:
 restore_regs:
     movl     4(%esp), %ecx
 
-    mov     44(%ecx), %edx
+    mov     8(%esp), %edx
     subl    12(%ecx), %edx
     mov     %edx, %esp
 
@@ -58,10 +56,5 @@ restore_regs:
     mov     %edx, %cr3
     movl    40(%ecx), %edx
     mov     %edx, %cr4
-    pushl    %ecx
-    pushl    44(%ecx)
-    call    set_esp0
-    addl    $4, %esp
-    popl     %ecx
     mov     $0, %eax
     jmp     20(%ecx)

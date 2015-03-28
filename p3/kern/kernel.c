@@ -32,7 +32,7 @@
 
 #include <loader.h>
 
-#define MAIN_NAME "swexn_test"
+#define MAIN_NAME "coolness"
 #define MAIN_ARG {NULL}
 
 /** @brief Kernel entrypoint.
@@ -56,9 +56,15 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
     if (proc_init() < 0) {
         lprintf("failed to init proc");
     }
-    if (proc_new_process() < 0) {
+    tcb_t *tcb;
+    if (proc_new_process(NULL, &tcb) < 0) {
         lprintf("failed to create new process");
     }
+
+    set_esp0(tcb->esp0);
+    cur_tid = tcb->tid;
+    linklist_add_tail(&scheduler_queue, (void *)tcb->tid);
+
 
     clear_console();
 

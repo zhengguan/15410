@@ -29,7 +29,6 @@ typedef struct regs {
     unsigned cr2;           // 32
     unsigned cr3;           // 36
     unsigned cr4;           // 40
-    unsigned esp0;          // 44
 } regs_t;
 
 typedef struct pcb {
@@ -41,6 +40,7 @@ typedef struct tcb {
     int tid;
     int pid;
     int status;
+    unsigned esp0;
     regs_t regs;
 } tcb_t;
 
@@ -50,8 +50,8 @@ extern int cur_tid;
 
 /* Process and thread functions */
 int proc_init();
-int proc_new_process();
-int proc_new_thread();
+int proc_new_process(pcb_t **pcb_out, tcb_t **tcb_out);
+int proc_new_thread(pcb_t *pcb, tcb_t **tcb_out);
 int getpid();
 
 #endif /* _PROC_H */

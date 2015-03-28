@@ -24,11 +24,12 @@ int scheduler_init()
 
 /** @brief Scheduler timer interrupt handler.
  *
- *  @param ticks The number of ticks since the kernel began running.
+ *  @param num_ticks The number of ticks since the kernel began running.
  *  @return Void.
  */
-void scheduler_tick(unsigned ticks)
+void scheduler_tick(unsigned num_ticks)
 {
+    lprintf("tick");
     int tid;
     linklist_remove_head(&scheduler_queue, (void**)&tid);
     linklist_add_tail(&scheduler_queue, (void*)tid);
@@ -58,12 +59,13 @@ int context_switch(int tid)
     hashtable_get(&tcbs, gettid(), (void**)&old_tcb);
 
     disable_interrupts();
-    if (store_regs(&old_tcb->regs, get_esp0())) {
+
+    if (store_regs(&old_tcb->regs, old_tcb->esp0)) {
         cur_tid = new_tcb->tid;
-        restore_regs(&new_tcb->regs);
+        set_esp0(new_tcb->esp0);
+        restore_regs(&new_tcb->regs, new_tcb->esp0);
     }
     enable_interrupts();
-
     return 0;
 }
 

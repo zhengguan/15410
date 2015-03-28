@@ -14,8 +14,8 @@
 #include <hashtable.h>
 #include <scheduler.h>
 
-int next_pid = 1;
-int next_tid = 1;
+unsigned next_pid = 1;
+unsigned next_tid = 1;
 
 hashtable_t pcbs;
 hashtable_t tcbs;
@@ -44,7 +44,7 @@ int proc_init() {
  *  @return The thread ID of the newly created thread on success, negative
  *  error code otherwise.
  */
-int proc_new_process() {
+int proc_new_process(pcb_t **pcb_out, tcb_t **tcb_out) {
     pcb_t *pcb = malloc(sizeof(pcb_t));
     if (pcb == NULL) {
         return -1;
@@ -55,45 +55,54 @@ int proc_new_process() {
     }
 
     pcb->pid = next_pid++;
-    cur_pid = pcb->pid;
+
+
+    int err = proc_new_thread(pcb, tcb_out);
+    if (err < 0) {
+        free(pcb);
+        return err;
+    }
 
     hashtable_add(&pcbs, pcb->pid, (void *)pcb);
 
-    return proc_new_thread();
+    if (pcb_out != NULL)
+        *pcb_out = pcb;
+
+    return 0;
 }
 
 /** @brief Creates a new TCB for a thread.
  *
- *  @return The thread ID of the newly created thread on success, negative
- *  error code otherwise.
+ *  @return The 0 success, negative error code otherwise.
  */
-int proc_new_thread(int pid) {
+int proc_new_thread(pcb_t *pcb, tcb_t **tcb_out) {
     // TODO may need to disable interrupts to prevent context switching in here
 
     tcb_t *tcb = malloc(sizeof(tcb_t));
     if (tcb == NULL) {
-        return -3;
+        return -4;
+    }
+
+    char *esp0 = malloc(KERNEL_STACK_SIZE) + KERNEL_STACK_SIZE;
+    if (esp0 == NULL) {
+        free(tcb);
+        return -5;
     }
 
     tcb->tid = next_tid++;
     // TODO this is broken
-    tcb->pid = cur_pid;
+    tcb->pid = pcb->pid;
     tcb->status = 0;
-    cur_tid = tcb->tid;
+    tcb->esp0 = (unsigned)esp0;
 
-    set_esp0((unsigned)malloc(KERNEL_STACK_SIZE) + KERNEL_STACK_SIZE);
+    if (tcb_out != NULL)
+        *tcb_out = tcb;
 
-    pcb_t *pcb;
-    if (hashtable_get(&pcbs, tcb->pid, (void**)&pcb) < 0) {
-        return -4;
-    }
 
     hashtable_add(&tcbs, tcb->tid, (void*)tcb);
     linklist_add_tail(&pcb->threads, tcb);
 
-    linklist_add_tail(&scheduler_queue, (void *)tcb->tid);
-
-    return tcb->tid;
+    return 0;
 }
 
 /** @brief Returns the thread ID of the invoking thread.
