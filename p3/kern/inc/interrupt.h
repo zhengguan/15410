@@ -13,14 +13,6 @@
 
 #include <stdint.h>
 
-/* Flags for an IDT entry */
-#define IDT_INT 0x06
-#define IDT_TRAP 0x07
-#define IDT_D 0x08
-#define IDT_DPL_KERNEL 0x00
-#define IDT_DPL_USER 0x60
-#define IDT_P 0x80
-
 #define TIMER_IDT_ENTRY 0x20
 #define KEY_IDT_ENTRY 0x21
 

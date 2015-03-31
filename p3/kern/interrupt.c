@@ -14,7 +14,7 @@
 #include <syscall_int.h>
 #include <handler.h>
 #include <scheduler.h>
-#include <asm_exception.h>
+#include <exception_asm.h>
 #include <timer.h>
 #include <keyboard.h>
 
@@ -28,9 +28,6 @@ extern int remove_pages(void *base);
 #define IDT_DPL_KERNEL 0x00
 #define IDT_DPL_USER 0x60
 #define IDT_P 0x80
-
-#define TIMER_IDT_ENTRY 0x20
-#define KEY_IDT_ENTRY 0x21
 
 /* An IDT entry */
 typedef struct idt_desc {

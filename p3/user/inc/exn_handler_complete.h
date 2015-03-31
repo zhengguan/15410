@@ -1,7 +1,6 @@
-#ifndef __EXN_HANDLER_COMPLETE__
-#define __EXN_HANDLER_COMPLETE__
+#ifndef _EXN_HANDLER_COMPLETE_H
+#define _EXN_HANDLER_COMPLETE_H
 
 int exn_handler_complete();
 
-
-#endif /* __EXN_HANDLER_COMPLETE__ */
+#endif /* _EXN_HANDLER_COMPLETE_H */

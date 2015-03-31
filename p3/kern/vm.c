@@ -80,21 +80,64 @@ bool vm_is_present(void *va)
 bool vm_is_present_len(void *va, unsigned len)
 {
     unsigned vau = (unsigned)va;
-    if (vau > vau+len)
+    
+    if (vau > vau + len) {
         return false;
-    if (vau + len == 0) {
-        if (len < PAGE_SIZE)
-            return vm_is_present((void*)(-PAGE_SIZE));
-        else return vm_is_present((void*)(-PAGE_SIZE)) && vm_is_present_len(va,len-PAGE_SIZE);
     }
-    unsigned ptr;
-    for (ptr = (unsigned)ROUND_DOWN_PAGE(va); ptr < vau+len; ptr += PAGE_SIZE)
-        if (!vm_is_present((void*)ptr))
+    
+    for (vau = (unsigned)ROUND_DOWN_PAGE(va); vau < (unsigned)va + len; vau += PAGE_SIZE) {
+        if (!vm_is_present((void*)vau)) {
             return false;
+        }
+    }
 
     return true;
 }
 
+/** @brief Initializes the virtual memory.
+ *
+ *  @return Void.
+ */
+int vm_init()
+{
+    if (linklist_init(&free_frames) < 0) {
+        return -1;
+    }
+
+    if (hashtable_init(&alloc_pages, PAGES_HT_SIZE) < 0) {
+        return -2;
+    }
+
+    set_cr3((unsigned)vm_new_pd());
+
+    set_cr0(get_cr0() | CR0_PG);
+    set_cr4(get_cr4() | CR4_PGE);
+
+    return 0;
+}
+
+/** @brief Creates a new page directory.
+ *
+ *  @return The physical address of the new page directory.
+ */
+pd_t vm_new_pd()
+{
+
+    pd_t pd = smemalign(PAGE_SIZE, PAGE_SIZE);
+    // FIXME check for failure
+
+    int i;
+    for (i = 0; i < PD_SIZE; i++) {
+        pd[i] = SET_PRESENT(pd[i], PTE_PRESENT_NO);
+    }
+
+    unsigned addr;
+    for (addr = KERNEL_MEM_START; addr < USER_MEM_START; addr += PAGE_SIZE) {
+        vm_new_pte(pd, (void *)addr, addr, KERNEL_FLAGS);
+    }
+
+    return pd;
+}
 
 /** @brief Creates a new page directory entry.
  *
@@ -147,51 +190,6 @@ void vm_new_pte(pd_t pd, void *va, unsigned pa, unsigned flags)
 
     pte_t *pte = &GET_PTE(*pde, va);
     *pte = (GET_PA(pa) | PTE_PRESENT_YES | flags);
-}
-
-/** @brief Creates a new page directory.
- *
- *  @return The physical address of the new page directory.
- */
-pd_t vm_new_pd()
-{
-
-    pd_t pd = smemalign(PAGE_SIZE, PAGE_SIZE);
-    // FIXME check for failure
-
-    int i;
-    for (i = 0; i < PD_SIZE; i++) {
-        pd[i] = SET_PRESENT(pd[i], PTE_PRESENT_NO);
-    }
-
-    unsigned addr;
-    for (addr = KERNEL_MEM_START; addr < USER_MEM_START; addr += PAGE_SIZE) {
-        vm_new_pte(pd, (void *)addr, addr, KERNEL_FLAGS);
-    }
-
-    return pd;
-}
-
-/** @brief Initializes the virtual memory.
- *
- *  @return Void.
- */
-int vm_init()
-{
-    if (linklist_init(&free_frames) < 0) {
-        return -1;
-    }
-
-    if (hashtable_init(&alloc_pages, PAGES_HT_SIZE) < 0) {
-        return -2;
-    }
-
-    set_cr3((unsigned)vm_new_pd());
-
-    set_cr0(get_cr0() | CR0_PG);
-    set_cr4(get_cr4() | CR4_PGE);
-
-    return 0;
 }
 
 /** @brief Removes the page directory.

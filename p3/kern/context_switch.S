@@ -1,5 +1,5 @@
-/** @file context_switch_asm.S
- *  @brief Implementation of context_switch_asm
+/** @file context_switch.S
+ *  @brief Function definitions for context switching.
  *
  *  @author Patrick Koenig (phkoenig)
  *  @author Jack Sorrell (jsorrell)
@@ -10,10 +10,10 @@
 store_regs:
     mov     4(%esp), %ecx
 
-    mov     8(%esp), %eax
-    subl    %esp, %eax
-    subl    $4, %eax
-    mov     %eax, 12(%ecx)
+    mov     8(%esp), %edx
+    subl    %esp, %edx
+    subl    $4, %edx
+    mov     %edx, 12(%ecx)
 
     mov     %ebx, (%ecx)
     mov     %esi, 4(%ecx)

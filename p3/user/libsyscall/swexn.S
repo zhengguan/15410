@@ -6,7 +6,7 @@
  *  @bug No known bugs.
  */
 
-#include<syscall_int.h>
+#include <syscall_int.h>
 
 .globl swexn
 
@@ -15,7 +15,7 @@ swexn:
     push    16(%esp)
     push    16(%esp)
     push    16(%esp)
-    push    $exception_wrapper //push exception_wrapper as additional arg
+    push    $exception_wrapper // push exception_wrapper as additional arg
     push    %esi
     lea     4(%esp), %esi
     int     $SWEXN_INT

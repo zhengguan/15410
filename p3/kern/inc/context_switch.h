@@ -1,5 +1,5 @@
 /** @file context_switch_asm.h
- *  @brief Function declaration for context_switch_asm
+ *  @brief Function prototypes for context switching.
  *
  *  @author Patrick Koenig (phkoenig)
  *  @author Jack Sorrell (jsorrell)
@@ -7,12 +7,12 @@
  */
 
 
-#ifndef __CTX_SWITCH_ASM_H__
-#define __CTX_SWITCH_ASM_H__
+#ifndef _CONTEXT_SWITCH_H
+#define _CONTEXT_SWITCH_H
 
 #include <proc.h>
 
 int store_regs(regs_t *regs, unsigned cur_esp0);
 void restore_regs(regs_t *regs, unsigned new_esp0);
 
-#endif /* __CTX_SWITCH_ASM_H__ */
+#endif /* _CONTEXT_SWITCH_H */
