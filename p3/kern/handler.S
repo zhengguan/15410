@@ -99,7 +99,7 @@ make_runnable_int:
     call    set_user_segs
     pop     %eax
     iret
-    
+
 .globl get_ticks_int
 get_ticks_int:
     call    set_kernel_segs
@@ -109,6 +109,16 @@ get_ticks_int:
     pop     %eax
     iret
 
+.globl sleep_int
+sleep_int:
+    call    set_kernel_segs
+    pushl   %esi
+    call    sleep
+    addl    $4, %esp
+    push    %eax
+    call    set_user_segs
+    pop     %eax
+    iret
 
 /* Memory management */
 

@@ -32,7 +32,7 @@
 
 #include <loader.h>
 
-#define MAIN_NAME "coolness"
+#define MAIN_NAME "sleep_test"
 #define MAIN_ARG {NULL}
 
 /** @brief Kernel entrypoint.

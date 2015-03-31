@@ -23,20 +23,20 @@ int gettid_int(void);
 int yield_int(int tid);
 int deschedule_int(int *flag);
 int make_runnable_int(int tid);
+unsigned get_ticks_int(void);
+int sleep_int(int ticks);
 
 /* Memory management */
 int new_pages_int(void * addr, int len);
 int remove_pages_int(void * addr);
-void timer_handler_int();
-void keyboard_int();
-int fork_int();
-int exec_int(char *execname, char *argvec[]);
-void swexn_int();
-void exn_handler_complete_int();
 
 /* Console I/O */
 
 /* Miscellaneous */
+
+// TODO correct these
+void swexn_int();
+void exn_handler_complete_int();
 
 /* "Special" */
 

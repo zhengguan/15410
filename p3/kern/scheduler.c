@@ -6,8 +6,16 @@
 #include <scheduler.h>
 #include <asm.h>
 #include <cr.h>
+#include <driver.h>
 
 linklist_t scheduler_queue;
+
+linklist_t sleep_queue;
+
+typedef struct sleep_info {
+    int tid;
+    unsigned wake_ticks;
+} sleep_info_t;
 
 /** @brief Initializes the scheduler.
  *
@@ -29,6 +37,19 @@ int scheduler_init()
  */
 void scheduler_tick(unsigned ticks)
 {
+    lprintf("Tick %d", ticks);
+
+    // Wake sleeping threads
+    sleep_info_t *sleep_info;
+    while (linklist_remove_head(&sleep_queue, (void **)&sleep_info) == 0) {
+        if (sleep_info->wake_ticks >= ticks) {
+            linklist_add_head(&sleep_queue, (void *)sleep_info);
+            break;
+        }
+        lprintf("Woken thread %d", sleep_info->tid);
+        make_runnable(sleep_info->tid);
+    }
+    
     int tid;
     linklist_remove_head(&scheduler_queue, (void**)&tid);
     linklist_add_tail(&scheduler_queue, (void*)tid);
@@ -79,16 +100,22 @@ int context_switch(int tid)
 int yield(int tid)
 {
     if (tid == -1) {
-        linklist_remove_head(&scheduler_queue, (void**)&tid);
+        if (linklist_remove_head(&scheduler_queue, (void**)&tid) < 0) {
+            return -1;
+        }
     } else {
         if (linklist_remove(&scheduler_queue, (void *)tid) < 0) {
-            return -1;
+            return -2;
         }
     }
 
     linklist_add_tail(&scheduler_queue, (void*)tid);
 
-    context_switch(tid);
+    if (context_switch(tid) < 0) {
+        return -3;
+    }
+    
+    notify_interrupt_complete(); //we are coming from timer call but not returning
 
     return 0;
 }
@@ -109,6 +136,8 @@ int yield(int tid)
  */
 int deschedule(int *flag)
 {
+    // TODO fail id last thread in scheduler queue?
+    
     if (flag == NULL) {
         return -1;
     }
@@ -119,7 +148,9 @@ int deschedule(int *flag)
 
     linklist_remove(&scheduler_queue, (void *)gettid());
 
-    yield(-1);
+    if (yield(-1) < 0) {
+        return -2;
+    }
 
     return 0;
 }
@@ -129,7 +160,6 @@ int deschedule(int *flag)
  *  @param tid The tid of the thread to make runnable.
  *  @return 0 on success, negative error code otherwise.
  */
-
 int make_runnable(int tid)
 {
     if (linklist_contains(&scheduler_queue, (void *)tid)) {
@@ -138,5 +168,34 @@ int make_runnable(int tid)
 
     linklist_add_tail(&scheduler_queue, (void*)tid);
 
+    return 0;
+}
+
+/** @brief Makes the descheduled thread with ID tid runnable.
+ *
+ *  @param ticks The tid of the thread to make runnable.
+ *  @return 0 on success, negative error code otherwise.
+ */
+int sleep(int ticks)
+{
+    if (ticks < 0) {
+        return -1;
+    }
+    
+    if (ticks == 0) {
+        return 0;
+    }
+    
+    sleep_info_t sleep_info;
+    sleep_info.tid = gettid();
+    sleep_info.wake_ticks = get_ticks() + ticks;
+    
+    linklist_add_head(&sleep_queue, (void *)&sleep_info);
+    
+    int flag = 0;
+    if (deschedule(&flag) < 0) {
+        return -2;
+    }
+    
     return 0;
 }

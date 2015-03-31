@@ -9,6 +9,8 @@
 #include <linklist.h>
 #include <stdlib.h>
 
+// TODO add get_head and get_tail
+
 struct listnode {
     void *data;
     struct listnode *next;
@@ -126,6 +128,12 @@ int linklist_remove(linklist_t *list, void *data) {
     }
     
     listnode_t *node = list->head;
+    if (node->data == data) {
+        list->head = node->next;
+        free(node);
+        return 0;
+    }
+    
     while (node->next != NULL) {
         if (node->next->data == data) {
             listnode_t *tmp = node->next;

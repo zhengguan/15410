@@ -13,8 +13,9 @@
 #include <x86/timer_defines.h>
 #include <scheduler.h>
 #include <syscall.h>
+#include <simics.h>
 
-#define TICKS_PER_SECOND 1
+#define TICKS_PER_SECOND 100
 #define CYCLES_BTW_INTER ((unsigned)(TIMER_RATE / TICKS_PER_SECOND))
 
 static unsigned ticks = 0;
@@ -41,7 +42,7 @@ void timer_handler()
 	ticks++;
 	
 	scheduler_tick(ticks);
-	
+	lprintf("Tick end");
 	notify_interrupt_complete();
 }
 
