@@ -88,7 +88,7 @@ void idt_init() {
     // idt_add_desc(SET_CURSOR_POS_INT, 0, IDT_TRAP, IDT_DPL_USER);
     // idt_add_desc(GET_CURSOR_POS_INT, 0, IDT_TRAP, IDT_DPL_USER);
     // idt_add_desc(THREAD_FORK_INT, 0, IDT_TRAP, IDT_DPL_USER);
-    // idt_add_desc(GET_TICKS_INT, 0, IDT_TRAP, IDT_DPL_USER);
+    idt_add_desc(GET_TICKS_INT, get_ticks_int, IDT_TRAP, IDT_DPL_USER);
     // idt_add_desc(MISBEHAVE_INT, 0, IDT_TRAP, IDT_DPL_USER);
     // idt_add_desc(HALT_INT, 0, IDT_TRAP, IDT_DPL_USER);
     // idt_add_desc(TASK_VANISH_INT, 0, IDT_TRAP, IDT_DPL_USER);

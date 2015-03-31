@@ -99,6 +99,16 @@ make_runnable_int:
     call    set_user_segs
     pop     %eax
     iret
+    
+.globl get_ticks_int
+get_ticks_int:
+    call    set_kernel_segs
+    call    get_ticks
+    push    %eax
+    call    set_user_segs
+    pop     %eax
+    iret
+
 
 /* Memory management */
 

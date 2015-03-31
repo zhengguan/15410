@@ -12,6 +12,7 @@
 #include <x86/asm.h>
 #include <x86/timer_defines.h>
 #include <scheduler.h>
+#include <syscall.h>
 
 #define TICKS_PER_SECOND 1
 #define CYCLES_BTW_INTER ((unsigned)(TIMER_RATE / TICKS_PER_SECOND))
@@ -42,4 +43,9 @@ void timer_handler()
 	scheduler_tick(ticks);
 	
 	notify_interrupt_complete();
+}
+
+unsigned get_ticks()
+{
+    return ticks;
 }
