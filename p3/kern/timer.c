@@ -46,6 +46,11 @@ void timer_handler()
 	notify_interrupt_complete();
 }
 
+/** @brief Returns the number of timer ticks which have occured since system
+ *  boot.
+ *
+ *  @return The number of timer ticks which have occured since system boot.
+ */
 unsigned get_ticks()
 {
     return ticks;

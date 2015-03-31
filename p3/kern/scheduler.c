@@ -171,9 +171,13 @@ int make_runnable(int tid)
     return 0;
 }
 
-/** @brief Makes the descheduled thread with ID tid runnable.
+/** @brief Deschedules the calling thread until atleast ticks timer interrupts
+ *  have occured after the call.
  *
- *  @param ticks The tid of the thread to make runnable.
+ *  Returns immediately if ticks is zero.  Returns an integer error code less
+ *  than zero if ticks is negative.  Returns zero otherwise.
+ *
+ *  @param ticks The number of timer interrupts the thread is descheduled.
  *  @return 0 on success, negative error code otherwise.
  */
 int sleep(int ticks)
