@@ -6,16 +6,13 @@
  *  @bug No known bugs.
  */
 
+// TODO add comments to all locking mechanisms
+
 #include <mutex.h>
-#include <atom_xchg.h>
 #include <stdlib.h>
 #include <syscall.h>
 #include <linklist.h>
-
-typedef struct waiter {
-    int tid;
-    int reject;
-} waiter_t;
+#include <waiter.h>
 
 /** @brief Initializes a mutex.
  *
@@ -26,25 +23,18 @@ int mutex_init(mutex_t *mp) {
     if (mp == NULL) {
         return -1;
     }
-
-    mp->lock = 0;
-    mp->wait_lock = 0;
-    linklist_init(&mp->wait_list);
-
-    return 0;
-}
-
-/** @brief "Deactivates" a mutex.
- *
- *  @param mp The mutex.
- *  @return Void.
- */
-void mutex_destroy(mutex_t *mp) {
-    if (mp == NULL || !mp->valid) {
-        return;
+    
+    if (spinlock_init(&mp->wait_lock) < 0) {
+        return -2;
+    }
+    
+    if (linklist_init(&mp->wait_list) < 0){
+        return -3;
     }
 
-    mp->valid = 0;
+    mp->count = 0;
+
+    return 0;
 }
 
 /** @brief Locks a mutex.  Blocks until mutex is acquired.
@@ -53,23 +43,24 @@ void mutex_destroy(mutex_t *mp) {
  *  @return Void.
  */
 void mutex_lock(mutex_t *mp) {
-    if (mp == NULL || !mp->valid) {
+    if (mp == NULL) {
         return;
     }
     
-    int tid = gettid();
-    waiter_t waiter = {tid, 0};
-    while (atom_xchg(&mp->wait_lock, 1) != 0) {
-        // FIXME restore this, should this yield to the thread with the mutex?
-        // yield(-1);
+    waiter_t waiter = {gettid(), 0};
+        
+    spinlock_lock(&mp->wait_lock);
+    if (&mp->count <= 0) {
+        linklist_add_tail(&mp->wait_list, (void*)&waiter);
+    } else {
+        waiter.reject = 1;
     }
-    linklist_add_tail(&mp->wait_list, (void*)&waiter);
-    mp->wait_lock = 0;
+    mp->count--;
+    spinlock_unlock(&mp->wait_lock);
 
-    // FIXME
-    // deschedule(&waiter.reject);
-   
-    mp->tid = tid;
+    deschedule(&waiter.reject);
+    
+    mp->tid = gettid();
 }
 
 /** @brief Unlocks a mutex.
@@ -78,26 +69,18 @@ void mutex_lock(mutex_t *mp) {
  *  @return Void.
  */
 void mutex_unlock(mutex_t *mp) {
-    if (mp == NULL || !mp->lock || mp->tid != gettid()) {
+    if (mp == NULL || mp->count > 0 || mp->tid != gettid()) {
         return;
     }
-
-    waiter_t *waiter;
-    while (atom_xchg(&mp->wait_lock, 1) != 0) {
-        // FIXME restore this, should this yield to the thread with the mutex?
-        // yield(-1);
-    }
-    if(linklist_remove_head(&mp->wait_list, (void**)&waiter) < 0) {
-        mp->wait_lock = 0;
-        return;
-    }
-    // int tid = waiter->tid;
-    waiter->reject = 1;
-    mp->wait_lock = 0;
-
-    // FIXME restore this (and uncomment line above)
-    // make_runnable(tid);
     
-    // TODO Should we yield to tid here?
+    spinlock_lock(&mp->wait_lock);
+    if (mp->count < 0) {
+        waiter_t *waiter;
+        linklist_remove_head(&mp->wait_list, (void**)&waiter);
+        waiter->reject = 1;
+        make_runnable(waiter->tid);
+    }
+    mp->count++;
+    spinlock_unlock(&mp->wait_lock);
 }
 
