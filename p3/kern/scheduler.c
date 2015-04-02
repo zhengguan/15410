@@ -37,8 +37,7 @@ int scheduler_init()
  */
 void scheduler_tick(unsigned ticks)
 {
-    lprintf("Tick %d", ticks);
-
+    // TODO add linklist_get method to use instead   
     // Wake sleeping threads
     sleep_info_t *sleep_info;
     while (linklist_remove_head(&sleep_queue, (void **)&sleep_info) == 0) {
@@ -46,7 +45,6 @@ void scheduler_tick(unsigned ticks)
             linklist_add_head(&sleep_queue, (void *)sleep_info);
             break;
         }
-        lprintf("Woken thread %d", sleep_info->tid);
         make_runnable(sleep_info->tid);
     }
     

@@ -148,6 +148,62 @@ remove_pages_int:
 
 /* Console I/O */
 
+.globl getchar_int
+getchar_int:
+    call    set_kernel_segs
+    call    getchar
+    push    %eax
+    call    set_user_segs
+    pop     %eax
+    iret
+
+.globl readline_int
+readline_int:
+    call    set_kernel_segs
+    pushl   4(%esi)
+    pushl   (%esi)
+    call    readline
+    addl    $8, %esp
+    push    %eax
+    call    set_user_segs
+    pop     %eax
+    iret
+
+.globl set_term_color_int
+set_term_color_int:
+    call    set_kernel_segs
+    pushl   %esi
+    call    set_term_color
+    addl    $4, %esp
+    push    %eax
+    call    set_user_segs
+    pop     %eax
+    iret
+
+.globl set_cursor_pos_int
+set_cursor_pos_int:
+    call    set_kernel_segs
+    pushl   4(%esi)
+    pushl   (%esi)
+    call    set_cursor_pos
+    addl    $8, %esp
+    push    %eax
+    call    set_user_segs
+    pop     %eax
+    iret
+
+.globl get_cursor_pos_int
+get_cursor_pos_int:
+    call    set_kernel_segs
+    pushl   4(%esi)
+    pushl   (%esi)
+    call    get_cursor_pos
+    addl    $8, %esp
+    push    %eax
+    call    set_user_segs
+    pop     %eax
+    iret
+
 
 /* Miscellaneous system calls */
 

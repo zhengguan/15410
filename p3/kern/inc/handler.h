@@ -31,6 +31,11 @@ int new_pages_int(void * addr, int len);
 int remove_pages_int(void * addr);
 
 /* Console I/O */
+char getchar_int(void);
+int readline_int(int size, char *buf);
+int set_term_color_int(int color);
+int set_cursor_pos_int(int row, int col);
+int get_cursor_pos_int(int *row, int *col);
 
 /* Miscellaneous */
 

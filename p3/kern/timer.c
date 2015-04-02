@@ -42,7 +42,7 @@ void timer_handler()
 	ticks++;
 	
 	scheduler_tick(ticks);
-	lprintf("Tick end");
+	
 	notify_interrupt_complete();
 }
 
