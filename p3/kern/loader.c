@@ -55,10 +55,12 @@
 int getbytes(const char *filename, int offset, int size, char *buf)
 {
     int i;
-    for (i = 0; i < MAX_NUM_APP_ENTRIES; i++) {
+    if (size < 0)
+        return -3;
+    for (i = 0; i < exec2obj_userapp_count; i++) {
         const exec2obj_userapp_TOC_entry *entry = &exec2obj_userapp_TOC[i];
         if (!strncmp(entry->execname, filename, MAX_EXECNAME_LEN)) {
-            if (offset+size > entry->execlen) {
+            if (offset >= entry->execlen) {
                 return -1;
             }
             int len = MIN(entry->execlen - offset, size);
@@ -300,7 +302,7 @@ int load(char *filename, char *argv[], bool kernel_mode)
         return -4;
     }
 
-    int argc = null_arr_check(argv);
+    int argc = str_arr_check(argv);
     if (argc < 0) {
         return -5;
     }

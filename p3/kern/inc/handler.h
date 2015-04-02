@@ -47,6 +47,7 @@ int get_cursor_pos_int(int *row, int *col);
 void swexn_int(void *esp3, swexn_handler_t eip, void *arg, ureg_t *newureg);
 void exn_handler_complete_int();
 void halt_int();
+int readfile_int(const char *filename, char *buf, int count, int offset);
 
 /* "Special" */
 

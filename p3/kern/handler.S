@@ -240,6 +240,20 @@ exn_handler_complete_int:
     pop     %eax
     iret
 
+.globl readfile_int
+readfile_int:
+    call set_kernel_segs
+    pushl   12(%esi)
+    pushl   8(%esi)
+    pushl   4(%esi)
+    pushl   (%esi)
+    call readfile
+    addl $16, %esp
+    push %eax
+    call set_user_segs
+    pop %eax
+    iret
+
 .globl halt_int
 halt_int:
     call sim_halt

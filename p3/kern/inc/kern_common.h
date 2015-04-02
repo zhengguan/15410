@@ -24,7 +24,7 @@ typedef enum {
     true
 } bool;
 
-int null_arr_check(char *arr[]);
+int str_arr_check(char *arr[]);
 int str_check(char *str);
 
 #endif /* _KERN_COMMON_H */

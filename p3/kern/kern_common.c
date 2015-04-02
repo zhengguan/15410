@@ -11,19 +11,21 @@
 #include <stdlib.h>
 
 /**
- * @brief Check a null terminated user array for validity.
+ * @brief Check a null terminated string array for validity.
  *
  * @param arr The array.
  * @return The number of elements in the array if valid,
  * a negative error code if invalid.
  */
 
-int null_arr_check(char *arr[])
+int str_arr_check(char *arr[])
 {
     int len = 0;
-    while (vm_is_present(arr[len])) {
+    while (vm_is_present_len(arr + len, sizeof(char*))) {
         if (arr[len] == NULL)
             return len;
+        if (str_check(arr[len]) < 0)
+            return -2;
         len++;
     }
 
@@ -32,7 +34,7 @@ int null_arr_check(char *arr[])
 
 
 /**
- * @brief Check a nil terminated user string for validity.
+ * @brief Check a nil terminated string for validity.
  *
  * @param str The string.
  * @return The length of the string if valid, a negative error code if
@@ -42,7 +44,7 @@ int null_arr_check(char *arr[])
 int str_check(char *str)
 {
     int len = 0;
-    while (vm_is_present(&str[len])) {
+    while (vm_is_present(str + len)) {
         if (str[len] == '\0')
             return len;
         len++;

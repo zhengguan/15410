@@ -94,7 +94,7 @@ void idt_init() {
     // idt_add_desc(TASK_VANISH_INT, 0, IDT_TRAP, IDT_DPL_USER);
     idt_add_desc(SET_STATUS_INT, set_status_int, IDT_TRAP, IDT_DPL_USER);
     // idt_add_desc(VANISH_INT, 0, IDT_TRAP, IDT_DPL_USER);
-    // idt_add_desc(READFILE_INT, 0, IDT_TRAP, IDT_DPL_USER);
+    idt_add_desc(READFILE_INT, readfile_int, IDT_TRAP, IDT_DPL_USER);
     idt_add_desc(SWEXN_INT, swexn_int, IDT_TRAP, IDT_DPL_USER);
 
     idt_add_desc(IDT_DE, exn_divide_wrapper, IDT_INT, IDT_DPL_USER);
