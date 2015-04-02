@@ -13,7 +13,7 @@
 #include <asm.h>
 #include <keyhelp.h>
 #include <stdio.h>
-#include <macros.h>
+#include <kern_common.h>
 #include <malloc.h>
 #include <circbuf.h>
 #include <mutex.h>
@@ -41,24 +41,24 @@ int keyboard_init()
 	if (cb == NULL) {
 		return -1;
 	}
-	
+
 	if (cb_init(cb, BUFFER_SIZE) < 0) {
         return -2;
 	}
-	
+
 	if (mutex_init(&readchar_mutex) < 0) {
 	    return -3;
 	}
-	
+
 	if (cond_init(&readchar_cond) < 0) {
 	    return -3;
 	}
-	
+
 	return 0;
 }
 
 /** @brief Handles a keyboard interrupt.
- *  
+ *
  *  Adds a scancode to the buffer. This scancode is ignored if
  *  the buffer is full.
  *
@@ -69,7 +69,7 @@ void keyboard_handler()
     lprintf("Key interrupt");
 	char scancode = inb(KEYBOARD_PORT);
 	cb_enqueue(cb, scancode);
-	
+
     cond_signal(&readchar_cond);
 
 	notify_interrupt_complete();
@@ -89,7 +89,7 @@ int readchar()
 			return KH_GETCHAR(kh);
 		}
 	}
-	
+
 	return -1;
 }
 
@@ -104,7 +104,7 @@ int readchar_blocking()
     while((c = readchar()) < 0) {
         cond_wait(&readchar_cond);
     }
-    
+
     return c;
 }
 
@@ -121,16 +121,16 @@ int readchar_blocking()
 char getchar()
 {
     // TODO add mutex for readline and getchar (remember to remove mutex above if not needed!)
-    
+
     char c = readchar_blocking();
-    
+
     return c;
 }
 
 int readline(int len, char *buf)
 {
     lprintf("Start readline (2)");
-    
+
     if (!vm_is_present_len(buf, len)) {
         lprintf("return -1");
         return -1;
@@ -160,8 +160,8 @@ int readline(int len, char *buf)
             break;
         }
     }
-    
+
     int read_len = i + 1;
-    memcpy(buf, tmp_buf, read_len);    
+    memcpy(buf, tmp_buf, read_len);
     return read_len;
 }

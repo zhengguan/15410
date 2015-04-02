@@ -239,3 +239,9 @@ exn_handler_complete_int:
     call    set_user_segs
     pop     %eax
     iret
+
+.globl halt_int
+halt_int:
+    call sim_halt
+    hlt
+    iret

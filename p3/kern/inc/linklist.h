@@ -9,7 +9,7 @@
 #ifndef _LINKLIST_H
 #define _LINKLIST_H
 
-#include <macros.h>
+#include <kern_common.h>
 
 typedef struct listnode listnode_t;
 

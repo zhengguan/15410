@@ -9,6 +9,9 @@
 #ifndef _HANDLER_H
 #define _HANDLER_H
 
+#include <ureg.h>
+#include <syscall.h>
+
 /* Drivers */
 void timer_handler_int();
 void keyboard_int();
@@ -41,8 +44,9 @@ int get_cursor_pos_int(int *row, int *col);
 /* Miscellaneous */
 
 // TODO correct these
-void swexn_int();
+void swexn_int(void *esp3, swexn_handler_t eip, void *arg, ureg_t *newureg);
 void exn_handler_complete_int();
+void halt_int();
 
 /* "Special" */
 

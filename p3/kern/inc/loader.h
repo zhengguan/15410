@@ -9,7 +9,7 @@
 #ifndef _LOADER_H
 #define _LOADER_H
 
-#include <macros.h>
+#include <kern_common.h>
 
 
 /* --- Prototypes --- */

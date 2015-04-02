@@ -9,7 +9,7 @@
 #ifndef _VM_H
 #define _VM_H
 
-#include <macros.h>
+#include <kern_common.h>
 
 #define KERNEL_MEM_START 0x00000000
 

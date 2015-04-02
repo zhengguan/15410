@@ -1,13 +1,13 @@
-/** @file macros.h
- *  @brief Prototypes for commonly used macros.
+/** @file kern_common.h
+ *  @brief An interface for commonly used macros and functions.
  *
  *  @author Patrick Koenig (phkoenig)
  *  @author Jack Sorrell (jsorrell)
  *  @bug No known bugs.
  */
 
-#ifndef _MACROS_H
-#define _MACROS_H
+#ifndef _KERN_COMMON_H
+#define _KERN_COMMON_H
 
 #include <syscall.h>
 #include <string.h>
@@ -21,7 +21,10 @@
 
 typedef enum {
     false = 0,
-    true    
+    true
 } bool;
 
-#endif /* _MACROS_H */
+int null_arr_check(char *arr[]);
+int str_check(char *str);
+
+#endif /* _KERN_COMMON_H */

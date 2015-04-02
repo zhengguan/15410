@@ -90,7 +90,7 @@ void idt_init() {
     idt_add_desc(THREAD_FORK_INT, thread_fork_int, IDT_TRAP, IDT_DPL_USER);
     idt_add_desc(GET_TICKS_INT, get_ticks_int, IDT_TRAP, IDT_DPL_USER);
     // idt_add_desc(MISBEHAVE_INT, 0, IDT_TRAP, IDT_DPL_USER);
-    // idt_add_desc(HALT_INT, 0, IDT_TRAP, IDT_DPL_USER);
+    idt_add_desc(HALT_INT, halt_int, IDT_TRAP, IDT_DPL_USER);
     // idt_add_desc(TASK_VANISH_INT, 0, IDT_TRAP, IDT_DPL_USER);
     idt_add_desc(SET_STATUS_INT, set_status_int, IDT_TRAP, IDT_DPL_USER);
     // idt_add_desc(VANISH_INT, 0, IDT_TRAP, IDT_DPL_USER);

@@ -16,7 +16,7 @@
 #include <hashtable.h>
 #include <simics.h>
 #include <string.h>
-#include <macros.h>
+#include <kern_common.h>
 
 unsigned next_frame = USER_MEM_START;
 
@@ -80,11 +80,11 @@ bool vm_is_present(void *va)
 bool vm_is_present_len(void *va, unsigned len)
 {
     unsigned vau = (unsigned)va;
-    
+
     if (vau > vau + len) {
         return false;
     }
-    
+
     for (vau = (unsigned)ROUND_DOWN_PAGE(va); vau < (unsigned)va + len; vau += PAGE_SIZE) {
         if (!vm_is_present((void*)vau)) {
             return false;

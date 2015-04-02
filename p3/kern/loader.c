@@ -23,7 +23,7 @@
 #include <common_kern.h>
 #include <loader.h>
 #include <exec_run.h>
-#include <macros.h>
+#include <kern_common.h>
 #include <cr.h>
 #include <vm.h>
 #include <simics.h>
@@ -100,44 +100,6 @@ static bool elf_valid(const simple_elf_t *se_hdr)
     }
 
     return true;
-}
-
-/**
- * @brief Check a null terminated argv for validity.
- *
- * @param argv The argv pointer.
- * @return The number of elements in argv on success, a negative error code on
- * failure.
- */
-static int argv_check(char *argv[])
-{
-    int len = 0;
-    while (vm_is_present(argv[len])) {
-        if (argv[len] == NULL)
-            return len;
-        len++;
-    }
-
-    return -1;
-}
-
-/**
- * @brief Check a nil terminated string for validity.
- *
- * @param str The string.
- * @return The length of the string on success, a negative error code on
- * failure.
- */
-static int str_check(char *str)
-{
-    int len = 0;
-    while (vm_is_present(&str[len])) {
-        if (str[len] == '\0')
-            return len;
-        len++;
-    }
-
-    return -1;
 }
 
 /** @brief Allocate memory one page at a time if the page is not already
@@ -338,7 +300,7 @@ int load(char *filename, char *argv[], bool kernel_mode)
         return -4;
     }
 
-    int argc = argv_check(argv);
+    int argc = null_arr_check(argv);
     if (argc < 0) {
         return -5;
     }

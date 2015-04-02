@@ -16,7 +16,7 @@
 #ifndef _CIRCBUF_H
 #define _CIRCBUF_H
 
-#include <macros.h>
+#include <kern_common.h>
 
 #define INC_START(cb) ((cb->start + 1) % cb->size)
 #define INC_END(cb) ((cb->end + 1) % cb->size)
