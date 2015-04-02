@@ -263,6 +263,17 @@ static void user_run(unsigned eip, unsigned esp)
              eflags, esp, SEGSEL_USER_DS);
 }
 
+
+
+int str_arr_len(char *arr[])
+{
+    int len = 0;
+    while (arr[len] != NULL)
+        len++;
+
+    return len;
+}
+
 /** @brief Loads a user program.
  *
  *  Replaces the program currently running in the invoking task with
@@ -284,7 +295,12 @@ int load(char *filename, char *argv[], bool kernel_mode)
         return -1;
     }
 
-    int len = str_check(filename);
+    int len;
+    if (kernel_mode)
+        len = strlen(filename);
+    else
+        len = str_check(filename);
+
     if (len < 0) {
         return -1;
     }
@@ -302,7 +318,12 @@ int load(char *filename, char *argv[], bool kernel_mode)
         return -4;
     }
 
-    int argc = str_arr_check(argv);
+    int argc;
+    if (kernel_mode)
+        argc = str_arr_len(argv);
+    else
+        argc = str_arr_check(argv);
+
     if (argc < 0) {
         return -5;
     }
@@ -312,12 +333,12 @@ int load(char *filename, char *argv[], bool kernel_mode)
         return -7;
     }
 
-    //get lengths of arguments and ensure they are valid strings
+    //get lengths of arguments
     int i;
     for (i = 0; i < argc; i++) {
         int len;
         if ( (!kernel_mode && (unsigned)argv[i] < USER_MEM_START) ||
-             (len = str_check(argv[i])) < 0) {
+             (len = strlen(argv[i])) < 0) {
             free(arg_lens);
             return -8;
         }

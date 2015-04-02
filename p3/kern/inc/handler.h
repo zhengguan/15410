@@ -29,6 +29,7 @@ int deschedule_int(int *flag);
 int make_runnable_int(int tid);
 unsigned get_ticks_int(void);
 int sleep_int(int ticks);
+void swexn_int(void *esp3, swexn_handler_t eip, void *arg, ureg_t *newureg);
 
 /* Memory management */
 int new_pages_int(void * addr, int len);
@@ -42,13 +43,10 @@ int set_cursor_pos_int(int row, int col);
 int get_cursor_pos_int(int *row, int *col);
 
 /* Miscellaneous */
-
-// TODO correct these
-void swexn_int(void *esp3, swexn_handler_t eip, void *arg, ureg_t *newureg);
-void exn_handler_complete_int();
 void halt_int();
 int readfile_int(const char *filename, char *buf, int count, int offset);
 
 /* "Special" */
+void exn_handler_complete_int();
 
 #endif /* _HANDLER_H */

@@ -7,6 +7,8 @@
 #include <asm.h>
 #include <cr.h>
 #include <driver.h>
+#include <common_kern.h>
+#include <vm.h>
 
 linklist_t scheduler_queue;
 
@@ -37,7 +39,7 @@ int scheduler_init()
  */
 void scheduler_tick(unsigned ticks)
 {
-    // TODO add linklist_get method to use instead   
+    // TODO add linklist_get method to use instead
     // Wake sleeping threads
     sleep_info_t *sleep_info;
     while (linklist_remove_head(&sleep_queue, (void **)&sleep_info) == 0) {
@@ -47,7 +49,7 @@ void scheduler_tick(unsigned ticks)
         }
         make_runnable(sleep_info->tid);
     }
-    
+
     int tid;
     linklist_remove_head(&scheduler_queue, (void**)&tid);
     linklist_add_tail(&scheduler_queue, (void*)tid);
@@ -112,7 +114,7 @@ int yield(int tid)
     if (context_switch(tid) < 0) {
         return -3;
     }
-    
+
     notify_interrupt_complete(); //we are coming from timer call but not returning
 
     return 0;
@@ -135,8 +137,9 @@ int yield(int tid)
 int deschedule(int *flag)
 {
     // TODO fail id last thread in scheduler queue?
-    
-    if (flag == NULL) {
+
+    if ((unsigned)flag < USER_MEM_START ||
+        !vm_is_present_len(flag, sizeof(int))) {
         return -1;
     }
 
@@ -183,21 +186,21 @@ int sleep(int ticks)
     if (ticks < 0) {
         return -1;
     }
-    
+
     if (ticks == 0) {
         return 0;
     }
-    
+
     sleep_info_t sleep_info;
     sleep_info.tid = gettid();
     sleep_info.wake_ticks = get_ticks() + ticks;
-    
+
     linklist_add_head(&sleep_queue, (void *)&sleep_info);
-    
+
     int flag = 0;
     if (deschedule(&flag) < 0) {
         return -2;
     }
-    
+
     return 0;
 }

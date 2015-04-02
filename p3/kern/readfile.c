@@ -16,7 +16,7 @@ int readfile(char *filename, char *buf, int count, int offset)
 {
     if (str_check(filename) < 0)
         return -4;
-    //todo: what if they deallocate buf after we check?
+    //FIXME: what if they deallocate buf after we check?
     if (!vm_is_present_len(buf, count))
         return -5;
 
