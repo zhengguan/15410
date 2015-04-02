@@ -44,7 +44,7 @@ int fork()
 
         set_cr3((unsigned)vm_copy());
 
-        cur_tid = new_tcb->tid;
+        cur_tid = new_tid;
 
         //give the old thread back his stack that the new one stole
         memcpy((void *)(old_tcb->esp0 - KERNEL_STACK_SIZE), (void *)(new_tcb->esp0 - KERNEL_STACK_SIZE), KERNEL_STACK_SIZE);
@@ -86,6 +86,10 @@ int thread_fork()
 
     if (store_regs(&old_tcb->regs, cur_esp0)) { //new_thread
         cur_tid = new_tid;
+
+        //give the old thread back his stack that the new one stole
+        memcpy((void *)(old_tcb->esp0 - KERNEL_STACK_SIZE), (void *)(new_tcb->esp0 - KERNEL_STACK_SIZE), KERNEL_STACK_SIZE);
+
         linklist_add_tail(&scheduler_queue, (void *)new_tid);
 
         enable_interrupts();

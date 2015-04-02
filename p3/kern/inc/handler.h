@@ -15,6 +15,7 @@ void keyboard_int();
 
 /* Life cycle */
 int fork_int();
+int thread_fork_int();
 int exec_int(char *execname, char *argvec[]);
 void set_status_int(int status);
 

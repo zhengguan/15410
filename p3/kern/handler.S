@@ -33,6 +33,15 @@ fork_int:
     pop     %eax
     iret
 
+.globl thread_fork_int
+thread_fork_int:
+    call    set_kernel_segs
+    call    thread_fork
+    push    %eax
+    call    set_user_segs
+    pop     %eax
+    iret
+
 .globl exec_int
 exec_int:
     call    set_kernel_segs

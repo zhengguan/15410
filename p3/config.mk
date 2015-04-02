@@ -65,7 +65,7 @@ UPDATE_METHOD = afs
 # A list of the test programs you want compiled in from the user/progs
 # directory.
 #
-STUDENTTESTS = fork_test swexn_test autostack_swexn_test sleep_test console_test
+STUDENTTESTS = fork_test swexn_test autostack_swexn_test sleep_test console_test thr_fork_test
 
 ###########################################################################
 # Data files provided by course staff to build into the RAM disk
