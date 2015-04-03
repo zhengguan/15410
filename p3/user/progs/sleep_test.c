@@ -1,7 +1,8 @@
 #include <simics.h>
 #include <syscall.h>
 
-#define SLEEP_TICKS 10
+#define SLEEPING_BEAUTY 50
+#define SNOW_WHITE 10
 #define DELAY (128*1024)
 
 int patrick = 0;
@@ -18,18 +19,33 @@ void slow() {
 
 int main() {
     if (fork() == 0) {
-        lprintf("Sleeping at %d ticks, for %d ticks.", get_ticks(), SLEEP_TICKS);
-        sleep(SLEEP_TICKS);
-        int woken = get_ticks();
+        lprintf("Sleeping Beauty: sleeping for %d ticks", SLEEPING_BEAUTY);
+        int ret = sleep(SLEEPING_BEAUTY);
+        if (ret < 0) {
+            lprintf("Sleeping Beauty: failed with error %d", ret);
+        } else {
+            lprintf("Sleeping Beauty: woken at %d ticks", get_ticks());
+        }
         while(1) {
-            lprintf("Sleeping Beauty woken at %d ticks.  Current ticks %d", woken, get_ticks());
             slow();
         }
     } else {
-        while(1) {
-            lprintf("Snow White");
-            slow();
-        }
+        if (fork() == 0) {
+            lprintf("Snow White: sleeping for %d ticks", SNOW_WHITE);
+            int ret = sleep(SNOW_WHITE);
+            if (ret < 0) {
+                lprintf("Snow White: failed with error %d", ret);
+            } else {
+                lprintf("Snow White: woken at %d ticks", get_ticks());
+            }
+            while(1) {
+                slow();
+            }
+        } else {
+            while(1) {
+                slow();
+            }
+    }
     }
     return 0;
 }

@@ -84,6 +84,40 @@ void linklist_add_tail(linklist_t *list, void *data) {
     list->tail = node;
 }
 
+/** @brief Adds a node to a sorted list using the provided comparison function.
+ *
+ *  @param list The list.
+ *  @param data Data.
+ *  @param cmp Comparison function.
+ *  @return Void.
+ */
+void linklist_add_sorted(linklist_t *list, void *data, data_cmp_t cmp) {
+    if (list == NULL) {
+        return;
+    }
+    
+    listnode_t *node = list->head;
+    if (node == NULL || cmp(data, node->data) <= 0) {
+        linklist_add_head(list, data);
+        return;
+    }
+    
+    while (node->next != NULL) {
+        if (cmp(data, node->next->data) <= 0) {
+            listnode_t *new_node = malloc(sizeof(listnode_t));
+            if (node == NULL) {
+                return;
+            }
+            new_node->data = data;
+            new_node->next = node->next;
+            node->next = new_node;
+            return;
+        }
+    }
+    
+    linklist_add_tail(list, data);
+}
+
 /** @brief Removes the node at the head of a list.
  *
  *  @param list The list.

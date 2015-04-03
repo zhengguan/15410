@@ -19,6 +19,19 @@ typedef struct sleep_info {
     unsigned wake_ticks;
 } sleep_info_t;
 
+/** @brief Compares the wake times of sleep_info struts.  See linklist.h.
+ *
+ *  @param info1 First sleep_info_t.
+ *  @param info2 Second sleep_info_t.
+ *  @return A negative value of info1 should wake before info2, a positive
+ *  value if info2 should wake before info1, 0 if they should wake at the same
+ *  time.
+ */
+static int sleep_info_cmp(void *info1, void *info2) {
+    return ((sleep_info_t *)info1)->wake_ticks -
+           ((sleep_info_t *)info2)->wake_ticks;
+}
+
 /** @brief Initializes the scheduler.
  *
  *  @return 0 on success, negative error code otherwise.
@@ -43,7 +56,7 @@ void scheduler_tick(unsigned ticks)
     // Wake sleeping threads
     sleep_info_t *sleep_info;
     while (linklist_remove_head(&sleep_queue, (void **)&sleep_info) == 0) {
-        if (sleep_info->wake_ticks >= ticks) {
+        if (sleep_info->wake_ticks > ticks) {
             linklist_add_head(&sleep_queue, (void *)sleep_info);
             break;
         }
@@ -138,8 +151,9 @@ int deschedule(int *flag)
 {
     // TODO fail id last thread in scheduler queue?
 
-    if ((unsigned)flag < USER_MEM_START ||
-        !vm_is_present_len(flag, sizeof(int))) {
+    // TODO move USER_MEM checks to handler wrappers
+
+    if (!vm_is_present_len(flag, sizeof(int))) {
         return -1;
     }
 
@@ -195,7 +209,7 @@ int sleep(int ticks)
     sleep_info.tid = gettid();
     sleep_info.wake_ticks = get_ticks() + ticks;
 
-    linklist_add_head(&sleep_queue, (void *)&sleep_info);
+    linklist_add_sorted(&sleep_queue, (void *)&sleep_info, sleep_info_cmp);
 
     int flag = 0;
     if (deschedule(&flag) < 0) {

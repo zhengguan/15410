@@ -18,10 +18,17 @@ typedef struct linklist {
     listnode_t *tail;
 } linklist_t;
 
+/* A comparison function for list elements.  Returns a negative value if data1
+ * is less than data2, a positive value if data1 is greater than data2, and 0
+ * if they are equal.
+ */
+typedef int (*data_cmp_t)(void *data1, void *data2);
+
 /* linked list functions */
 int linklist_init(linklist_t *list);
 void linklist_add_head(linklist_t *list, void *data);
 void linklist_add_tail(linklist_t *list, void *data);
+void linklist_add_sorted(linklist_t *list, void *data, data_cmp_t cmp);
 int linklist_remove_head(linklist_t *list, void **data);
 int linklist_remove_all(linklist_t *list);
 int linklist_remove(linklist_t *list, void *data);
