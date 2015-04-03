@@ -83,7 +83,7 @@ void idt_init() {
     idt_add_desc(SLEEP_INT, sleep_int, IDT_TRAP, IDT_DPL_USER);
     idt_add_desc(GETCHAR_INT, getchar_int, IDT_TRAP, IDT_DPL_USER);
     idt_add_desc(READLINE_INT, readline_int, IDT_TRAP, IDT_DPL_USER);
-    // idt_add_desc(PRINT_INT, 0, IDT_TRAP, IDT_DPL_USER);
+    idt_add_desc(PRINT_INT, print_int, IDT_TRAP, IDT_DPL_USER);
     idt_add_desc(SET_TERM_COLOR_INT, set_term_color_int, IDT_TRAP, IDT_DPL_USER);
     idt_add_desc(SET_CURSOR_POS_INT, set_cursor_pos_int, IDT_TRAP, IDT_DPL_USER);
     idt_add_desc(GET_CURSOR_POS_INT, get_cursor_pos_int, IDT_TRAP, IDT_DPL_USER);

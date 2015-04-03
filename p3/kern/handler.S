@@ -129,6 +129,30 @@ sleep_int:
     pop     %eax
     iret
 
+.globl swexn_int
+swexn_int:
+    call    set_kernel_segs
+    pushl   16(%esi)
+    pushl   12(%esi)
+    pushl   8(%esi)
+    pushl   4(%esi)
+    pushl   (%esi)
+    call    kern_swexn
+    addl    $20, %esp
+    push    %eax
+    call    set_user_segs
+    pop     %eax
+    iret
+
+.globl exn_handler_complete_int
+exn_handler_complete_int:
+    call    set_kernel_segs
+    call    exn_handler_complete
+    push    %eax
+    call    set_user_segs
+    pop     %eax
+    iret
+
 /* Memory management */
 
 .globl new_pages_int
@@ -178,6 +202,18 @@ readline_int:
     pop     %eax
     iret
 
+.globl print_int
+print_int:
+    call    set_kernel_segs
+    pushl   4(%esi)
+    pushl   (%esi)
+    call    print
+    addl    $8, %esp
+    push    %eax
+    call    set_user_segs
+    pop     %eax
+    iret
+
 .globl set_term_color_int
 set_term_color_int:
     call    set_kernel_segs
@@ -213,45 +249,20 @@ get_cursor_pos_int:
     pop     %eax
     iret
 
-
 /* Miscellaneous system calls */
-
-.globl swexn_int
-swexn_int:
-    call    set_kernel_segs
-    pushl   16(%esi)
-    pushl   12(%esi)
-    pushl   8(%esi)
-    pushl   4(%esi)
-    pushl   (%esi)
-    call    kern_swexn
-    addl    $20, %esp
-    push    %eax
-    call    set_user_segs
-    pop     %eax
-    iret
-
-.globl exn_handler_complete_int
-exn_handler_complete_int:
-    call    set_kernel_segs
-    call    exn_handler_complete
-    push    %eax
-    call    set_user_segs
-    pop     %eax
-    iret
 
 .globl readfile_int
 readfile_int:
-    call set_kernel_segs
+    call    set_kernel_segs
     pushl   12(%esi)
     pushl   8(%esi)
     pushl   4(%esi)
     pushl   (%esi)
-    call readfile
-    addl $16, %esp
-    push %eax
-    call set_user_segs
-    pop %eax
+    call    readfile
+    addl    $16, %esp
+    push    %eax
+    call    set_user_segs
+    pop     %eax
     iret
 
 .globl halt_int

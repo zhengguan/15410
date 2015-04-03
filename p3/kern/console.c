@@ -304,3 +304,12 @@ void scroll_up() {
         draw_char(CONSOLE_HEIGHT - 1, col, ' ', color);        
     }
 }
+
+int print(int len, char *buf) 
+{
+    // TODO add saftey checks
+    
+    putbytes(buf, len);
+    
+    return 0;
+}
