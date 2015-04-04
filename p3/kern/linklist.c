@@ -163,8 +163,7 @@ int linklist_remove(linklist_t *list, void *data) {
     
     listnode_t *node = list->head;
     if (node->data == data) {
-        list->head = node->next;
-        free(node);
+        linklist_remove_head(list, NULL);
         return 0;
     }
     
@@ -172,6 +171,9 @@ int linklist_remove(linklist_t *list, void *data) {
         if (node->next->data == data) {
             listnode_t *tmp = node->next;
             node->next = tmp->next;
+            if (tmp == list->tail) {
+                list->tail = node;
+            }
             free(tmp);
             return 0;
         }

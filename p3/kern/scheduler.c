@@ -161,6 +161,7 @@ int deschedule(int *flag)
         return 0;
     }
 
+    MAGIC_BREAK;
     linklist_remove(&scheduler_queue, (void *)gettid());
 
     if (yield(-1) < 0) {

@@ -66,7 +66,6 @@ int keyboard_init()
  */
 void keyboard_handler()
 {
-    lprintf("Key interrupt");
 	char scancode = inb(KEYBOARD_PORT);
 	cb_enqueue(cb, scancode);
 
@@ -129,8 +128,6 @@ char getchar()
 
 int readline(int len, char *buf)
 {
-    lprintf("Start readline (2)");
-
     if (!vm_is_present_len(buf, len)) {
         lprintf("return -1");
         return -1;
@@ -151,17 +148,15 @@ int readline(int len, char *buf)
 
     int i;
     for (i = 0; i < len; i++) {
-        lprintf("Start getchar");
         char c = readchar_blocking();
-        lprintf("End getchar: '%c'", c);
-        tmp_buf[i] = c;
-        putbyte(c);
+        tmp_buf[i] = c;        
+        putbyte(c);        
         if (c == '\n') {
+            i++;
             break;
         }
     }
 
-    int read_len = i + 1;
-    memcpy(buf, tmp_buf, read_len);
-    return read_len;
+    memcpy(buf, tmp_buf, i);
+    return i;
 }

@@ -13,6 +13,7 @@
 #include <x86/video_defines.h>
 #include <console.h>
 #include <syscall.h>
+#include <simics.h>
 
 static int term_color = DEFAULT_TERM_COLOR;
 static int cursor_visible = DEFAULT_CURSOR_VISIBLE;
@@ -34,10 +35,13 @@ static int cursor_col = 0;
  *  @param ch the character to print
  *  @return The input character
  */
-int putbyte(char ch) {
+int putbyte(char ch)
+{
     int row = 0;
     int col = 0;
     get_cursor_pos(&row, &col);
+    
+    lprintf("Char: %c", ch);
     
     int color = 0;
     get_term_color(&color);
@@ -64,7 +68,12 @@ int putbyte(char ch) {
             break;
             
         default:
+            lprintf("Color: %x", color);
+    
             draw_char(row, col, ch, color);
+    
+            lprintf("Get Color: %x\n", get_color(row, col)); 
+            
             if (col >= CONSOLE_WIDTH - 1) {
                 if (row >= CONSOLE_HEIGHT - 1) {
                     scroll_up();
@@ -97,7 +106,8 @@ int putbyte(char ch) {
  *  @param len The length of the string s.
  *  @return Void.
  */
-void putbytes(const char *s, int len) {
+void putbytes(const char *s, int len)
+{
     if (s == NULL || len <= 0) {
         return;
     }
@@ -117,7 +127,8 @@ void putbytes(const char *s, int len) {
  *  @return 0 on success or integer error code less than 0 if
  *          color code is invalid.
  */
-int set_term_color(int color) {
+int set_term_color(int color)
+{
     if (color < 0x00 || color > 0xFF) {
         return -1;
     }
@@ -134,7 +145,8 @@ int set_term_color(int color) {
  *         information will be written.
  *  @return Void.
  */
-void get_term_color(int *color) {
+void get_term_color(int *color)
+{
     if (color == NULL) {
         return;
     }
@@ -155,7 +167,8 @@ void get_term_color(int *color) {
  *  @return 0 on success or integer error code less than 0 if
  *          cursor location is invalid.
  */
-int set_cursor_pos(int row, int col) {
+int set_cursor_pos(int row, int col)
+{
     if (row < 0 || row >= CONSOLE_HEIGHT ||
         col < 0 || col >= CONSOLE_WIDTH) {
         return -1;
@@ -183,12 +196,13 @@ int set_cursor_pos(int row, int col) {
  *         column will be written.
  *  @return Void.
  */
-int get_cursor_pos(int *row, int *col) {
+int get_cursor_pos(int *row, int *col)
+{
     if (row == NULL) {
         return -1;
     }
     
-    if (col != NULL) {
+    if (col == NULL) {
         return -2;
     }
     
@@ -205,7 +219,8 @@ int get_cursor_pos(int *row, int *col) {
  *
  *  @return Void.
  */
-void hide_cursor() {
+void hide_cursor()
+{
     cursor_visible = 0;
     
     int offset = CONSOLE_HEIGHT * CONSOLE_WIDTH;
@@ -221,7 +236,8 @@ void hide_cursor() {
  *
  *  @return Void.
  */
-void show_cursor() {
+void show_cursor()
+{
     cursor_visible = 1;
     set_cursor_pos(cursor_row, cursor_col);
 }
@@ -232,7 +248,8 @@ void show_cursor() {
  *
  *  @return Void.
  */
-void clear_console() {
+void clear_console()
+{
     int color = 0;
     get_term_color(&color);
     
@@ -258,7 +275,8 @@ void clear_console() {
  *  @param color The color to use to display the character.
  *  @return Void.
  */
-void draw_char(int row, int col, int ch, int color) {
+void draw_char(int row, int col, int ch, int color)
+{
     *(char *)(CONSOLE_MEM_BASE + 2*(row*CONSOLE_WIDTH + col)) = ch; 
     *(char *)(CONSOLE_MEM_BASE + 2*(row*CONSOLE_WIDTH + col) + 1) = color; 
 }
@@ -268,7 +286,8 @@ void draw_char(int row, int col, int ch, int color) {
  *  @param col Column of the character.
  *  @return The character at (row, col).
  */
-char get_char(int row, int col) {
+char get_char(int row, int col)
+{
   return *(char *)(CONSOLE_MEM_BASE + 2*(row*CONSOLE_WIDTH + col));
 }
 
@@ -278,7 +297,8 @@ char get_char(int row, int col) {
  *  @param col Column of the character.
  *  @return The color at (row, col).
  */
-int get_color(int row, int col) {
+int get_color(int row, int col)
+{
   return *(char *)(CONSOLE_MEM_BASE + 2*(row*CONSOLE_WIDTH + col) + 1);
 }
 
@@ -286,7 +306,8 @@ int get_color(int row, int col) {
  *
  *  @return Void.
  */
-void scroll_up() {
+void scroll_up()
+{
     int row;
     int col;
     for(row = 1; row < CONSOLE_HEIGHT; row++) {    
