@@ -14,7 +14,7 @@
 
 #include <video_defines.h>
 
-#define DEFAULT_TERM_COLOR (FGND_WHITE | BGND_MAG)
+#define DEFAULT_TERM_COLOR (FGND_WHITE | BGND_BLACK)
 #define DEFAULT_CURSOR_VISIBLE 1
 
 /* Console functions */

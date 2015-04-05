@@ -41,49 +41,44 @@ int putbyte(char ch)
     int col = 0;
     get_cursor_pos(&row, &col);
     
-    lprintf("Char: %c", ch);
-    
     int color = 0;
     get_term_color(&color);
     
     switch(ch) {
-        case '\n':
+    case '\n':
+        if (row >= CONSOLE_HEIGHT - 1) {
+            scroll_up();
+            set_cursor_pos(CONSOLE_HEIGHT - 1, 0);
+        } else {
+            set_cursor_pos(row + 1, 0);
+        }
+        break;
+        
+    case '\r':
+        set_cursor_pos(row, 0);
+        break;
+        
+    case '\b':
+        if (col > 0) {
+            draw_char(row, col - 1, ' ', color);
+            set_cursor_pos(row, col - 1);
+        }
+        break;
+        
+    default:
+        // TODO why are colors failing?
+        draw_char(row, col, ch, color);
+        
+        if (col >= CONSOLE_WIDTH - 1) {
             if (row >= CONSOLE_HEIGHT - 1) {
                 scroll_up();
                 set_cursor_pos(CONSOLE_HEIGHT - 1, 0);
             } else {
                 set_cursor_pos(row + 1, 0);
             }
-            break;
-            
-        case '\r':
-            set_cursor_pos(row, 0);
-            break;
-            
-        case '\b':
-            if (col > 0) {
-                draw_char(row, col - 1, ' ', color);
-                set_cursor_pos(row, col - 1);
-            }
-            break;
-            
-        default:
-            lprintf("Color: %x", color);
-    
-            draw_char(row, col, ch, color);
-    
-            lprintf("Get Color: %x\n", get_color(row, col)); 
-            
-            if (col >= CONSOLE_WIDTH - 1) {
-                if (row >= CONSOLE_HEIGHT - 1) {
-                    scroll_up();
-                    set_cursor_pos(CONSOLE_HEIGHT - 1, 0);
-                } else {
-                    set_cursor_pos(row + 1, 0);
-                }
-            } else {
-                set_cursor_pos(row, col + 1);
-            }
+        } else {
+            set_cursor_pos(row, col + 1);
+        }
     }
     
     return ch; 
@@ -314,7 +309,7 @@ void scroll_up()
         for(col = 0; col < CONSOLE_WIDTH; col++) {
             char ch = get_char(row, col);
             int color = get_color(row, col);
-            draw_char(row - 1, col - 1, ch, color);
+            draw_char(row - 1, col, ch, color);
         }
     }
     
