@@ -9,6 +9,11 @@
 #ifndef _KERN_COMMON_H
 #define _KERN_COMMON_H
 
+#include <eflags.h>
+#define USER_EFLAGS (EFL_RESV1 | EFL_IF | EFL_IOPL_RING1)
+
+#ifndef ASSEMBLER
+
 #include <syscall.h>
 #include <string.h>
 #include <common_kern.h>
@@ -20,6 +25,7 @@
 #define ROUND_DOWN_PAGE(ADDR) ((unsigned)(ADDR) & PAGE_MASK)
 #define ROUND_UP_PAGE(ADDR) (ROUND_DOWN_PAGE((ADDR) + PAGE_SIZE - 1))
 
+
 typedef enum {
     false = 0,
     true
@@ -27,5 +33,7 @@ typedef enum {
 
 int str_arr_check(char *arr[]);
 int str_check(char *str);
+
+#endif /* ASSEMBLER */
 
 #endif /* _KERN_COMMON_H */

@@ -21,8 +21,8 @@
 #include <seg.h>
 #include <syscall.h>
 #include <common_kern.h>
+#include <asm_common.h>
 #include <loader.h>
-#include <exec_run.h>
 #include <kern_common.h>
 #include <cr.h>
 #include <vm.h>
@@ -255,12 +255,8 @@ static unsigned fill_mem(const simple_elf_t *se_hdr, int argc, char *argv[],
  */
 static void user_run(unsigned eip, unsigned esp)
 {
-    //TODO: should this look at currently set eflags?
-    //TODO: more flags?
     set_cr0((get_cr0() & ~CR0_AM & ~CR0_WP) | CR0_PE);
-    unsigned eflags = EFL_RESV1 | EFL_IF | EFL_IOPL_RING1;
-    exec_run(SEGSEL_USER_DS, SEGSEL_USER_DS, eip, SEGSEL_USER_CS,
-             eflags, esp, SEGSEL_USER_DS);
+    jmp_user(eip, esp);
 }
 
 

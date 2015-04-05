@@ -7,6 +7,7 @@
  */
 
 #include <seg.h>
+#include <kern_common.h>
 
 .globl jmp_ureg
 jmp_ureg:
@@ -18,6 +19,33 @@ jmp_ureg:
     pop     %gs
     popa
     addl    $4, %esp
+    iret
+
+.globl jmp_ureg_user
+jmp_ureg_user:
+    call set_user_segs
+    mov     4(%esp), %esp
+    addl    $24, %esp
+    mov     %esp, %eax //fix dummy esp
+    addl    $32, %eax
+    mov     %eax, 12(%esp)
+    popa
+    addl    $4, %esp
+    movl $SEGSEL_USER_CS, 4(%esp)
+    movl $USER_EFLAGS, 8(%esp)
+    movl $SEGSEL_USER_DS, 16(%esp)
+    iret
+
+.globl jmp_user
+jmp_user:
+    call set_user_segs
+    mov $0, %ebp
+    mov %esp, %eax
+    push $SEGSEL_USER_DS
+    push 8(%eax)
+    push $USER_EFLAGS
+    push $SEGSEL_USER_CS
+    push 4(%eax)
     iret
 
 .globl set_kernel_segs

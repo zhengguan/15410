@@ -131,23 +131,13 @@ sleep_int:
 
 .globl swexn_int
 swexn_int:
-    call    set_kernel_segs
-    pushl   16(%esi)
     pushl   12(%esi)
     pushl   8(%esi)
     pushl   4(%esi)
     pushl   (%esi)
-    call    kern_swexn
-    addl    $20, %esp
-    push    %eax
-    call    set_user_segs
-    pop     %eax
-    iret
-
-.globl exn_handler_complete_int
-exn_handler_complete_int:
     call    set_kernel_segs
-    call    exn_handler_complete
+    call    swexn
+    addl    $16, %esp
     push    %eax
     call    set_user_segs
     pop     %eax
