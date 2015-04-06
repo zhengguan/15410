@@ -101,7 +101,7 @@ int readchar_blocking()
 {
     char c;
     while((c = readchar()) < 0) {
-        cond_wait(&readchar_cond);
+        cond_wait(&readchar_cond, NULL);
     }
 
     return c;
@@ -149,8 +149,8 @@ int readline(int len, char *buf)
     int i;
     for (i = 0; i < len; i++) {
         char c = readchar_blocking();
-        tmp_buf[i] = c;        
-        putbyte(c);        
+        tmp_buf[i] = c;
+        putbyte(c);
         if (c == '\n') {
             i++;
             break;

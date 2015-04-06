@@ -11,6 +11,8 @@
 
 #include <linklist.h>
 #include <hashtable.h>
+#include <cond.h>
+#include <kern_common.h>
 
 #define PCB_HT_SIZE 128
 #define TCB_HT_SIZE 128
@@ -33,13 +35,21 @@ typedef struct regs {
 
 typedef struct pcb {
     int pid;
+    int status;
+    int num_threads;
+    int num_children;
+    int parent_pid;
+    int first_tid;
     linklist_t threads;
+
+    cond_t waiter_cv;
+    mutex_t vanished_task_mutex;
+    linklist_t vanished_tasks;
 } pcb_t;
 
 typedef struct tcb {
     int tid;
     int pid;
-    int status;
     unsigned esp0;
     regs_t regs;
 } tcb_t;

@@ -65,6 +65,24 @@ set_status_int:
     pop     %eax
     iret
 
+.globl vanish_int
+vanish_int:
+    call    set_kernel_segs
+    call    vanish
+    call    set_user_segs
+    iret
+
+.globl wait_int
+wait_int:
+    call    set_kernel_segs
+    pushl   %esi
+    call    wait
+    addl    $4, %esp
+    push    %eax
+    call    set_user_segs
+    pop     %eax
+    iret
+
 /* Thread management */
 
 .globl gettid_int

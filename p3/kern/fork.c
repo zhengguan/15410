@@ -20,17 +20,23 @@
 
 int fork()
 {
-    lprintf("fork");
     tcb_t *old_tcb;
     hashtable_get(&tcbs, gettid(), (void**)&old_tcb);
+
+    pcb_t *old_pcb;
+    hashtable_get(&pcbs, getpid(), (void**)&old_pcb);
+    old_pcb->num_children++;
 
     disable_interrupts();
 
     tcb_t *new_tcb;
+    pcb_t *new_pcb;
 
-    if (proc_new_process(NULL, &new_tcb) < 0) {
+    if (proc_new_process(&new_pcb, &new_tcb) < 0) {
         return -1;
     }
+
+    new_pcb->parent_pid = getpid();
 
     //swap esp0's for old and new threads
     int cur_esp0 = old_tcb->esp0;
@@ -39,7 +45,6 @@ int fork()
 
     int new_tid = new_tcb->tid; //in case new thread dies before we return
 
-    lprintf("fork storing %d, %p, %p", gettid(), (void*)cur_esp0, (void*)get_cr3());
     if (store_regs(&old_tcb->regs, cur_esp0)) { //new thread
 
         set_cr3((unsigned)vm_copy());
@@ -48,7 +53,6 @@ int fork()
 
         //give the old thread back his stack that the new one stole
         memcpy((void *)(old_tcb->esp0 - KERNEL_STACK_SIZE), (void *)(new_tcb->esp0 - KERNEL_STACK_SIZE), KERNEL_STACK_SIZE);
-
 
         linklist_add_tail(&scheduler_queue, (void *)new_tid);
 

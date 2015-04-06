@@ -21,6 +21,8 @@ int fork_int();
 int thread_fork_int();
 int exec_int(char *execname, char *argvec[]);
 void set_status_int(int status);
+void vanish_int();
+int wait_int(int *status);
 
 /* Thread management */
 int gettid_int(void);

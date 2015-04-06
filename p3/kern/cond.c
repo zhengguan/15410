@@ -16,7 +16,8 @@
  *  @param cv The condition variable.
  *  @return 0 on success, number error code otherwise.
  */
-int cond_init(cond_t *cv) {
+int cond_init(cond_t *cv)
+{
     if (cv == NULL) {
         return -1;
     }
@@ -24,7 +25,7 @@ int cond_init(cond_t *cv) {
     if (spinlock_init(&cv->wait_lock) < 0) {
         return -2;
     }
-    
+
     if (linklist_init(&cv->wait_list) < 0){
         return -3;
     }
@@ -37,10 +38,14 @@ int cond_init(cond_t *cv) {
  *  @param cv The condition variable.
  *  @return Void.
  */
-void cond_wait(cond_t *cv) {
+void cond_wait(cond_t *cv, mutex_t *mp)
+{
     if (cv == NULL) {
         return;
     }
+
+    if (mp)
+        mutex_unlock(mp);
 
     waiter_t waiter = {gettid(), 0};
 
@@ -49,6 +54,9 @@ void cond_wait(cond_t *cv) {
     spinlock_unlock(&cv->wait_lock);
 
     deschedule(&waiter.reject);
+
+    if (mp)
+        mutex_lock(mp);
 }
 
 /** @brief Wakes up a thread waiting on a condition variable.
@@ -56,7 +64,8 @@ void cond_wait(cond_t *cv) {
  *  @param cv The condition variable.
  *  @return Void.
  */
-void cond_signal(cond_t *cv) {
+void cond_signal(cond_t *cv)
+{
     if (cv == NULL) {
         return;
     }
@@ -75,7 +84,8 @@ void cond_signal(cond_t *cv) {
  *  @param cv The condition variable.
  *  @return Void.
  */
-void cond_broadcast(cond_t *cv) {
+void cond_broadcast(cond_t *cv)
+{
     if (cv == NULL) {
         return;
     }

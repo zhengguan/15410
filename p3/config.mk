@@ -66,7 +66,7 @@ UPDATE_METHOD = afs
 # directory.
 #
 STUDENTTESTS = fork_test swexn_test autostack_swexn_test sleep_test \
-console_test thr_fork_test halt_test readfile_test
+console_test thr_fork_test halt_test readfile_test vanish_wait_test \
 
 ###########################################################################
 # Data files provided by course staff to build into the RAM disk

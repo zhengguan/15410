@@ -47,7 +47,7 @@ void linklist_add_head(linklist_t *list, void *data) {
     if (node == NULL) {
         return;
     }
-    
+
     node->data = data;
     node->next = list->head;
     list->head = node;
@@ -72,7 +72,7 @@ void linklist_add_tail(linklist_t *list, void *data) {
     if (node == NULL) {
         return;
     }
-    
+
     node->data = data;
     node->next = NULL;
 
@@ -95,13 +95,13 @@ void linklist_add_sorted(linklist_t *list, void *data, data_cmp_t cmp) {
     if (list == NULL) {
         return;
     }
-    
+
     listnode_t *node = list->head;
     if (node == NULL || cmp(data, node->data) <= 0) {
         linklist_add_head(list, data);
         return;
     }
-    
+
     while (node->next != NULL) {
         if (cmp(data, node->next->data) <= 0) {
             listnode_t *new_node = malloc(sizeof(listnode_t));
@@ -114,7 +114,7 @@ void linklist_add_sorted(linklist_t *list, void *data, data_cmp_t cmp) {
             return;
         }
     }
-    
+
     linklist_add_tail(list, data);
 }
 
@@ -160,13 +160,13 @@ int linklist_remove(linklist_t *list, void *data) {
     if (list == NULL || list->head == NULL) {
         return -1;
     }
-    
+
     listnode_t *node = list->head;
     if (node->data == data) {
         linklist_remove_head(list, NULL);
         return 0;
     }
-    
+
     while (node->next != NULL) {
         if (node->next->data == data) {
             listnode_t *tmp = node->next;
@@ -179,7 +179,7 @@ int linklist_remove(linklist_t *list, void *data) {
         }
         node = node->next;
     }
-    
+
     return -2;
 }
 
@@ -193,14 +193,13 @@ int linklist_remove_all(linklist_t *list) {
         return -1;
     }
 
-    while (linklist_remove_head(list, NULL) == 0) {
-    }
+    while (linklist_remove_head(list, NULL) == 0);
 
     return 0;
 }
 
 /** @brief Checks whether a list contains data.
- *  
+ *
  *  @param list The list.
  *  @param data The data of the item to remove.
  *  @return True if the list contains the data, false otherwise.
@@ -209,7 +208,7 @@ bool linklist_contains(linklist_t *list, void *data) {
     if (list == NULL || list->head == NULL) {
         return false;
     }
-    
+
     listnode_t *node = list->head;
     while (node->next != NULL) {
         if (node->next->data == data) {
@@ -217,7 +216,7 @@ bool linklist_contains(linklist_t *list, void *data) {
         }
         node = node->next;
     }
-    
+
     return false;
 }
 

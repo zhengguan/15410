@@ -73,7 +73,7 @@ void idt_init() {
     // idt_add_desc(SYSCALL_INT, 0, IDT_TRAP, IDT_DPL_USER);
     idt_add_desc(FORK_INT, fork_int, IDT_TRAP, IDT_DPL_USER);
     idt_add_desc(EXEC_INT, exec_int, IDT_TRAP, IDT_DPL_USER);
-    // idt_add_desc(WAIT_INT, 0, IDT_TRAP, IDT_DPL_USER);
+    idt_add_desc(WAIT_INT, wait_int, IDT_TRAP, IDT_DPL_USER);
     idt_add_desc(YIELD_INT, yield_int, IDT_TRAP, IDT_DPL_USER);
     idt_add_desc(DESCHEDULE_INT, deschedule_int, IDT_TRAP, IDT_DPL_USER);
     idt_add_desc(MAKE_RUNNABLE_INT, make_runnable_int, IDT_TRAP, IDT_DPL_USER);
@@ -93,7 +93,7 @@ void idt_init() {
     idt_add_desc(HALT_INT, halt_int, IDT_TRAP, IDT_DPL_USER);
     // idt_add_desc(TASK_VANISH_INT, 0, IDT_TRAP, IDT_DPL_USER);
     idt_add_desc(SET_STATUS_INT, set_status_int, IDT_TRAP, IDT_DPL_USER);
-    // idt_add_desc(VANISH_INT, 0, IDT_TRAP, IDT_DPL_USER);
+    idt_add_desc(VANISH_INT, vanish_int, IDT_TRAP, IDT_DPL_USER);
     idt_add_desc(READFILE_INT, readfile_int, IDT_TRAP, IDT_DPL_USER);
     idt_add_desc(SWEXN_INT, swexn_int, IDT_TRAP, IDT_DPL_USER);
 

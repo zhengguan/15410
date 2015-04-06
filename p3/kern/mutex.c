@@ -13,6 +13,7 @@
 #include <syscall.h>
 #include <linklist.h>
 #include <waiter.h>
+#include <simics.h>
 
 /** @brief Initializes a mutex.
  *
@@ -23,16 +24,17 @@ int mutex_init(mutex_t *mp) {
     if (mp == NULL) {
         return -1;
     }
-    
+
     if (spinlock_init(&mp->wait_lock) < 0) {
         return -2;
     }
-    
+
     if (linklist_init(&mp->wait_list) < 0){
         return -3;
     }
 
-    mp->count = 0;
+    mp->count = 1;
+    mp->tid = -1;
 
     return 0;
 }
@@ -46,9 +48,9 @@ void mutex_lock(mutex_t *mp) {
     if (mp == NULL) {
         return;
     }
-    
+
     waiter_t waiter = {gettid(), 0};
-        
+
     spinlock_lock(&mp->wait_lock);
     if (&mp->count <= 0) {
         linklist_add_tail(&mp->wait_list, (void*)&waiter);
@@ -59,7 +61,7 @@ void mutex_lock(mutex_t *mp) {
     spinlock_unlock(&mp->wait_lock);
 
     deschedule(&waiter.reject);
-    
+
     mp->tid = gettid();
 }
 
@@ -72,7 +74,7 @@ void mutex_unlock(mutex_t *mp) {
     if (mp == NULL || mp->count > 0 || mp->tid != gettid()) {
         return;
     }
-    
+
     spinlock_lock(&mp->wait_lock);
     if (mp->count < 0) {
         waiter_t *waiter;
