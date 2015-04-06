@@ -38,7 +38,6 @@ int new_pages_int(void * addr, int len);
 int remove_pages_int(void * addr);
 
 /* Console I/O */
-char getchar_int(void);
 int readline_int(int size, char *buf);
 int print_int(int size, char *buf);
 int set_term_color_int(int color);
@@ -51,5 +50,6 @@ int readfile_int(const char *filename, char *buf, int count, int offset);
 
 /* "Special" */
 void exn_handler_complete_int();
+void misbehave_int(int mode);
 
 #endif /* _HANDLER_H */

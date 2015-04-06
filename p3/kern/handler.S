@@ -189,15 +189,6 @@ remove_pages_int:
 
 /* Console I/O */
 
-.globl getchar_int
-getchar_int:
-    call    set_kernel_segs
-    call    getchar
-    push    %eax
-    call    set_user_segs
-    pop     %eax
-    iret
-
 .globl readline_int
 readline_int:
     call    set_kernel_segs
@@ -257,7 +248,7 @@ get_cursor_pos_int:
     pop     %eax
     iret
 
-/* Miscellaneous system calls */
+/* Miscellaneous */
 
 .globl readfile_int
 readfile_int:
@@ -277,4 +268,10 @@ readfile_int:
 halt_int:
     call sim_halt
     hlt
+    iret
+
+/* "Special" */
+
+.globl misbehave_int
+misbehave_int:
     iret

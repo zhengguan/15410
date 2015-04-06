@@ -70,7 +70,6 @@ void idt_init() {
     }
 
     /* Add system call trap gate descriptors */
-    // idt_add_desc(SYSCALL_INT, 0, IDT_TRAP, IDT_DPL_USER);
     idt_add_desc(FORK_INT, fork_int, IDT_TRAP, IDT_DPL_USER);
     idt_add_desc(EXEC_INT, exec_int, IDT_TRAP, IDT_DPL_USER);
     idt_add_desc(WAIT_INT, wait_int, IDT_TRAP, IDT_DPL_USER);
@@ -81,7 +80,6 @@ void idt_init() {
     idt_add_desc(NEW_PAGES_INT, new_pages_int, IDT_TRAP, IDT_DPL_USER);
     idt_add_desc(REMOVE_PAGES_INT, remove_pages_int, IDT_TRAP, IDT_DPL_USER);
     idt_add_desc(SLEEP_INT, sleep_int, IDT_TRAP, IDT_DPL_USER);
-    idt_add_desc(GETCHAR_INT, getchar_int, IDT_TRAP, IDT_DPL_USER);
     idt_add_desc(READLINE_INT, readline_int, IDT_TRAP, IDT_DPL_USER);
     idt_add_desc(PRINT_INT, print_int, IDT_TRAP, IDT_DPL_USER);
     idt_add_desc(SET_TERM_COLOR_INT, set_term_color_int, IDT_TRAP, IDT_DPL_USER);
@@ -89,9 +87,8 @@ void idt_init() {
     idt_add_desc(GET_CURSOR_POS_INT, get_cursor_pos_int, IDT_TRAP, IDT_DPL_USER);
     idt_add_desc(THREAD_FORK_INT, thread_fork_int, IDT_TRAP, IDT_DPL_USER);
     idt_add_desc(GET_TICKS_INT, get_ticks_int, IDT_TRAP, IDT_DPL_USER);
-    // idt_add_desc(MISBEHAVE_INT, 0, IDT_TRAP, IDT_DPL_USER);
+    idt_add_desc(MISBEHAVE_INT, misbehave_int, IDT_TRAP, IDT_DPL_USER);
     idt_add_desc(HALT_INT, halt_int, IDT_TRAP, IDT_DPL_USER);
-    // idt_add_desc(TASK_VANISH_INT, 0, IDT_TRAP, IDT_DPL_USER);
     idt_add_desc(SET_STATUS_INT, set_status_int, IDT_TRAP, IDT_DPL_USER);
     idt_add_desc(VANISH_INT, vanish_int, IDT_TRAP, IDT_DPL_USER);
     idt_add_desc(READFILE_INT, readfile_int, IDT_TRAP, IDT_DPL_USER);

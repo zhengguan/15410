@@ -20,12 +20,12 @@ void slow() {
 int main() {
     
     if (fork() == 0) {
-        set_term_color(BGND_CYAN | FGND_YLLW);
         char buf[BUF_SIZE];
         while(1) {
-            int len = readline(BUF_SIZE, buf);
+            int len = readline(BUF_SIZE - 1, buf);
+            buf[len] = '\0';
             lprintf("Return: %d", len);
-            lprintf("Return: %s", buf);
+            lprintf("Return: |%s|", buf);
             print(len, buf);
         }
     } else {

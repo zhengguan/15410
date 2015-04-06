@@ -32,7 +32,7 @@
 
 #include <loader.h>
 
-#define MAIN_NAME "swexn_test"
+#define MAIN_NAME "console_test"
 #define MAIN_ARG {NULL}
 
 /** @brief Kernel entrypoint.
