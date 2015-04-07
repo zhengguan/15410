@@ -11,6 +11,7 @@
 
 #include <eflags.h>
 #define USER_EFLAGS (EFL_RESV1 | EFL_IF | EFL_IOPL_RING1)
+#define KERNEL_CR0 (CR0_PE | CR0_EM | CR0_ET | CR0_PG)
 
 #ifndef ASSEMBLER
 

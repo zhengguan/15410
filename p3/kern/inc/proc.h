@@ -57,6 +57,8 @@ typedef struct tcb {
 extern hashtable_t pcbs;
 extern hashtable_t tcbs;
 extern int cur_tid;
+extern int idle_tid;
+extern int init_tid;
 
 /* Process and thread functions */
 int proc_init();

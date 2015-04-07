@@ -283,24 +283,8 @@ int str_arr_len(char *arr[])
  *  @return Does not return on success, a negative error code on
  *  failure.
  */
-int load(char *filename, char *argv[], bool kernel_mode)
+int load(char *filename, char *argv[], unsigned *eip, unsigned *esp)
 {
-    // TODO what is the purpose of kernel_mode?
-    if (!kernel_mode && ((unsigned)filename < USER_MEM_START ||
-        (unsigned)argv < USER_MEM_START)) {
-        return -1;
-    }
-
-    int len;
-    if (kernel_mode)
-        len = strlen(filename);
-    else
-        len = str_check(filename);
-
-    if (len < 0) {
-        return -1;
-    }
-
     if (elf_check_header(filename) != ELF_SUCCESS) {
         return -2;
     }
@@ -314,15 +298,7 @@ int load(char *filename, char *argv[], bool kernel_mode)
         return -4;
     }
 
-    int argc;
-    if (kernel_mode)
-        argc = str_arr_len(argv);
-    else
-        argc = str_arr_check(argv);
-
-    if (argc < 0) {
-        return -5;
-    }
+    int argc = str_arr_len(argv);
 
     int *arg_lens  = malloc(argc*sizeof(int));
     if (argc > 0 && arg_lens == NULL) {
@@ -331,30 +307,19 @@ int load(char *filename, char *argv[], bool kernel_mode)
 
     //get lengths of arguments
     int i;
-    for (i = 0; i < argc; i++) {
-        int len;
-        if ( (!kernel_mode && (unsigned)argv[i] < USER_MEM_START) ||
-             (len = strlen(argv[i])) < 0) {
-            free(arg_lens);
-            return -8;
-        }
+    for (i = 0; i < argc; i++)
+        arg_lens[i] = strlen(argv[i]);
 
-        arg_lens[i] = len;
-    }
-
-    unsigned esp = fill_mem(&se_hdr, argc, argv, arg_lens);
+    *esp = fill_mem(&se_hdr, argc, argv, arg_lens);
+    *eip = se_hdr.e_entry;
 
     free(arg_lens);
 
-    if (esp == 0) {
+    if (*esp == 0) {
         return -9;
     }
 
-    user_run(se_hdr.e_entry, esp);
-
-    //should never get here
-
-    return -10;
+    return 0;
 }
 
 /** @brief Loads a user program.
@@ -368,7 +333,23 @@ int load(char *filename, char *argv[], bool kernel_mode)
  */
 int exec(char *filename, char *argv[])
 {
-    return load(filename, argv, false);
+    if ((unsigned)filename < USER_MEM_START ||
+        (unsigned)argv < USER_MEM_START) {
+        return -1;
+    }
+    if (str_check(filename) < 0)
+        return -2;
+    if (str_arr_check(argv) < 0)
+        return -3;
+
+
+    unsigned eip, esp;
+    if (load(filename, argv, &eip, &esp) < 0)
+        return -4;
+
+    user_run(eip, esp);
+
+    return -5;
 }
 
 /*@}*/

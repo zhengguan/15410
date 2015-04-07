@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <syscall.h>
 #include <waiter.h>
+#include <scheduler.h>
 
 /** @brief Initializes a condition variable.
  *
@@ -53,7 +54,7 @@ void cond_wait(cond_t *cv, mutex_t *mp)
     linklist_add_tail(&cv->wait_list, (void*)&waiter);
     spinlock_unlock(&cv->wait_lock);
 
-    deschedule(&waiter.reject);
+    deschedule_kern(&waiter.reject, false);
 
     if (mp)
         mutex_lock(mp);
@@ -74,7 +75,7 @@ void cond_signal(cond_t *cv)
     waiter_t *waiter;
     if (linklist_remove_head(&cv->wait_list, (void**)&waiter) == 0) {
         waiter->reject = 1;
-        make_runnable(waiter->tid);
+        make_runnable_kern(waiter->tid, false);
     }
     spinlock_unlock(&cv->wait_lock);
 }
@@ -99,6 +100,6 @@ void cond_broadcast(cond_t *cv)
     waiter_t *waiter;
     while (linklist_remove_head(&cv->wait_list, (void**)&waiter) == 0) {
         waiter->reject = 1;
-        make_runnable(waiter->tid);
+        make_runnable_kern(waiter->tid, false);
     }
 }

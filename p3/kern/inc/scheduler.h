@@ -16,5 +16,8 @@ extern linklist_t scheduler_queue;
 int scheduler_init();
 void scheduler_tick(unsigned ticks);
 int context_switch(int tid);
+int deschedule_kern(int *flag, bool user);
+int make_runnable_kern(int tid, bool user);
+
 
 #endif /* _SCHEDULER_INIT_H */

@@ -15,6 +15,6 @@
 /* --- Prototypes --- */
 
 int getbytes( const char *filename, int offset, int size, char *buf );
-int load(char *filename, char *argv[], bool kernel_mode);
+int load(char *filename, char *argv[], unsigned *eip, unsigned *esp);
 
 #endif /* _LOADER_H */

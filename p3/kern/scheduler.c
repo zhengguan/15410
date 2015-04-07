@@ -14,6 +14,10 @@ linklist_t scheduler_queue;
 
 linklist_t sleep_queue;
 
+#define DESCHEDULED_HT_SIZE 100
+hashtable_t descheduled_tids;
+
+
 typedef struct sleep_info {
     int tid;
     unsigned wake_ticks;
@@ -41,6 +45,12 @@ int scheduler_init()
     if (linklist_init(&scheduler_queue) < 0) {
         return -1;
     }
+    if (linklist_init(&sleep_queue) < 0) {
+        return -2;
+    }
+    if (hashtable_init(&descheduled_tids, DESCHEDULED_HT_SIZE) < 0) {
+        return -3;
+    }
 
     return 0;
 }
@@ -64,10 +74,10 @@ void scheduler_tick(unsigned ticks)
     }
 
     int tid;
-    linklist_remove_head(&scheduler_queue, (void**)&tid);
-    linklist_add_tail(&scheduler_queue, (void*)tid);
-
-    context_switch(tid);
+    if (linklist_remove_head(&scheduler_queue, (void**)&tid) == 0) {
+        linklist_add_tail(&scheduler_queue, (void*)tid);
+        context_switch(tid);
+    }
 }
 
 /** @brief Context switches to the thread with ID tid.
@@ -82,7 +92,6 @@ int context_switch(int tid)
     if (tid == gettid()) {
         return 0;
     }
-
     tcb_t *new_tcb;
     if (hashtable_get(&tcbs, tid, (void**)&new_tcb) < 0) {
         return -1;
@@ -114,7 +123,12 @@ int yield(int tid)
 {
     if (tid == -1) {
         if (linklist_remove_head(&scheduler_queue, (void**)&tid) < 0) {
-            return -1;
+            //no threads so run idle
+            if (context_switch(idle_tid) < 0) {
+                lprintf("error yielding to idle");
+                return -1;
+            }
+            return 0;
         }
     } else {
         if (linklist_remove(&scheduler_queue, (void *)tid) < 0) {
@@ -128,12 +142,19 @@ int yield(int tid)
         return -3;
     }
 
+    //FIXME: not always from timer call
     notify_interrupt_complete(); //we are coming from timer call but not returning
 
     return 0;
 }
 
-// TODO Add atomicity with make runnable, use either a spinlock or disable interruptss
+// TODO Add atomicity with make runnable, use either a spinlock or disable interrupts
+
+
+int deschedule(int *flag)
+{
+    return deschedule_kern(flag, true);
+}
 
 /** @brief Deschedules the calling thread.
  *
@@ -147,10 +168,8 @@ int yield(int tid)
  *  immediately.
  *  @return 0 on success, negative error code otherwise.
  */
-int deschedule(int *flag)
+int deschedule_kern(int *flag, bool user)
 {
-    // TODO fail id last thread in scheduler queue?
-
     // TODO move USER_MEM checks to handler wrappers
 
     if (!vm_is_present_len(flag, sizeof(int))) {
@@ -161,7 +180,9 @@ int deschedule(int *flag)
         return 0;
     }
 
-    linklist_remove(&scheduler_queue, (void *)gettid());
+    if (linklist_remove(&scheduler_queue, (void *)gettid()) == 0 && user) {
+        hashtable_add(&descheduled_tids, gettid(), NULL);
+    }
 
     if (yield(-1) < 0) {
         return -2;
@@ -170,15 +191,28 @@ int deschedule(int *flag)
     return 0;
 }
 
+int make_runnable(int tid)
+{
+    return make_runnable_kern(tid, true);
+}
+
 /** @brief Makes the descheduled thread with ID tid runnable.
  *
  *  @param tid The tid of the thread to make runnable.
  *  @return 0 on success, negative error code otherwise.
  */
-int make_runnable(int tid)
+int make_runnable_kern(int tid, bool user)
 {
     if (linklist_contains(&scheduler_queue, (void *)tid)) {
         return -1;
+    }
+
+    if (user) {
+        if (hashtable_get(&descheduled_tids, tid, NULL) < 0) {
+            return -2;
+        } else {
+            hashtable_remove(&descheduled_tids, tid);
+        }
     }
 
     linklist_add_tail(&scheduler_queue, (void*)tid);

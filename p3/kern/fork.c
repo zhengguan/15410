@@ -56,11 +56,11 @@ int fork()
 
         linklist_add_tail(&scheduler_queue, (void *)new_tid);
 
-        enable_interrupts();
+        lprintf("oldesp0: %x, newesp0: %x", old_tcb->esp0, new_tcb->esp0);
         return 0;
     } else { //old thread
         notify_interrupt_complete(); //we are coming from timer call but not returning
-        enable_interrupts();
+        lprintf("back to parent");
         return new_tid;
     }
 }

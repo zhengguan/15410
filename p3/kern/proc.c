@@ -17,14 +17,14 @@
 #include <asm.h>
 #include <vm.h>
 
-unsigned next_pid = 1;
 unsigned next_tid = 1;
 
 hashtable_t pcbs;
 hashtable_t tcbs;
 
-int cur_pid;
 int cur_tid;
+int idle_tid;
+int init_tid;
 
 /** @brief Initializes the PCB and TCB data structures.
  *
@@ -71,8 +71,8 @@ int proc_new_process(pcb_t **pcb_out, tcb_t **tcb_out) {
 
 
     pcb->num_children = 0;
-    pcb->pid = next_pid++;
     pcb->status = 0;
+    pcb->pid = -1;
 
     int tid = proc_new_thread(pcb, tcb_out);
     if (tid < 0) {
@@ -80,7 +80,7 @@ int proc_new_process(pcb_t **pcb_out, tcb_t **tcb_out) {
         return tid;
     }
 
-    pcb->first_tid = tid;
+    pcb->pid = tid;
     pcb->num_threads = 1;
 
     hashtable_add(&pcbs, pcb->pid, (void *)pcb);
@@ -110,7 +110,8 @@ int proc_new_thread(pcb_t *pcb, tcb_t **tcb_out) {
     }
 
     tcb->tid = next_tid++;
-    // TODO this is broken
+    if (pcb->pid == -1)
+        pcb->pid = tcb->tid;
     tcb->pid = pcb->pid;
     tcb->esp0 = (unsigned)esp0;
 
@@ -153,6 +154,16 @@ void set_status(int status)
     pcb->status = status;
 }
 
+int reap(pcb_t *pcb, int *status_ptr)
+{
+    if (status_ptr)
+        *status_ptr = pcb->status;
+    int pid = pcb->status;
+    // free(pcb->esp0);
+    free(pcb);
+    return pid;
+}
+
 void vanish()
 {
 
@@ -188,6 +199,9 @@ void vanish()
     linklist_remove(&pcb->threads, (void*)gettid());
     linklist_remove(&scheduler_queue, (void*)gettid());
 
+    int flag = 0;
+    deschedule_kern(&flag, false);
+
     enable_interrupts();
 
     if (yield(-1) < 0) {
@@ -205,17 +219,20 @@ int wait(int *status_ptr)
         return -2;
 
     tcb_t *tcb;
-    hashtable_get(&tcbs, gettid(), (void **)&tcb);
-
+    if (hashtable_get(&tcbs, gettid(), (void **)&tcb) < 0)
+        lprintf("fail 1");
     pcb_t *pcb;
-    hashtable_get(&pcbs, tcb->pid, (void**)&pcb);
+    if (hashtable_get(&pcbs, tcb->pid, (void**)&pcb) < 0)
+        lprintf("fail 2");
 
+    lprintf("mutex_lock");
     mutex_lock(&pcb->vanished_task_mutex);
 
     //would block forever in this case
     if (pcb->num_threads == 1 && pcb->num_children == 0) {
         return -1;
     }
+    lprintf("wait loop");
     while (linklist_empty(&pcb->vanished_tasks))
         cond_wait(&pcb->waiter_cv, &pcb->vanished_task_mutex);
 
@@ -225,13 +242,6 @@ int wait(int *status_ptr)
     pcb->num_children--;
     mutex_unlock(&pcb->vanished_task_mutex);
 
-    if (status_ptr) {
-        *status_ptr = dead_pcb->status;
-    }
-
-    int ret = dead_pcb->first_tid;
-
-    free(dead_pcb);
-
-    return ret;
+    return reap(dead_pcb, status_ptr);
 }
+

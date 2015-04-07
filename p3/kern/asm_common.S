@@ -38,14 +38,16 @@ jmp_ureg_user:
 
 .globl jmp_user
 jmp_user:
-    call set_user_segs
-    mov $0, %ebp
     mov %esp, %eax
     push $SEGSEL_USER_DS
     push 8(%eax)
     push $USER_EFLAGS
     push $SEGSEL_USER_CS
     push 4(%eax)
+.globl iret_user
+iret_user:
+    call set_user_segs
+    mov $0, %ebp
     iret
 
 .globl set_kernel_segs
