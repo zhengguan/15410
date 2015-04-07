@@ -19,9 +19,9 @@ typedef struct cond {
 } cond_t;
 
 /* Condition variable functions */
-int cond_init( cond_t *cv );
-void cond_wait( cond_t *cv, mutex_t *mp );
-void cond_signal( cond_t *cv );
-void cond_broadcast( cond_t *cv );
+int cond_init(cond_t *cv);
+void cond_wait(cond_t *cv, mutex_t *mp);
+void cond_signal(cond_t *cv);
+void cond_broadcast(cond_t *cv);
 
 #endif /* _COND_H */

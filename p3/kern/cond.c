@@ -37,6 +37,7 @@ int cond_init(cond_t *cv)
 /** @brief Allows a thread to wait for a condition variable.
  *
  *  @param cv The condition variable.
+ *  @oaram mp The mutex.
  *  @return Void.
  */
 void cond_wait(cond_t *cv, mutex_t *mp)
@@ -45,9 +46,10 @@ void cond_wait(cond_t *cv, mutex_t *mp)
         return;
     }
 
-    if (mp)
+    if (mp != NULL) {
         mutex_unlock(mp);
-
+    }
+    
     waiter_t waiter = {gettid(), 0};
 
     spinlock_lock(&cv->wait_lock);
@@ -56,8 +58,9 @@ void cond_wait(cond_t *cv, mutex_t *mp)
 
     deschedule_kern(&waiter.reject, false);
 
-    if (mp)
+    if (mp != NULL) {
         mutex_lock(mp);
+    }
 }
 
 /** @brief Wakes up a thread waiting on a condition variable.

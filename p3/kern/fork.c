@@ -47,7 +47,12 @@ int fork()
 
     if (store_regs(&old_tcb->regs, cur_esp0)) { //new thread
 
-        set_cr3((unsigned)vm_copy());
+        pd_t pd;
+        if (vm_copy(&pd) < 0) {
+            // TODO handle bad things
+        }    
+        
+        set_cr3((unsigned)pd);
 
         cur_tid = new_tid;
 
