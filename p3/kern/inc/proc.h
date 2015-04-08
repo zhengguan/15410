@@ -65,5 +65,6 @@ int proc_new_process(pcb_t **pcb_out, tcb_t **tcb_out);
 int proc_new_thread(pcb_t *pcb, tcb_t **tcb_out);
 int getpid();
 void thread_reaper() NORETURN;
+int kernel_kill(const char *fmt, ...) NORETURN;
 
 #endif /* _PROC_H */

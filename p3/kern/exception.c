@@ -66,21 +66,17 @@ static int call_user_handler(ureg_t *ureg)
     unsigned eip = (unsigned)handler->eip;
     free(handler);
 
-    lprintf("calling user handler");
-
     jmp_user(eip, esp); // reenables interrupts
 
     panic("returned from user handler");
-    return -3;
+    return -4;
 }
 
 void exception_handler(ureg_t ureg)
 {
-    lprintf("exception %u", ureg.cause);
-
-    // TODO why is this here?
+    lprintf("exception");
     if ((ureg.cs & 3) == 0) {
-        lprintf("kernel mode error");
+        lprintf("kernel mode exception %u", ureg.cause);
         MAGIC_BREAK;
     }
 
@@ -92,9 +88,8 @@ void exception_handler(ureg_t ureg)
         case IDT_CSO: /* Coprocessor Segment Overrun (Fault) */
         case IDT_TS:  /* Invalid Task Segment Selector (Fault) */
         case IDT_MC:  /* Machine Check (Abort) */
-            MAGIC_BREAK;
-            break;
-
+            enable_interrupts();
+            kernel_kill("Killing thread: Received exn %d", ureg.cause);
         /* exceptions passed to user */
         case IDT_DE:  /* Devision Error (Fault) */
         case IDT_DB:  /* Debug Exception (Fault/Trap) */
@@ -111,11 +106,9 @@ void exception_handler(ureg_t ureg)
         case IDT_XF:  /* SSE Floating Point Exception (Fault) */
             ureg.cr2 = 0;
         case IDT_PF: {  /* Page Fault (Fault) */
-            int err = call_user_handler(&ureg); // if comes back, we failed
-            lprintf("handler not correctly registered in user thread: %d. Killing.", err);
-            MAGIC_BREAK;
-            //KILL THREAD
+            call_user_handler(&ureg);
             enable_interrupts();
+            kernel_kill("Killing thread: No handler registered to handle exn %d", ureg.cause);
         }
     }
 }
@@ -134,6 +127,11 @@ int swexn(void *esp3, swexn_handler_t eip, void *arg, ureg_t *newureg)
             (eip && (unsigned)eip < USER_MEM_START)   ||
             (newureg && (unsigned)newureg < USER_MEM_START)) {
             return -1;
+        }
+
+        if (!vm_is_present_len((void*)((unsigned)esp3-sizeof(handler_args_t)),
+                                                     sizeof(handler_args_t))) {
+            return -4;
         }
 
         handler_t *handler;

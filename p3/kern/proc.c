@@ -17,6 +17,8 @@
 #include <asm.h>
 #include <vm.h>
 #include <assert.h>
+#include <stdio.h>
+#include <stdarg.h>
 
 #define FIRST_TID 1
 
@@ -308,4 +310,34 @@ int wait(int *status_ptr)
     mutex_unlock(&pcb->vanished_task_mutex);
 
     return reap_pcb(dead_pcb, status_ptr);
+}
+
+int kernel_kill(const char *fmt, ...)
+{
+    lprintf("kernel_kill");
+    /* Print error msg*/
+    va_list vl;
+    char buf[80];
+
+    va_start(vl, fmt);
+    vsnprintf(buf, sizeof (buf), fmt, vl);
+    va_end(vl);
+    lprintf(buf);
+
+    va_start(vl, fmt);
+    vprintf(fmt, vl);
+    va_end(vl);
+
+    printf("\n");
+
+    //TODO: Register Dump
+
+    /* Kill thread */
+    pcb_t *pcb;
+    assert (hashtable_get(&pcbs, getpid(), (void **)&pcb) == 0);
+
+    if (pcb->num_threads == 1)
+        set_status(-2);
+
+    vanish();
 }
