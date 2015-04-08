@@ -289,9 +289,6 @@ void vanish()
 
 int wait(int *status_ptr)
 {
-    if (status_ptr && !vm_is_present_len(status_ptr, sizeof(int)))
-        return -2;
-
     tcb_t *tcb;
     assert (hashtable_get(&tcbs, gettid(), (void **)&tcb) == 0);
     pcb_t *pcb;

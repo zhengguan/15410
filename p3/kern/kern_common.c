@@ -56,3 +56,14 @@ int str_check(char *str)
 
     return -1;
 }
+
+int int_check(int *n)
+{
+    if (n == NULL)
+        return 0;
+    if ((unsigned)n < USER_MEM_START)
+        return -1;
+    if (!vm_is_present_len(n, sizeof(int)))
+        return -2;
+    return 0;
+}

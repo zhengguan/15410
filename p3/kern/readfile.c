@@ -17,7 +17,7 @@ int readfile(char *filename, char *buf, int count, int offset)
     if (str_check(filename) < 0)
         return -4;
     //FIXME: what if they deallocate buf after we check?
-    if (!vm_is_present_len(buf, count))
+    if ((unsigned)buf < USER_MEM_START || !vm_is_present_len(buf, count))
         return -5;
 
     return getbytes(filename, offset, count, buf);

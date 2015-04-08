@@ -6,7 +6,7 @@ void *thr1(void *arg)
 {
     lprintf("hello from %d", thr_getid());
 
-    while (1);
+    return (void*)thr_getid();
 }
 
 
@@ -17,6 +17,5 @@ int main() {
     lprintf("hello from %d", thr_getid());
     thr_create(thr1, 0);
     lprintf("hello from %d", thr_getid());
-
-    while (1);
+    return 0;
 }

@@ -22,5 +22,5 @@ int main() {
         lprintf("swexn failed: %d", err);
     *character = 'a';
     lprintf("%c", *character);
-    while (1);
+    return 0;
 }

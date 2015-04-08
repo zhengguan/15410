@@ -177,12 +177,8 @@ int deschedule(int *flag)
  */
 int deschedule_kern(int *flag, bool user)
 {
-    // TODO move USER_MEM checks to handler wrappers
-
-    if (!vm_is_present_len(flag, sizeof(int))) {
+    if (flag == NULL)
         return -1;
-    }
-
     if (*flag) {
         return 0;
     }

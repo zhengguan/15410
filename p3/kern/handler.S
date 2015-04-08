@@ -76,9 +76,18 @@ vanish_int:
 wait_int:
     call    set_kernel_segs
     pushl   %esi
+    call    int_check
+    test    %eax, %eax
+    js      wait_fail
     call    wait
     addl    $4, %esp
     push    %eax
+    call    set_user_segs
+    pop     %eax
+    iret
+wait_fail:
+    addl    $4, %esp
+    pushl   %eax
     call    set_user_segs
     pop     %eax
     iret
@@ -109,9 +118,18 @@ yield_int:
 deschedule_int:
     call    set_kernel_segs
     pushl   %esi
+    call    int_check
+    test    %eax, %eax
+    js      deschedule_fail
     call    deschedule
     addl    $4, %esp
     push    %eax
+    call    set_user_segs
+    pop     %eax
+    iret
+deschedule_fail:
+    addl    $4, %esp
+    pushl   %eax
     call    set_user_segs
     pop     %eax
     iret

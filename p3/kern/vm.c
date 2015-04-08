@@ -4,7 +4,7 @@
  *  Manages virtual memory using a two-level page table structure.  Implements
  *  new_pages and remove_pages system calls.  Free physical frames are kept in
  *  a linked list.  The length of memory regions allocated by calls to
- *  new_pages are kept in a hashtable. 
+ *  new_pages are kept in a hashtable.
  *
  *  @author Patrick Koenig (phkoenig)
  *  @author Jack Sorrell (jsorrell)
@@ -110,7 +110,7 @@ static bool is_pt_empty(pde_t *pde) {
 /** @brief Initializes the virtual memory.
  *
  *  Creates a new page table directory and sets %cr3, sets the paging bit in
- *  %cr0, and sets the page global enable bit in %cr4. 
+ *  %cr0, and sets the page global enable bit in %cr4.
  *
  *  @return 0 on success, negative error code otherwise.
  */
@@ -151,17 +151,17 @@ int vm_new_pd(pd_t *new_pd)
     if (pd == NULL) {
         return -1;
     }
-    
+
     int i;
     for (i = 0; i < PD_SIZE; i++) {
-        pd[i] &= ~PTE_PRESENT; 
+        pd[i] &= ~PTE_PRESENT;
     }
-    
+
     unsigned pa;
     for (pa = KERNEL_MEM_START; pa < USER_MEM_START; pa += PAGE_SIZE) {
         vm_new_pte(pd, (void *)pa, pa, KERNEL_FLAGS);
     }
-    
+
     *new_pd = pd;
 
     return 0;
@@ -177,7 +177,7 @@ int vm_new_pd(pd_t *new_pd)
 int vm_new_pde(pde_t *pde, pt_t pt, unsigned flags)
 {
     *pde = (GET_PA(pt) | PTE_PRESENT | flags);
-    
+
     return 0;
 }
 
@@ -198,7 +198,7 @@ int vm_new_pt(pde_t *pde, unsigned flags)
 
     int i;
     for (i = 0; i < PT_SIZE; i++) {
-        pt[i] &= ~PTE_PRESENT; 
+        pt[i] &= ~PTE_PRESENT;
     }
 
     vm_new_pde(pde, pt, flags);
@@ -228,7 +228,7 @@ int vm_new_pte(pd_t pd, void *va, unsigned pa, unsigned flags)
 
     pte_t *pte = GET_PT(*pde) + GET_PT_IDX(va);
     *pte = ((pa & PAGE_MASK) | PTE_PRESENT | flags);
-    
+
     return 0;
 }
 
@@ -271,15 +271,15 @@ void vm_remove_pte(void *va) {
     }
 
     pde_t *pde = GET_PD() + GET_PD_IDX(va);
-    
+
     pte_t *pte =  GET_PT(*pde) + GET_PT_IDX(va);
     *pte &= ~PTE_PRESENT;
-    
+
     unsigned pa = GET_PA(*pte);
     if (pa >= USER_MEM_START) {
         linklist_add_tail(&free_frames, (void *)(*pte & PAGE_MASK));
     }
-    
+
     if (is_pt_empty(pde)) {
         vm_remove_pt(pde);
     }
@@ -311,6 +311,10 @@ bool vm_is_present(void *va)
  */
 bool vm_is_present_len(void *base, unsigned len)
 {
+
+    if ((unsigned)base > -len)
+        return false;
+
     unsigned va = (unsigned)base;
 
     if (va > va + len - 1) {
@@ -413,12 +417,12 @@ void vm_clear() {
  */
 void vm_destroy(pd_t pd) {
     vm_clear();
-    
+
     unsigned va;
     for(va = KERNEL_MEM_START; va < USER_MEM_START; va += PAGE_SIZE) {
         vm_remove_pte((void *)va);
     }
-    
+
     sfree(pd, PAGE_SIZE);
 }
 
@@ -442,6 +446,12 @@ int new_pages(void *base, int len)
         return -3;
     }
 
+    if ((unsigned)base < USER_MEM_START)
+        return -4;
+
+    if ((unsigned)base > -(unsigned)len)
+        return -5;
+
     unsigned va;
     for (va = (unsigned)base; va < (unsigned)base + len - 1; va += PAGE_SIZE) {
         if (vm_is_present((void *)va)) {
@@ -460,7 +470,7 @@ int new_pages(void *base, int len)
 
 /** @brief Deallocate the memory region starting at base.
  *
- *  @param base The base of the memory refgion to deallocate.
+ *  @param base The base of the memory region to deallocate.
  *  @return 0 on success, negative error code otherwise.
  */
 int remove_pages(void *base)

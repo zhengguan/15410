@@ -34,6 +34,7 @@
 #include <simics.h>
 #include <asm_common.h>
 #include <seg.h>
+#include <exception.h>
 
 #define INIT_NAME "init"
 #define INIT_ARG {NULL}
@@ -70,6 +71,10 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
 
     if (proc_init() < 0) {
         lprintf("failed to init proc");
+    }
+
+    if (exception_init() < 0) {
+        lprintf("failed to init exceptions");
     }
 
     clear_console();

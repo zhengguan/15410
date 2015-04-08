@@ -45,7 +45,7 @@ int main() {
             while(1) {
                 slow();
             }
-    }
+        }
     }
     return 0;
 }

@@ -49,7 +49,7 @@ void cond_wait(cond_t *cv, mutex_t *mp)
     if (mp != NULL) {
         mutex_unlock(mp);
     }
-    
+
     waiter_t waiter = {gettid(), 0};
 
     spinlock_lock(&cv->wait_lock);

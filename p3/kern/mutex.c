@@ -13,6 +13,7 @@
 #include <syscall.h>
 #include <linklist.h>
 #include <waiter.h>
+#include <scheduler.h>
 #include <simics.h>
 
 /** @brief Initializes a mutex.
@@ -60,7 +61,7 @@ void mutex_lock(mutex_t *mp) {
     mp->count--;
     spinlock_unlock(&mp->wait_lock);
 
-    deschedule(&waiter.reject);
+    deschedule_kern(&waiter.reject, false);
 
     mp->tid = gettid();
 }
@@ -80,7 +81,7 @@ void mutex_unlock(mutex_t *mp) {
         waiter_t *waiter;
         linklist_remove_head(&mp->wait_list, (void**)&waiter);
         waiter->reject = 1;
-        make_runnable(waiter->tid);
+        make_runnable_kern(waiter->tid, false);
     }
     mp->count++;
     spinlock_unlock(&mp->wait_lock);

@@ -7,5 +7,5 @@ int main ()
     halt();
     lprintf("post-halt");
 
-    while(1);
+    return 0;
 }

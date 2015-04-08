@@ -13,5 +13,5 @@ int main() {
         offset += strlen(buf) + 1;
     }
 
-    while (1);
+    return 0;
 }

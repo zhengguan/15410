@@ -36,13 +36,15 @@ typedef struct {
 
 hashtable_t handler_ht;
 
-bool ht_inited = false;
+int exception_init()
+{
+    if (hashtable_init(&handler_ht, HASHTABLE_SIZE) < 0)
+        return -1;
+    return 0;
+}
 
 static int call_user_handler(ureg_t *ureg)
 {
-    if (!ht_inited)
-        return -1;
-
     disable_interrupts();
 
     handler_t *handler;
@@ -68,7 +70,7 @@ static int call_user_handler(ureg_t *ureg)
 
     jmp_user(eip, esp); // reenables interrupts
 
-    // shouldn't get here
+    panic("returned from user handler");
     return -3;
 }
 
@@ -120,24 +122,20 @@ void exception_handler(ureg_t ureg)
 
 int swexn(void *esp3, swexn_handler_t eip, void *arg, ureg_t *newureg)
 {
-    if ((esp3 && (unsigned)esp3 < USER_MEM_START) || (eip && (unsigned)eip < USER_MEM_START) || (newureg && (unsigned)newureg < USER_MEM_START)) {
-        return -1;
-    }
+    //check return ureg
+    if (newureg && !vm_is_present_len(newureg, sizeof(ureg_t)))
+        return -2;
 
-    // TODO is disable interrupts necessary here?
-    // TODO move to init function?
-    disable_interrupts();
-    if (!ht_inited) {
-        if (hashtable_init(&handler_ht, HASHTABLE_SIZE) < 0)
-            return -2;
-
-        ht_inited = true;
-    }
-    enable_interrupts();
-
+    //if one null, remove handler
     if (esp3 == NULL || eip == NULL) {
         hashtable_remove(&handler_ht, getpid());
     } else {
+        if ((esp3 && (unsigned)esp3 < USER_MEM_START) ||
+            (eip && (unsigned)eip < USER_MEM_START)   ||
+            (newureg && (unsigned)newureg < USER_MEM_START)) {
+            return -1;
+        }
+
         handler_t *handler;
         disable_interrupts();
         if (hashtable_get(&handler_ht, getpid(), (void **)&handler) < 0) {
