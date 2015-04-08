@@ -31,8 +31,8 @@ int fork()
 
     tcb_t *new_tcb;
     pcb_t *new_pcb;
-
-    if (proc_new_process(&new_pcb, &new_tcb) < 0) {
+    int new_tid;
+    if ( (new_tid = proc_new_process(&new_pcb, &new_tcb)) < 0) {
         return -1;
     }
 
@@ -42,8 +42,6 @@ int fork()
     int cur_esp0 = old_tcb->esp0;
     old_tcb->esp0 = new_tcb->esp0;
     new_tcb->esp0 = cur_esp0;
-
-    int new_tid = new_tcb->tid; //in case new thread dies before we return
 
     if (store_regs(&old_tcb->regs, cur_esp0)) { //new thread
 
@@ -55,12 +53,9 @@ int fork()
         memcpy((void *)(old_tcb->esp0 - KERNEL_STACK_SIZE), (void *)(new_tcb->esp0 - KERNEL_STACK_SIZE), KERNEL_STACK_SIZE);
 
         linklist_add_tail(&scheduler_queue, (void *)new_tid);
-
-        lprintf("oldesp0: %x, newesp0: %x", old_tcb->esp0, new_tcb->esp0);
         return 0;
     } else { //old thread
         notify_interrupt_complete(); //we are coming from timer call but not returning
-        lprintf("back to parent");
         return new_tid;
     }
 }

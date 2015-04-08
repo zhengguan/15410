@@ -24,7 +24,7 @@ typedef struct regs {
     unsigned esi;           // 4
     unsigned edi;           // 8
     unsigned esp_offset;    // 12
-    unsigned ebp;           // 16
+    unsigned ebp_offset;    // 16
     unsigned eip;           // 20
     unsigned eflags;        // 24
     unsigned cr0;           // 28
@@ -65,5 +65,6 @@ int proc_init();
 int proc_new_process(pcb_t **pcb_out, tcb_t **tcb_out);
 int proc_new_thread(pcb_t *pcb, tcb_t **tcb_out);
 int getpid();
+void reap_tcbs();
 
 #endif /* _PROC_H */

@@ -73,6 +73,8 @@ void scheduler_tick(unsigned ticks)
         make_runnable(sleep_info->tid);
     }
 
+    reap_tcbs();
+
     int tid;
     if (linklist_remove_head(&scheduler_queue, (void**)&tid) == 0) {
         linklist_add_tail(&scheduler_queue, (void*)tid);

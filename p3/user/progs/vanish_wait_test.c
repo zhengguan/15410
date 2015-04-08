@@ -19,12 +19,13 @@ int main()
     int newtid1, newtid2;
     if ( (newtid1 = fork()) ) {
         if ( (newtid2 = fork()) ) {
-            int status1, status2;
+            int status1;
             lprintf("waiting");
             wait(&status1);
             lprintf("Child exited with status %d", status1);
-            wait(&status2);
-            lprintf("Child exited with status %d", status2);
+            //wait(&status2);
+            //lprintf("Child exited with status %d", status2);
+            lprintf("parent exiting");
             return 0;
         }
         lprintf("child2");

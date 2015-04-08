@@ -16,8 +16,13 @@
 #include <simics.h>
 #include <asm.h>
 #include <vm.h>
+#include <assert.h>
 
-unsigned next_tid = 1;
+#define FIRST_TID 1
+
+unsigned next_tid = FIRST_TID;
+
+linklist_t tcbs_to_reap;
 
 hashtable_t pcbs;
 hashtable_t tcbs;
@@ -154,63 +159,84 @@ void set_status(int status)
     pcb->status = status;
 }
 
-int reap(pcb_t *pcb, int *status_ptr)
+int reap_pcb(pcb_t *pcb, int *status_ptr)
 {
     if (status_ptr)
         *status_ptr = pcb->status;
-    int pid = pcb->status;
-    // free(pcb->esp0);
+    int pid = pcb->pid;
     free(pcb);
     return pid;
 }
 
+void reap_tcb(tcb_t *tcb)
+{
+    free((void*)(tcb->esp0 - KERNEL_STACK_SIZE));
+    free(tcb);
+}
+
+void reap_tcbs()
+{
+    tcb_t *tcb;
+    while (linklist_remove_head(&tcbs_to_reap, (void**)&tcb) == 0)
+        reap_tcb(tcb);
+}
+
+//After context switch, cannot come back
+void destroy_thread(tcb_t *tcb) NORETURN;
+
+void destroy_thread(tcb_t *tcb)
+{
+    linklist_add_tail(&tcbs_to_reap, tcb);
+    int flag = 0;
+    deschedule_kern(&flag, false);
+
+    //FIXME: make compiler happy another way
+    while (1);
+}
+
 void vanish()
 {
-
     tcb_t *tcb;
     hashtable_get(&tcbs, gettid(), (void **)&tcb);
+    hashtable_remove(&tcbs, gettid());
 
     pcb_t *pcb;
     hashtable_get(&pcbs, tcb->pid, (void**)&pcb);
+    hashtable_remove(&pcbs, tcb->pid);
+
 
     disable_interrupts();
 
     if (pcb->num_threads == 1) {
-        if (pcb->parent_pid < 0) {
-            lprintf("tried to remove last thread of root process");
-            MAGIC_BREAK;
-        }
+        pcb_t *init_pcb;
+        hashtable_get(&pcbs, init_tid, (void**)&init_pcb);
+
+        assert(pcb->parent_pid >= FIRST_TID);
 
         pcb_t *parent_pcb;
         if (hashtable_get(&pcbs, pcb->parent_pid, (void*)&parent_pcb) < 0) {
-            //TODO: add self to idle's vanished tasks; parent has already died
+            linklist_add_tail(&init_pcb->vanished_tasks, pcb);
+            cond_signal(&init_pcb->waiter_cv);
         } else {
             linklist_add_tail(&parent_pcb->vanished_tasks, pcb);
+            parent_pcb->num_children--;
             cond_signal(&parent_pcb->waiter_cv);
         }
 
-        pcb_t *dead_pcb;
-        while (linklist_remove_head(&pcb->vanished_tasks, (void**)&dead_pcb) == 0)
-            free(dead_pcb);
-    }
 
+        pcb_t *dead_pcb;
+        while (linklist_remove_head(&pcb->vanished_tasks, (void**)&dead_pcb) == 0) {
+            linklist_add_tail(&init_pcb->vanished_tasks, dead_pcb);
+            cond_signal(&init_pcb->waiter_cv);
+        }
+    }
 
     pcb->num_threads--;
     linklist_remove(&pcb->threads, (void*)gettid());
-    linklist_remove(&scheduler_queue, (void*)gettid());
 
-    int flag = 0;
-    deschedule_kern(&flag, false);
-
-    enable_interrupts();
-
-    if (yield(-1) < 0) {
-        //TODO: what to do here. last thread
-        while(1);
-    }
-
-    //to forgo compiler message
-    while(1);
+    disable_interrupts();
+    destroy_thread(tcb);
+    panic("Failed to vanish.");
 }
 
 int wait(int *status_ptr)
@@ -225,23 +251,21 @@ int wait(int *status_ptr)
     if (hashtable_get(&pcbs, tcb->pid, (void**)&pcb) < 0)
         lprintf("fail 2");
 
-    lprintf("mutex_lock");
     mutex_lock(&pcb->vanished_task_mutex);
 
-    //would block forever in this case
-    if (pcb->num_threads == 1 && pcb->num_children == 0) {
-        return -1;
-    }
-    lprintf("wait loop");
-    while (linklist_empty(&pcb->vanished_tasks))
+    while (linklist_empty(&pcb->vanished_tasks)) {
+        //would block forever in this case
+        if (pcb->num_threads == 1 && pcb->num_children == 0) {
+            return -1;
+        }
         cond_wait(&pcb->waiter_cv, &pcb->vanished_task_mutex);
+    }
 
     pcb_t *dead_pcb;
     linklist_remove_head(&pcb->vanished_tasks, (void*)&dead_pcb);
 
-    pcb->num_children--;
     mutex_unlock(&pcb->vanished_task_mutex);
 
-    return reap(dead_pcb, status_ptr);
+    return reap_pcb(dead_pcb, status_ptr);
 }
 

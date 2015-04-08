@@ -13,6 +13,6 @@
 #include <proc.h>
 
 int store_regs(regs_t *regs, unsigned cur_esp0);
-void restore_regs(regs_t *regs, unsigned new_esp0);
+void restore_regs(regs_t *regs, unsigned new_esp0) NORETURN;
 
 #endif /* _CONTEXT_SWITCH_H */

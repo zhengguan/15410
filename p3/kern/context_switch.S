@@ -15,10 +15,13 @@ store_regs:
     subl    $4, %edx
     mov     %edx, 12(%ecx)
 
+    mov     8(%esp), %edx
+    subl    %ebp, %edx
+    mov     %edx, 16(%ecx)
+
     mov     %ebx, (%ecx)
     mov     %esi, 4(%ecx)
     mov     %edi, 8(%ecx)
-    mov     %ebp, 16(%ecx)
     mov     (%esp), %edx
     mov     %edx, 20(%ecx)
     pushfl
@@ -39,13 +42,16 @@ restore_regs:
     movl     4(%esp), %ecx
 
     mov     8(%esp), %edx
+    subl    16(%ecx), %edx
+    mov     %edx, %ebp
+
+    mov     8(%esp), %edx
     subl    12(%ecx), %edx
     mov     %edx, %esp
 
     mov     (%ecx), %ebx
     mov     4(%ecx), %esi
     mov     8(%ecx), %edi
-    mov     16(%ecx), %ebp
     pushl    24(%ecx)
     popfl
     movl    28(%ecx), %edx

@@ -93,7 +93,7 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
     idle_tcb->regs.cr2 = get_cr2();
     idle_tcb->regs.cr3 = get_cr3();
     idle_tcb->regs.cr4 = get_cr4();
-    idle_tcb->regs.ebp = 0;
+    idle_tcb->regs.ebp_offset = -idle_tcb->esp0;
     idle_tcb->regs.eflags = USER_EFLAGS;
 
     idle_wrap_esp->eip = idle_eip;
@@ -114,6 +114,7 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
 
     set_esp0(init_tcb->esp0);
     cur_tid = init_tcb->tid;
+    init_tid = init_tcb->tid;
     linklist_add_head(&scheduler_queue, (void*)init_tcb->tid);
 
     // set_cr0((get_cr0() & ~CR0_AM & ~CR0_WP) | CR0_PE);
