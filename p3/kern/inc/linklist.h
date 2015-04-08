@@ -29,6 +29,7 @@ int linklist_init(linklist_t *list);
 void linklist_add_head(linklist_t *list, void *data);
 void linklist_add_tail(linklist_t *list, void *data);
 void linklist_add_sorted(linklist_t *list, void *data, data_cmp_t cmp);
+int linklist_peek_head(linklist_t *list, void **data);
 int linklist_remove_head(linklist_t *list, void **data);
 int linklist_remove_all(linklist_t *list);
 int linklist_remove(linklist_t *list, void *data);

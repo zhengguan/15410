@@ -175,6 +175,7 @@ void set_status(int status)
 
 int reap_pcb(pcb_t *pcb, int *status_ptr)
 {
+    hashtable_remove(&pcbs, pcb->pid);
     if (status_ptr)
         *status_ptr = pcb->status;
     int pid = pcb->pid;
@@ -184,6 +185,7 @@ int reap_pcb(pcb_t *pcb, int *status_ptr)
 
 void reap_tcb(tcb_t *tcb)
 {
+    hashtable_remove(&tcbs, tcb->tid);
     free((void*)(tcb->esp0 - KERNEL_STACK_SIZE));
     free(tcb);
 }
@@ -220,11 +222,9 @@ void vanish()
 {
     tcb_t *tcb;
     hashtable_get(&tcbs, gettid(), (void **)&tcb);
-    hashtable_remove(&tcbs, gettid());
 
     pcb_t *pcb;
     hashtable_get(&pcbs, tcb->pid, (void**)&pcb);
-    hashtable_remove(&pcbs, tcb->pid);
 
 
     disable_interrupts();

@@ -9,9 +9,9 @@
 #include <driver.h>
 #include <common_kern.h>
 #include <vm.h>
+#include <assert.h>
 
 linklist_t scheduler_queue;
-
 linklist_t sleep_queue;
 
 #define DESCHEDULED_HT_SIZE 100
@@ -23,7 +23,7 @@ typedef struct sleep_info {
     unsigned wake_ticks;
 } sleep_info_t;
 
-/** @brief Compares the wake times of sleep_info struts.  See linklist.h.
+/** @brief Compares the wake times of sleep_info structs.  See linklist.h.
  *
  *  @param info1 First sleep_info_t.
  *  @param info2 Second sleep_info_t.
@@ -65,19 +65,19 @@ void scheduler_tick(unsigned ticks)
     // TODO add linklist_get method to use instead
     // Wake sleeping threads
     sleep_info_t *sleep_info;
-    while (linklist_remove_head(&sleep_queue, (void **)&sleep_info) == 0) {
-        if (sleep_info->wake_ticks > ticks) {
-            linklist_add_head(&sleep_queue, (void *)sleep_info);
-            break;
-        }
+    while ((linklist_peek_head(&sleep_queue, (void **)&sleep_info) == 0) &&
+                                        sleep_info->wake_ticks <= ticks) {
         make_runnable(sleep_info->tid);
+        assert (linklist_remove_head(&sleep_queue, NULL) == 0);
     }
 
     int tid;
-    if (linklist_remove_head(&scheduler_queue, (void**)&tid) == 0) {
-        linklist_add_tail(&scheduler_queue, (void*)tid);
-        context_switch(tid);
+    if (linklist_remove_head(&scheduler_queue, (void**)&tid) < 0) {
+        assert(gettid() == idle_tid);
+        return;
     }
+    linklist_add_tail(&scheduler_queue, (void*)tid);
+    context_switch(tid);
 }
 
 /** @brief Context switches to the thread with ID tid.
@@ -98,7 +98,7 @@ int context_switch(int tid)
     }
 
     tcb_t *old_tcb;
-    hashtable_get(&tcbs, gettid(), (void**)&old_tcb);
+    assert(hashtable_get(&tcbs, gettid(), (void**)&old_tcb) == 0);
 
     disable_interrupts();
 
@@ -124,23 +124,16 @@ int yield(int tid)
     if (tid == -1) {
         if (linklist_remove_head(&scheduler_queue, (void**)&tid) < 0) {
             //no threads so run idle
-            if (context_switch(idle_tid) < 0) {
-                lprintf("error yielding to idle");
-                return -1;
-            }
+            assert (context_switch(idle_tid) == 0);
             return 0;
         }
-    } else {
-        if (linklist_remove(&scheduler_queue, (void *)tid) < 0) {
-            return -2;
-        }
+    } else if (linklist_remove(&scheduler_queue, (void *)tid) < 0) {
+        return -1;
     }
 
     linklist_add_tail(&scheduler_queue, (void*)tid);
 
-    if (context_switch(tid) < 0) {
-        return -3;
-    }
+    assert (context_switch(tid) == 0);
 
     //FIXME: not always from timer call
     notify_interrupt_complete(); //we are coming from timer call but not returning
@@ -151,6 +144,18 @@ int yield(int tid)
 // TODO Add atomicity with make runnable, use either a spinlock or disable interrupts
 
 
+/** @brief Deschedules the calling thread.
+ *
+ *  If the integer pointed to by reject is non-zero, the call returns
+ *  immediately returns with return value 0. If the integer pointed to by
+ *  reject is zero, then the calling thread will not be run by the scheduler
+ *  until a make_runnable() call is made specifying the descheduled thread, at
+ *  point deschedule() will return zero.
+ *
+ *  @param flag If this points to a nonzero integer, deschedule returns
+ *  immediately.
+ *  @return 0 on success, negative error code otherwise.
+ */
 int deschedule(int *flag)
 {
     return deschedule_kern(flag, true);
@@ -162,10 +167,12 @@ int deschedule(int *flag)
  *  immediately returns with return value 0.  If the integer pointed to by
  *  reject is zero, then the calling thread will not be run by the scheduler
  *  until a make_runnable() call is made specifying the descheduled thread, at
- *  point deschedule() will return zero.
+ *  point deschedule() will return zero. The thread cannot be rescheduled
+ *  by a call to make_runnable if user is false.
  *
  *  @param flag If this points to a nonzero integer, deschedule returns
  *  immediately.
+ *  @param user User bool
  *  @return 0 on success, negative error code otherwise.
  */
 int deschedule_kern(int *flag, bool user)
@@ -180,7 +187,9 @@ int deschedule_kern(int *flag, bool user)
         return 0;
     }
 
-    if (linklist_remove(&scheduler_queue, (void *)gettid()) == 0 && user) {
+    assert(linklist_remove(&scheduler_queue, (void*)gettid()) == 0);
+
+    if (user) {
         hashtable_add(&descheduled_tids, gettid(), NULL);
     }
 
@@ -191,6 +200,12 @@ int deschedule_kern(int *flag, bool user)
     return 0;
 }
 
+/** @brief Makes the descheduled thread with ID tid runnable if the thread
+ *  was descheduled by a call to deschedule.
+ *
+ *  @param tid The tid of the thread to make runnable.
+ *  @return 0 on success, negative error code otherwise.
+ */
 int make_runnable(int tid)
 {
     return make_runnable_kern(tid, true);
@@ -198,7 +213,11 @@ int make_runnable(int tid)
 
 /** @brief Makes the descheduled thread with ID tid runnable.
  *
+ *  It is an error to try to reschedule a thread who was descheduled by
+ *  deschedule_kern(tid, false) if user is true.
+ *
  *  @param tid The tid of the thread to make runnable.
+ *  @param user User bool
  *  @return 0 on success, negative error code otherwise.
  */
 int make_runnable_kern(int tid, bool user)
@@ -208,11 +227,10 @@ int make_runnable_kern(int tid, bool user)
     }
 
     if (user) {
-        if (hashtable_get(&descheduled_tids, tid, NULL) < 0) {
+        if (hashtable_get(&descheduled_tids, tid, NULL) == 0)
+            assert(hashtable_remove(&descheduled_tids, tid) == 0);
+        else
             return -2;
-        } else {
-            hashtable_remove(&descheduled_tids, tid);
-        }
     }
 
     linklist_add_tail(&scheduler_queue, (void*)tid);

@@ -150,6 +150,31 @@ int linklist_remove_head(linklist_t *list, void **data) {
     return 0;
 }
 
+/** @brief Looks at the node at the head of a list.
+ *
+ *  @param list The list.
+ *  @param data A location in memory to store the removed data.
+ *  @return 0 on success, negative error code otherwise.
+ */
+int linklist_peek_head(linklist_t *list, void **data) {
+    if (list == NULL) {
+        return -1;
+    }
+
+    listnode_t *node = list->head;
+
+    if (node == NULL) {
+        return -2;
+    }
+
+    if (data == NULL)
+        return -3;
+
+    *data = node->data;
+
+    return 0;
+}
+
 /** @brief Removes the first instance of data in the list.
  *
  *  @param list The list.
