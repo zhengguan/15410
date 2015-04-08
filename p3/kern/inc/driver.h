@@ -12,6 +12,8 @@
 #ifndef _DRIVER_H
 #define _DRIVER_H
 
+// TODO remove this, replace with functions in x86/pic
+
 void notify_interrupt_complete();
 
 #endif /* _DRIVER_H */

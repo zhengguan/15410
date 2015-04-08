@@ -62,7 +62,7 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
     }
 
     idt_init();
-
+    
     if (vm_init() < 0) {
         lprintf("failed to init vm");
     }
@@ -107,7 +107,11 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
     if (proc_new_process(NULL, &init_tcb) < 0) {
         lprintf("failed to create init");
     }
-    set_cr3((unsigned)vm_new_pd());
+    pd_t pd;
+    if (vm_new_pd(&pd) < 0) {
+        lprintf("vm_new_pd failed");
+    }
+    set_cr3((unsigned)pd);
     unsigned init_eip, init_esp;
     char *init_arg[] = INIT_ARG;
     load(INIT_NAME, init_arg, &init_eip, &init_esp);
