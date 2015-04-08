@@ -63,6 +63,9 @@ int proc_init() {
 
 /** @brief Creates a new PCB for a process.
  *
+ *  @param pcb_out Memory to store the newly created PCB
+ *  @param tcb_out Memory to store the newly created TCB
+ *
  *  @return The thread ID of the newly created thread on success, negative
  *  error code otherwise.
  */
@@ -70,10 +73,6 @@ int proc_new_process(pcb_t **pcb_out, tcb_t **tcb_out) {
     pcb_t *pcb = malloc(sizeof(pcb_t));
     if (pcb == NULL) {
         return -1;
-    }
-
-    if (linklist_init(&pcb->threads) < 0) {
-        return -2;
     }
 
     if (cond_init(&pcb->waiter_cv) < 0) {
@@ -87,7 +86,6 @@ int proc_new_process(pcb_t **pcb_out, tcb_t **tcb_out) {
     if (linklist_init(&pcb->vanished_tasks) < 0) {
         return -5;
     }
-
 
     pcb->num_children = 0;
     pcb->status = 0;
@@ -112,11 +110,11 @@ int proc_new_process(pcb_t **pcb_out, tcb_t **tcb_out) {
 
 /** @brief Creates a new TCB for a thread.
  *
+ *  @param pcb The PCB of the process in which to create the thread.
+ *  @param tcb_out Memory to store the newly created TCB.
  *  @return The tid on success, negative error code otherwise.
  */
 int proc_new_thread(pcb_t *pcb, tcb_t **tcb_out) {
-    // TODO may need to disable interrupts to prevent context switching in here
-
     tcb_t *tcb = malloc(sizeof(tcb_t));
     if (tcb == NULL) {
         return -4;
@@ -139,7 +137,6 @@ int proc_new_thread(pcb_t *pcb, tcb_t **tcb_out) {
 
 
     hashtable_add(&tcbs, tcb->tid, (void*)tcb);
-    linklist_add_tail(&pcb->threads, tcb);
 
     pcb->num_threads++;
 
@@ -155,6 +152,10 @@ int gettid()
     return cur_tid;
 }
 
+/** @brief Returns the task ID of the invoking thread.
+ *
+ *  @return The task ID of the invoking thread.
+ */
 int getpid()
 {
     tcb_t *tcb;
@@ -173,9 +174,19 @@ void set_status(int status)
     pcb->status = status;
 }
 
-int reap_pcb(pcb_t *pcb, int *status_ptr)
+/**
+ * @brief Reaps a process.
+ *
+ * @param pcb The PCB of the process to reap.
+ * @param status_ptr A pointer to memory in which to store the
+ * status of the exited process.
+ *
+ * @return The PID of the process to reap.
+ */
+
+static int reap_pcb(pcb_t *pcb, int *status_ptr)
 {
-    hashtable_remove(&pcbs, pcb->pid);
+    assert(hashtable_remove(&pcbs, pcb->pid) == 0);
     if (status_ptr)
         *status_ptr = pcb->status;
     int pid = pcb->pid;
@@ -183,13 +194,25 @@ int reap_pcb(pcb_t *pcb, int *status_ptr)
     return pid;
 }
 
-void reap_tcb(tcb_t *tcb)
+/**
+ * @brief Reaps a thread.
+ *
+ * @param tcb The TCB of the thread to reap.
+ */
+static void reap_tcb(tcb_t *tcb)
 {
     hashtable_remove(&tcbs, tcb->tid);
     free((void*)(tcb->esp0 - KERNEL_STACK_SIZE));
     free(tcb);
 }
 
+/**
+ * @brief Reaping all threads as they vanish.
+ *
+ * To run in its own process.
+ * Does not return.
+ *
+ */
 void thread_reaper()
 {
     mutex_lock(&thread_reap_mutex);
@@ -203,9 +226,15 @@ void thread_reaper()
 }
 
 //After context switch, cannot come back
-void destroy_thread(tcb_t *tcb) NORETURN;
-
-void destroy_thread(tcb_t *tcb)
+/**
+ * @brief Destroys a thread
+ * @details Queues a thread for reaping, deschedules the thread,
+ * and context switches.
+ *
+ * @param tcb The tcb of the thread to destroy.
+ */
+static void destroy_thread(tcb_t *tcb) NORETURN;
+static void destroy_thread(tcb_t *tcb)
 {
     mutex_lock(&thread_reap_mutex);
     linklist_add_tail(&tcbs_to_reap, tcb);
@@ -213,18 +242,18 @@ void destroy_thread(tcb_t *tcb)
     cond_signal(&thread_reap_cv);
     int flag = 0;
     deschedule_kern(&flag, false);
+    panic("Running destroyed thread");
 
-    //FIXME: make compiler happy another way
-    while (1);
+    while(1); //make compiler happy in noreturn function.
 }
 
 void vanish()
 {
     tcb_t *tcb;
-    hashtable_get(&tcbs, gettid(), (void **)&tcb);
+    assert(hashtable_get(&tcbs, gettid(), (void **)&tcb) == 0);
 
     pcb_t *pcb;
-    hashtable_get(&pcbs, tcb->pid, (void**)&pcb);
+    assert(hashtable_get(&pcbs, tcb->pid, (void**)&pcb) == 0);
 
 
     disable_interrupts();
@@ -254,11 +283,8 @@ void vanish()
     }
 
     pcb->num_threads--;
-    linklist_remove(&pcb->threads, (void*)gettid());
 
-    disable_interrupts();
     destroy_thread(tcb);
-    panic("Failed to vanish.");
 }
 
 int wait(int *status_ptr)
@@ -267,24 +293,20 @@ int wait(int *status_ptr)
         return -2;
 
     tcb_t *tcb;
-    if (hashtable_get(&tcbs, gettid(), (void **)&tcb) < 0)
-        lprintf("fail 1");
+    assert (hashtable_get(&tcbs, gettid(), (void **)&tcb) == 0);
     pcb_t *pcb;
-    if (hashtable_get(&pcbs, tcb->pid, (void**)&pcb) < 0)
-        lprintf("fail 2");
+    assert (hashtable_get(&pcbs, tcb->pid, (void **)&pcb) == 0);
 
     mutex_lock(&pcb->vanished_task_mutex);
 
-    while (linklist_empty(&pcb->vanished_tasks)) {
+    pcb_t *dead_pcb;
+    while (linklist_remove_head(&pcb->vanished_tasks, (void*)&dead_pcb) < 0) {
         //would block forever in this case
         if (pcb->num_threads == 1 && pcb->num_children == 0) {
             return -1;
         }
         cond_wait(&pcb->waiter_cv, &pcb->vanished_task_mutex);
     }
-
-    pcb_t *dead_pcb;
-    linklist_remove_head(&pcb->vanished_tasks, (void*)&dead_pcb);
 
     mutex_unlock(&pcb->vanished_task_mutex);
 

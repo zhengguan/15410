@@ -40,7 +40,6 @@ typedef struct pcb {
     int num_children;
     int parent_pid;
     int first_tid;
-    linklist_t threads;
 
     cond_t waiter_cv;
     mutex_t vanished_task_mutex;
@@ -65,6 +64,6 @@ int proc_init();
 int proc_new_process(pcb_t **pcb_out, tcb_t **tcb_out);
 int proc_new_thread(pcb_t *pcb, tcb_t **tcb_out);
 int getpid();
-void thread_reaper();
+void thread_reaper() NORETURN;
 
 #endif /* _PROC_H */
