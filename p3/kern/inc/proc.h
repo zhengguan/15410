@@ -65,6 +65,6 @@ int proc_init();
 int proc_new_process(pcb_t **pcb_out, tcb_t **tcb_out);
 int proc_new_thread(pcb_t *pcb, tcb_t **tcb_out);
 int getpid();
-void reap_tcbs();
+void thread_reaper();
 
 #endif /* _PROC_H */

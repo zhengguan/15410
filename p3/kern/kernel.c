@@ -62,7 +62,7 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
     }
 
     idt_init();
-    
+
     if (vm_init() < 0) {
         lprintf("failed to init vm");
     }
@@ -74,44 +74,78 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
 
     clear_console();
 
+    pd_t init_pd = (pd_t)get_cr3();
+
     /* Setup idle */
     tcb_t *idle_tcb;
     if (proc_new_process(NULL, &idle_tcb) < 0) {
         lprintf("failed to create idle");
     }
+
     idle_tid = idle_tcb->tid;
 
+    //Create a new page directory
+    pd_t idle_pd;
+    if (vm_new_pd(&idle_pd) < 0) {
+        lprintf("vm_new_pd failed");
+    }
+
+    //Load idle into memory
+    set_cr3((unsigned)idle_pd);
     unsigned idle_eip, idle_esp;
     char *idle_arg[] = IDLE_ARG;
     load(IDLE_NAME, idle_arg, &idle_eip, &idle_esp);
 
-    iret_args_t *idle_wrap_esp = (iret_args_t*)(idle_tcb->esp0 - sizeof(iret_args_t));
+    iret_args_t *idle_wrap_esp = (iret_args_t*)(idle_tcb->esp0 -
+                                                sizeof(iret_args_t));
 
-    idle_tcb->regs.eip = (unsigned)iret_user;
+    //Artificially define saved regs
+    idle_tcb->regs.eip = (unsigned)iret_user; //wrapper for idle
     idle_tcb->regs.esp_offset = sizeof(iret_args_t);
-    idle_tcb->regs.cr0 = get_cr0();
-    idle_tcb->regs.cr2 = get_cr2();
-    idle_tcb->regs.cr3 = get_cr3();
+    idle_tcb->regs.cr0 = KERNEL_CR0;
+    idle_tcb->regs.cr2 = 0;
+    idle_tcb->regs.cr3 = (unsigned)idle_pd;
     idle_tcb->regs.cr4 = get_cr4();
     idle_tcb->regs.ebp_offset = -idle_tcb->esp0;
     idle_tcb->regs.eflags = USER_EFLAGS;
 
+    //setup arguments for wrapper
     idle_wrap_esp->eip = idle_eip;
     idle_wrap_esp->cs = SEGSEL_USER_CS;
     idle_wrap_esp->eflags = USER_EFLAGS;
     idle_wrap_esp->esp = idle_esp;
     idle_wrap_esp->ss = SEGSEL_USER_DS;
 
+    /* Setup Thread Reaper */
+    tcb_t *tr_tcb;
+    if (proc_new_process(NULL, &tr_tcb) < 0) {
+        lprintf("failed to create thread reaper");
+    }
+
+    //Create a new page directory
+    pd_t tr_pd;
+    if (vm_new_pd(&tr_pd) < 0) {
+        lprintf("vm_new_pd failed");
+    }
+
+    //Artificially define saved regs
+    tr_tcb->regs.eip = (unsigned)thread_reaper;
+    tr_tcb->regs.esp_offset = 0;
+    tr_tcb->regs.cr0 = KERNEL_CR0;
+    tr_tcb->regs.cr2 = 0;
+    tr_tcb->regs.cr3 = (unsigned)tr_pd;
+    tr_tcb->regs.cr4 = get_cr4();
+    tr_tcb->regs.ebp_offset = -tr_tcb->esp0;
+    tr_tcb->regs.eflags = USER_EFLAGS;
+
+    linklist_add_head(&scheduler_queue, (void*)tr_tcb->tid);
+
     /* Setup init */
     tcb_t *init_tcb;
     if (proc_new_process(NULL, &init_tcb) < 0) {
         lprintf("failed to create init");
     }
-    pd_t pd;
-    if (vm_new_pd(&pd) < 0) {
-        lprintf("vm_new_pd failed");
-    }
-    set_cr3((unsigned)pd);
+    set_cr3((unsigned)init_pd);
     unsigned init_eip, init_esp;
     char *init_arg[] = INIT_ARG;
     load(INIT_NAME, init_arg, &init_eip, &init_esp);

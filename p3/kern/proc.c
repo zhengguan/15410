@@ -22,6 +22,8 @@
 
 unsigned next_tid = FIRST_TID;
 
+mutex_t thread_reap_mutex;
+cond_t thread_reap_cv;
 linklist_t tcbs_to_reap;
 
 hashtable_t pcbs;
@@ -40,8 +42,20 @@ int proc_init() {
         return -1;
      }
 
-     if (hashtable_init(&tcbs, TCB_HT_SIZE)) {
+     if (hashtable_init(&tcbs, TCB_HT_SIZE) < 0) {
         return -2;
+     }
+
+     if (linklist_init(&tcbs_to_reap) < 0) {
+        return -3;
+     }
+
+     if (mutex_init(&thread_reap_mutex) < 0) {
+        return -4;
+     }
+
+     if (cond_init(&thread_reap_cv) < 0) {
+        return -5;
      }
 
      return 0;
@@ -174,11 +188,16 @@ void reap_tcb(tcb_t *tcb)
     free(tcb);
 }
 
-void reap_tcbs()
+void thread_reaper()
 {
-    tcb_t *tcb;
-    while (linklist_remove_head(&tcbs_to_reap, (void**)&tcb) == 0)
+    mutex_lock(&thread_reap_mutex);
+    while (1) {
+        tcb_t *tcb;
+        while (linklist_remove_head(&tcbs_to_reap, (void**)&tcb) < 0)
+            cond_wait(&thread_reap_cv, &thread_reap_mutex);
+        lprintf("reaping tid %d", tcb->tid);
         reap_tcb(tcb);
+    }
 }
 
 //After context switch, cannot come back
@@ -186,7 +205,10 @@ void destroy_thread(tcb_t *tcb) NORETURN;
 
 void destroy_thread(tcb_t *tcb)
 {
+    mutex_lock(&thread_reap_mutex);
     linklist_add_tail(&tcbs_to_reap, tcb);
+    mutex_unlock(&thread_reap_mutex);
+    cond_signal(&thread_reap_cv);
     int flag = 0;
     deschedule_kern(&flag, false);
 
@@ -268,4 +290,3 @@ int wait(int *status_ptr)
 
     return reap_pcb(dead_pcb, status_ptr);
 }
-
