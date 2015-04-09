@@ -31,9 +31,39 @@ linklist_t tcbs_to_reap;
 hashtable_t pcbs;
 hashtable_t tcbs;
 
-int cur_tid;
+int cur_tid = 0;
 int idle_tid;
 int init_tid;
+
+static int init_locks(locks_t *locks) {
+    if ((mutex_init(&locks->vm) < 0) ||
+        (mutex_init(&locks->malloc) < 0)) {
+        return -1;
+    }
+    
+    return 0;
+}
+
+static mutex_t *get_mutex(lockid id) {
+    int pid = getpid();
+    if (pid == 0) {
+        return NULL;
+    }
+
+    pcb_t *pcb;
+    assert(hashtable_get(&pcbs, getpid(), (void**)&pcb) == 0);
+
+    switch(id) {
+    case VM:
+        return &pcb->locks.vm;
+    case MALLOC:
+        return &pcb->locks.malloc;
+    default:
+        break;
+    }
+    
+    return NULL;
+}
 
 /** @brief Initializes the PCB and TCB data structures.
  *
@@ -88,6 +118,10 @@ int proc_new_process(pcb_t **pcb_out, tcb_t **tcb_out) {
     if (linklist_init(&pcb->vanished_tasks) < 0) {
         return -5;
     }
+      
+    if (init_locks(&pcb->locks) < 0) {
+        return -6;
+    }
 
     pcb->num_children = 0;
     pcb->status = 0;
@@ -101,6 +135,7 @@ int proc_new_process(pcb_t **pcb_out, tcb_t **tcb_out) {
 
     pcb->pid = tid;
     pcb->num_threads = 1;
+    lprintf("Locks inited: %d", tid);
 
     hashtable_add(&pcbs, pcb->pid, (void *)pcb);
 
@@ -147,7 +182,8 @@ int proc_new_thread(pcb_t *pcb, tcb_t **tcb_out) {
 
 /** @brief Returns the thread ID of the invoking thread.
  *
- *  @return The thread ID of the invoking thread.
+ *  @return The thread ID of the invoking thread or 0 if invoked before the
+ *  thread is created.
  */
 int gettid()
 {
@@ -156,12 +192,18 @@ int gettid()
 
 /** @brief Returns the task ID of the invoking thread.
  *
- *  @return The task ID of the invoking thread.
+ *  @return The task ID of the invoking thread or 0 if invoked before the
+ *  thread is created.
  */
 int getpid()
 {
+    int tid = gettid();
+    if (tid == 0) {
+        return 0;
+    }
+
     tcb_t *tcb;
-    hashtable_get(&tcbs, gettid(), (void**)&tcb);
+    assert(hashtable_get(&tcbs, gettid(), (void**)&tcb) == 0);
     return tcb->pid;
 }
 
@@ -340,4 +382,14 @@ int kernel_kill(const char *fmt, ...)
         set_status(-2);
 
     vanish();
+}
+
+void proc_lock(lockid id) {
+    mutex_t *mutex = get_mutex(id);
+    mutex_lock(mutex);
+}
+
+void proc_unlock(lockid id) {
+    mutex_t *mutex = get_mutex(id);
+    mutex_unlock(mutex);
 }

@@ -14,6 +14,7 @@
 #define KERNEL_CR0 (CR0_PE | CR0_EM | CR0_ET | CR0_PG)
 
 #ifndef ASSEMBLER
+
 #include <syscall.h>
 #include <string.h>
 #include <common_kern.h>
