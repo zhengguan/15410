@@ -13,6 +13,7 @@
 #include <hashtable.h>
 #include <cond.h>
 #include <kern_common.h>
+#include <mutex.h>
 
 #define PCB_HT_SIZE 128
 #define TCB_HT_SIZE 128
@@ -33,6 +34,16 @@ typedef struct regs {
     unsigned cr4;           // 40
 } regs_t;
 
+typedef struct locks {
+    mutex_t vm;
+    mutex_t malloc;
+} locks_t;
+
+typedef enum {
+    VM,
+    MALLOC
+} lockid;
+
 typedef struct pcb {
     int pid;
     int status;
@@ -40,6 +51,9 @@ typedef struct pcb {
     int num_children;
     int parent_pid;
     int first_tid;
+    linklist_t threads;
+    
+    locks_t locks;
 
     cond_t waiter_cv;
     mutex_t vanished_task_mutex;
@@ -66,5 +80,8 @@ int proc_new_thread(pcb_t *pcb, tcb_t **tcb_out);
 int getpid();
 void thread_reaper() NORETURN;
 int kernel_kill(const char *fmt, ...) NORETURN;
+
+void proc_lock(lockid id);
+void proc_unlock(lockid id);
 
 #endif /* _PROC_H */

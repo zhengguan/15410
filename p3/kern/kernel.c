@@ -35,6 +35,7 @@
 #include <asm_common.h>
 #include <seg.h>
 #include <exception.h>
+#include <malloc_wrappers.h>
 
 #define INIT_NAME "init"
 #define INIT_ARG {NULL}
@@ -63,7 +64,7 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
     }
 
     idt_init();
-
+    
     if (vm_init() < 0) {
         lprintf("failed to init vm");
     }
@@ -86,8 +87,8 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
     if (proc_new_process(NULL, &idle_tcb) < 0) {
         lprintf("failed to create idle");
     }
-
     idle_tid = idle_tcb->tid;
+    cur_tid = idle_tid;
 
     //Create a new page directory
     pd_t idle_pd;
@@ -157,6 +158,7 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
 
     set_esp0(init_tcb->esp0);
     cur_tid = init_tcb->tid;
+    lprintf("CUR_TID");
     init_tid = init_tcb->tid;
     linklist_add_head(&scheduler_queue, (void*)init_tcb->tid);
 

@@ -7,7 +7,7 @@
  */
 
 #include <seg.h>
-#include <constants.h>
+#include <kern_common.h>
 
 .globl jmp_ureg
 jmp_ureg:

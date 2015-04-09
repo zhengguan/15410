@@ -46,7 +46,7 @@ int mutex_init(mutex_t *mp) {
  *  @return Void.
  */
 void mutex_lock(mutex_t *mp) {
-    if (mp == NULL) {
+    if (mp == NULL || mp->tid == gettid()) {
         return;
     }
 
@@ -82,6 +82,8 @@ void mutex_unlock(mutex_t *mp) {
         linklist_remove_head(&mp->wait_list, (void**)&waiter);
         waiter->reject = 1;
         make_runnable_kern(waiter->tid, false);
+    } else {
+        mp->tid = -1;
     }
     mp->count++;
     spinlock_unlock(&mp->wait_lock);

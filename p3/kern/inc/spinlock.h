@@ -9,8 +9,6 @@
 #ifndef _SPINLOCK_H
 #define _SPINLOCK_H
 
-#include <linklist.h>
-
 typedef struct spinlock {
     int lock;
     int tid;

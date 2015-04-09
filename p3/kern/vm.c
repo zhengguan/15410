@@ -22,6 +22,8 @@
 #include <simics.h>
 #include <string.h>
 #include <kern_common.h>
+#include <mutex.h>
+#include <proc.h>
 
 #define KERNEL_MEM_START 0x00000000
 
@@ -68,6 +70,8 @@ void vm_remove_pte(void *va);
 unsigned next_frame = USER_MEM_START;
 linklist_t free_frames;
 hashtable_t alloc_pages;
+mutex_t free_frames_mutex;
+mutex_t alloc_pages_mutex;
 
 /** @brief Gets a free physical frame.
  *
@@ -78,6 +82,7 @@ hashtable_t alloc_pages;
  */
 static unsigned get_frame()
 {
+    mutex_lock(&free_frames_mutex);
     unsigned frame;
     if (linklist_empty(&free_frames)) {
         frame = next_frame;
@@ -85,6 +90,7 @@ static unsigned get_frame()
     } else {
         linklist_remove_head(&free_frames, (void **)&frame);
     }
+    mutex_unlock(&free_frames_mutex);
     return frame;
 }
 
@@ -124,9 +130,17 @@ int vm_init()
         return -2;
     }
 
+    if (mutex_init(&free_frames_mutex) < 0) {
+        return -3;
+    }
+    
+    if (mutex_init(&alloc_pages_mutex) < 0) {
+        return -4;
+    }
+    
     pd_t pd;
     if (vm_new_pd(&pd) < 0) {
-        return -3;
+        return -5;
     }
     set_cr3((unsigned)pd);
 
@@ -277,7 +291,9 @@ void vm_remove_pte(void *va) {
 
     unsigned pa = GET_PA(*pte);
     if (pa >= USER_MEM_START) {
+        mutex_lock(&free_frames_mutex);
         linklist_add_tail(&free_frames, (void *)(*pte & PAGE_MASK));
+        mutex_unlock(&free_frames_mutex);
     }
 
     if (is_pt_empty(pde)) {
@@ -287,6 +303,7 @@ void vm_remove_pte(void *va) {
 
 /** @brief Checks whether a virtual address in the page table.
  *
+ *  @param va The virtual address.
  *  @return True if present, false otherwise.
  */
 bool vm_is_present(void *va)
@@ -408,6 +425,18 @@ void vm_clear() {
     set_cr3(get_cr3());
 }
 
+
+/** @brief Sets a virtual address to be read-only.
+ *
+ *  @param va The virtual address.
+ *  @return Void.
+ */
+void vm_read_only(void *va) {
+    pde_t pde = GET_PDE(GET_PD(), va);
+    pte_t *pte = GET_PT(pde) + GET_PT_IDX(va);
+    *pte &= ~PTE_RW;
+}
+
 /** @brief Removes a page directory.
  *
  *  Removes a page directory, all of its page tables, and its mapped physical
@@ -452,6 +481,8 @@ int new_pages(void *base, int len)
     if ((unsigned)base > -(unsigned)len)
         return -5;
 
+    proc_lock(VM);
+
     unsigned va;
     for (va = (unsigned)base; va < (unsigned)base + len - 1; va += PAGE_SIZE) {
         if (vm_is_present((void *)va)) {
@@ -462,9 +493,13 @@ int new_pages(void *base, int len)
     for (va = (unsigned)base; va < (unsigned)base + len - 1; va += PAGE_SIZE) {
         vm_new_pte(GET_PD(), (void *)va, get_frame(), USER_FLAGS);
     }
+    
+    proc_unlock(VM);
 
+    mutex_lock(&alloc_pages_mutex);
     hashtable_add(&alloc_pages, PAGE_NUM(base), (void *)len);
-
+    mutex_unlock(&alloc_pages_mutex);
+    
     return 0;
 }
 
@@ -479,12 +514,15 @@ int remove_pages(void *base)
         return -1;
     }
 
+    mutex_lock(&alloc_pages_mutex);
+    
     int len;
     if (hashtable_get(&alloc_pages, PAGE_NUM(base), (void**)&len) < 0) {
         return -2;
     }
-
     hashtable_remove(&alloc_pages, PAGE_NUM(base));
+    
+    mutex_unlock(&alloc_pages_mutex);
 
     unsigned va;
     for (va = (unsigned)base; va < (unsigned)base + len - 1; va += PAGE_SIZE) {

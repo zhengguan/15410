@@ -10,6 +10,7 @@
 #include <spinlock.h>
 #include <atom_xchg.h>
 #include <stdlib.h>
+#include <syscall.h>
 
 /** @brief Initializes a spinlock.
  *

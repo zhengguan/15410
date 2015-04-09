@@ -18,25 +18,18 @@ void slow() {
 }
 
 int main() {
-    if (fork() == 0) {
-        char buf[BUF_SIZE];
-        lprintf("Child");
-        MAGIC_BREAK;
-        while(1) {
-            int len = readline(BUF_SIZE - 1, buf);
-            buf[len] = '\0';
-            lprintf("Return: %d", len);
-            lprintf("Return: |%s|", buf);
-            print(len, buf);
-            MAGIC_BREAK;
+    char buf[BUF_SIZE];
+    lprintf("Child");
+    while(1) {
+        int len = readline(BUF_SIZE - 1, buf);
+        if (len == 1) {
+            break;
         }
-    } else {
-        lprintf("Parent");
-        MAGIC_BREAK;
-        while(1) {
-            slow();
-        }
+        buf[len] = '\0';
+        lprintf("Return: %d", len);
+        lprintf("Return: |%s|", buf);
+        print(len, buf);
     }
 
-    return 0;
+    return 100;
 }
