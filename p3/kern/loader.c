@@ -28,17 +28,15 @@
 #include <vm.h>
 #include <simics.h>
 #include <hashtable.h>
-
-// TODO change this (top of stack?)
+#include <assert.h>
 
 //MUST BE PAGE ALIGNED
 #define USER_ARGV_TOP ((char*)0xD0000000u)
 #define USER_STACK_TOP ((char*)0xC0000000u)
 #define USER_STACK_SIZE PAGE_SIZE
 
-#define USER_MODE_CPL 3
-
-#define PAGE_HT_SIZE 10
+#define MAX_TOTAL_ARG_LEN 2048
+#define MAX_ARG_NUM 512
 
 /* --- Local function prototypes --- */
 
@@ -111,13 +109,17 @@ static bool elf_valid(const simple_elf_t *se_hdr)
  *  @param len The length of the memory region to allocate.
  *  @return 0 on success, negative error code otherwise.
  */
-static int alloc_pages(unsigned start, unsigned len)
+static int alloc_pages(unsigned start, unsigned len, bool readonly)
 {
     unsigned base;
     for (base = ROUND_DOWN_PAGE(start); base < start + len; base += PAGE_SIZE) {
         if (!vm_is_present((void *)base) &&
             (new_pages((void*)base, PAGE_SIZE) < 0)) {
             return -1;
+        }
+
+        if (readonly) {
+            vm_read_only((void*)base);
         }
     }
     return 0;
@@ -135,65 +137,21 @@ static int alloc_pages(unsigned start, unsigned len)
  *  failure.
  */
 static unsigned fill_mem(const simple_elf_t *se_hdr, int argc, char *argv[],
-                         int arg_lens[])
+                         unsigned arg_lens[], char tmp_args[])
 {
-    //TODO limit arg length
+    vm_clear();
 
     char *bottom_arg_ptr = USER_ARGV_TOP;
 
-    int total_arg_len = 0;
-    int i;
-    for (i = 0; i < argc; i++) {
-        total_arg_len += arg_lens[i] + 1;
-    }
-
-    int arg_mem_needed = ROUND_UP_PAGE(sizeof(char) * total_arg_len +
-                                       sizeof(char*) * argc);
-
-    //TODO: better check
-    if (arg_mem_needed > USER_ARGV_TOP - USER_STACK_TOP) {
-        return 0;
-    }
-
-    char *txt_buf = malloc(se_hdr->e_txtlen + se_hdr->e_datlen +
-                           se_hdr->e_rodatlen);
-    if (txt_buf == NULL) {
-        return 0;
-    }
-    char *dat_buf = txt_buf + se_hdr->e_txtlen;
-    char *rodat_buf = dat_buf + se_hdr->e_datlen;
-
-    if (getbytes(se_hdr->e_fname, se_hdr->e_txtoff,
-                 se_hdr->e_txtlen, txt_buf) < 0 ||
-        getbytes(se_hdr->e_fname, se_hdr->e_datoff,
-                 se_hdr->e_datlen, dat_buf) < 0 ||
-        getbytes(se_hdr->e_fname, se_hdr->e_rodatoff,
-                 se_hdr->e_rodatlen, rodat_buf) < 0) {
-        free(txt_buf);
-        return 0;
-    }
-
-    char *tmp_args = malloc(sizeof(char) * total_arg_len);
-    if (tmp_args == NULL) {
-        free(txt_buf);
-        return 0;
-    }
-
-    for (i = 0; i < argc; i++) {
-        strncpy(tmp_args, argv[i], arg_lens[i] + 1);
-        tmp_args += arg_lens[i] + 1;
-    }
-
-    vm_clear();
-
-    if (arg_mem_needed > 0 && (new_pages(bottom_arg_ptr -
-        arg_mem_needed, arg_mem_needed) < 0) ) {
+    /* Copy arguments to argument space */
+    if (new_pages(bottom_arg_ptr - PAGE_SIZE, PAGE_SIZE) < 0) {
         // TODO handle this
         lprintf("oops");
         MAGIC_BREAK;
     }
 
-    char **new_argv = (char**)(bottom_arg_ptr - arg_mem_needed);
+    char **new_argv = (char**)(bottom_arg_ptr - PAGE_SIZE);
+    int i;
     for (i = argc - 1; i >= 0; i--) {
         bottom_arg_ptr -= arg_lens[i] + 1;
         tmp_args -= arg_lens[i] + 1;
@@ -203,21 +161,22 @@ static unsigned fill_mem(const simple_elf_t *se_hdr, int argc, char *argv[],
 
     free(tmp_args);
 
-    if (alloc_pages(se_hdr->e_txtstart, se_hdr->e_txtlen) < 0 ||
-        alloc_pages(se_hdr->e_datstart, se_hdr->e_datlen) < 0 ||
-        alloc_pages(se_hdr->e_rodatstart, se_hdr->e_rodatlen) < 0 ||
-        alloc_pages(se_hdr->e_bssstart, se_hdr->e_bsslen) < 0) {
+    if (alloc_pages(se_hdr->e_txtstart, se_hdr->e_txtlen, true) < 0 ||
+        alloc_pages(se_hdr->e_datstart, se_hdr->e_datlen, false) < 0 ||
+        alloc_pages(se_hdr->e_rodatstart, se_hdr->e_rodatlen, true) < 0 ||
+        alloc_pages(se_hdr->e_bssstart, se_hdr->e_bsslen, false) < 0) {
         // TODO handle this
         MAGIC_BREAK;
     }
 
     // TODO make txt and rodata read only?
-    memcpy((char*)se_hdr->e_txtstart, txt_buf, se_hdr->e_txtlen);
-    memcpy((char*)se_hdr->e_datstart, dat_buf, se_hdr->e_datlen);
-    memcpy((char*)se_hdr->e_rodatstart, rodat_buf, se_hdr->e_rodatlen);
+    assert (getbytes(se_hdr->e_fname, se_hdr->e_txtoff, se_hdr->e_txtlen,
+                (char*)se_hdr->e_txtstart) == se_hdr->e_txtlen &&
+            getbytes(se_hdr->e_fname, se_hdr->e_datoff, se_hdr->e_datlen,
+                (char*)se_hdr->e_datstart) == se_hdr->e_datlen &&
+            getbytes(se_hdr->e_fname, se_hdr->e_rodatoff, se_hdr->e_rodatlen,
+                (char*)se_hdr->e_rodatstart) == se_hdr->e_rodatlen);
     memset((char*)se_hdr->e_bssstart, 0, se_hdr->e_bsslen);
-
-    free(txt_buf);
 
     char *stack_low = USER_STACK_TOP - USER_STACK_SIZE;
 
@@ -246,19 +205,6 @@ static unsigned fill_mem(const simple_elf_t *se_hdr, int argc, char *argv[],
 
     return esp;
 }
-
-/** @brief Begins running a user program.
- *
- *  @param eip The initial value of the instruction pointer.
- *  @param esp The inital value of the stack pointer.
- *  @return Does not return.
- */
-static void user_run(unsigned eip, unsigned esp)
-{
-    set_cr0((get_cr0() & ~CR0_AM & ~CR0_WP) | CR0_PE);
-    jmp_user(eip, esp);
-}
-
 
 
 int str_arr_len(char *arr[])
@@ -300,17 +246,38 @@ int load(char *filename, char *argv[], unsigned *eip, unsigned *esp)
 
     int argc = str_arr_len(argv);
 
-    int *arg_lens  = malloc(argc*sizeof(int));
-    if (argc > 0 && arg_lens == NULL) {
-        return -7;
+    if (argc > MAX_ARG_NUM)
+        return -5;
+
+    unsigned *arg_lens = NULL;
+    if (argc > 0)
+        if ( (arg_lens = malloc(argc*sizeof(unsigned))) == NULL)
+            return -6;
+
+    /* Get argument lengths */
+    unsigned total_arg_len = 0;
+    int i;
+    for (i = 0; i < argc; i++) {
+        arg_lens[i] = strlen(argv[i]);
+        total_arg_len += arg_lens[i] + 1;
     }
 
-    //get lengths of arguments
-    int i;
-    for (i = 0; i < argc; i++)
-        arg_lens[i] = strlen(argv[i]);
+    if (total_arg_len > MAX_EXECNAME_LEN) {
+        free(arg_lens);
+        return -8;
+    }
 
-    *esp = fill_mem(&se_hdr, argc, argv, arg_lens);
+    /* Copy arguments to temp kernel space */
+    char *tmp_args = malloc(sizeof(char) * total_arg_len);
+    if (tmp_args == NULL) {
+        return -9;
+    }
+    for (i = 0; i < argc; i++) {
+        strncpy(tmp_args, argv[i], arg_lens[i] + 1);
+        tmp_args += arg_lens[i] + 1;
+    }
+
+    *esp = fill_mem(&se_hdr, argc, argv, arg_lens, tmp_args);
     *eip = se_hdr.e_entry;
 
     free(arg_lens);
@@ -337,17 +304,25 @@ int exec(char *filename, char *argv[])
         (unsigned)argv < USER_MEM_START) {
         return -1;
     }
-    if (str_check(filename) < 0)
+
+    int len;
+    if ( (len = str_check(filename)) < 0)
         return -2;
     if (str_arr_check(argv) < 0)
         return -3;
 
+    char *new_filename;
+    if ( (new_filename = malloc((len+1) * sizeof(char))) == NULL)
+        return -6;
+
+    strcpy(new_filename, filename);
 
     unsigned eip, esp;
-    if (load(filename, argv, &eip, &esp) < 0)
+    if (load(new_filename, argv, &eip, &esp) < 0)
         return -4;
+    free(new_filename);
 
-    user_run(eip, esp);
+    jmp_user(eip, esp);
 
     return -5;
 }
