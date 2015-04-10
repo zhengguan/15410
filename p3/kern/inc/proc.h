@@ -45,6 +45,13 @@ typedef enum {
     MALLOC
 } lockid;
 
+
+typedef struct {
+    swexn_handler_t eip;
+    void *esp3;
+    void *arg;
+} handler_t;
+
 typedef struct pcb {
     int pid;
     int status;
@@ -60,6 +67,8 @@ typedef struct pcb {
     cond_t waiter_cv;
     mutex_t vanished_task_mutex;
     linklist_t vanished_tasks;
+
+    handler_t swexn_handler;
 } pcb_t;
 
 typedef struct tcb {
@@ -73,7 +82,8 @@ extern hashtable_t pcbs;
 extern hashtable_t tcbs;
 extern int cur_tid;
 extern int idle_tid;
-extern int init_tid;
+extern pcb_t* init_pcb;
+extern bool mt_mode;
 
 /* Process and thread functions */
 int proc_init();

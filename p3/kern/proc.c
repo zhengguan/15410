@@ -34,7 +34,9 @@ hashtable_t tcbs;
 
 int cur_tid = 0;
 int idle_tid;
-int init_tid;
+pcb_t *init_pcb;
+
+bool mt_mode = false;
 
 static int init_locks(locks_t *locks) {
     if ((mutex_init(&locks->vm) < 0) ||
@@ -46,13 +48,12 @@ static int init_locks(locks_t *locks) {
 }
 
 static mutex_t *get_mutex(lockid id) {
-    int pid = getpid();
-    if (pid == 0) {
+    //check to see if still in kernel main
+    if (!mt_mode) {
         return NULL;
     }
 
-    pcb_t *pcb;
-    assert(hashtable_get(&pcbs, getpid(), (void**)&pcb) == 0);
+    pcb_t *pcb = *CUR_PCB;
 
     switch(id) {
     case VM:
@@ -127,6 +128,7 @@ int proc_new_process(pcb_t **pcb_out, tcb_t **tcb_out) {
     pcb->num_children = 0;
     pcb->status = 0;
     pcb->pid = -1;
+    pcb->swexn_handler.eip = NULL;
 
     int tid = proc_new_thread(pcb, tcb_out);
     if (tid < 0) {
@@ -198,25 +200,12 @@ int gettid()
  */
 int getpid()
 {
-    int tid = gettid();
-    if (tid == 0) {
-        return 0;
-    }
-
-    tcb_t *tcb;
-    assert(hashtable_get(&tcbs, gettid(), (void**)&tcb) == 0);
-    return tcb->pid;
+    return (*CUR_PCB)->pid;
 }
 
 void set_status(int status)
 {
-    tcb_t *tcb;
-    hashtable_get(&tcbs, gettid(), (void **)&tcb);
-
-    pcb_t *pcb;
-    hashtable_get(&pcbs, tcb->pid, (void **)&pcb);
-
-    pcb->status = status;
+    (*CUR_PCB)->status = status;
 }
 
 /**
@@ -299,18 +288,13 @@ void vanish()
     tcb_t *tcb;
     assert(hashtable_get(&tcbs, gettid(), (void **)&tcb) == 0);
 
-    pcb_t *pcb;
-    assert(hashtable_get(&pcbs, tcb->pid, (void**)&pcb) == 0);
-
+    pcb_t *pcb = *CUR_PCB;
 
     disable_interrupts();
 
     if (pcb->num_threads == 1) {
-        pcb_t *init_pcb;
-        hashtable_get(&pcbs, init_tid, (void**)&init_pcb);
-
         assert(pcb->parent_pid >= FIRST_TID);
-        deregister_swexn_handler(pcb->pid);
+        deregister_swexn_handler(*CUR_PCB);
 
         pcb_t *parent_pcb;
         if (hashtable_get(&pcbs, pcb->parent_pid, (void*)&parent_pcb) < 0) {
@@ -323,6 +307,7 @@ void vanish()
         }
 
         vm_clear();
+        remove_pages(CUR_PCB);
 
         pcb_t *dead_pcb;
         while (linklist_remove_head(&pcb->vanished_tasks, (void**)&dead_pcb) == 0) {
@@ -340,8 +325,7 @@ int wait(int *status_ptr)
 {
     tcb_t *tcb;
     assert (hashtable_get(&tcbs, gettid(), (void **)&tcb) == 0);
-    pcb_t *pcb;
-    assert (hashtable_get(&pcbs, tcb->pid, (void **)&pcb) == 0);
+    pcb_t *pcb = *CUR_PCB;
 
     mutex_lock(&pcb->vanished_task_mutex);
 
@@ -380,8 +364,7 @@ int kernel_kill(const char *fmt, ...)
     //TODO: Register Dump
 
     /* Kill thread */
-    pcb_t *pcb;
-    assert (hashtable_get(&pcbs, getpid(), (void **)&pcb) == 0);
+    pcb_t *pcb = *CUR_PCB;
 
     if (pcb->num_threads == 1)
         set_status(-2);

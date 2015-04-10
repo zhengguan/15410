@@ -24,9 +24,8 @@ int fork()
     tcb_t *old_tcb;
     hashtable_get(&tcbs, gettid(), (void**)&old_tcb);
 
+    pcb_t *old_pcb = *CUR_PCB;
 
-    pcb_t *old_pcb;
-    hashtable_get(&pcbs, getpid(), (void**)&old_pcb);
     if (old_pcb->num_threads > 1) //reject if multithreaded
         return -1;
 
@@ -47,16 +46,15 @@ int fork()
     old_tcb->esp0 = new_tcb->esp0;
     new_tcb->esp0 = cur_esp0;
 
-    dup_swexn_handler(old_pcb->pid, new_pcb->pid);
+    dup_swexn_handler(old_pcb, new_pcb);
 
     if (store_regs(&old_tcb->regs, cur_esp0)) { //new thread
-
         if (vm_copy(&new_pcb->pd) < 0) {
             // TODO handle bad things
         }
 
         set_cr3((unsigned)new_pcb->pd);
-
+        *CUR_PCB = new_pcb;
         cur_tid = new_tid;
 
         //give the old thread back his stack that the new one stole
@@ -75,8 +73,7 @@ int thread_fork()
     tcb_t *old_tcb;
     hashtable_get(&tcbs, gettid(), (void**)&old_tcb);
 
-    pcb_t *pcb;
-    hashtable_get(&pcbs, old_tcb->pid, (void**)&pcb);
+    pcb_t *pcb = *CUR_PCB;
 
     disable_interrupts();
 

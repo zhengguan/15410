@@ -10,10 +10,10 @@
 #define _EXCEPTION_H
 
 #include <syscall.h>
+#include <proc.h>
 
-int exception_init();
-int deregister_swexn_handler(int pid);
-int register_swexn_handler(int pid, swexn_handler_t eip, void *esp3, void *arg);
-int dup_swexn_handler(int src_pid, int dest_pid);
+void deregister_swexn_handler(pcb_t *pcb);
+int register_swexn_handler(pcb_t *pcb, swexn_handler_t eip, void *esp3, void *arg);
+int dup_swexn_handler(pcb_t *src_pcb, pcb_t *dest_pcb);
 
 #endif /* _EXCEPTION_H */

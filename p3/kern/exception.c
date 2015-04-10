@@ -19,8 +19,6 @@
 #include <asm_common.h>
 #include <proc.h>
 
-#define HASHTABLE_SIZE 100
-
 typedef struct {
     unsigned ret;
     void *arg;
@@ -28,31 +26,19 @@ typedef struct {
     ureg_t ureg;
 } handler_args_t;
 
-typedef struct {
-    swexn_handler_t eip;
-    void *esp3;
-    void *arg;
-} handler_t;
-
-hashtable_t handler_ht;
-
-int exception_init()
+handler_t *get_swexn_handler(pcb_t *pcb)
 {
-    if (hashtable_init(&handler_ht, HASHTABLE_SIZE) < 0)
-        return -1;
-    return 0;
+    return &(pcb->swexn_handler);
 }
 
 static int call_user_handler(ureg_t *ureg)
 {
     disable_interrupts();
 
-    handler_t *handler;
-    if (hashtable_get(&handler_ht, getpid(), (void**)&handler) < 0) {
-        return -2;
-    }
+    handler_t *handler = get_swexn_handler(*CUR_PCB);
 
-    hashtable_remove(&handler_ht, getpid());
+    if (handler->eip == NULL)
+        return -2;
 
     unsigned esp = (unsigned)handler->esp3 - sizeof(handler_args_t);
     if (!vm_is_present_len((void*)esp, sizeof(handler_args_t))) {
@@ -64,7 +50,8 @@ static int call_user_handler(ureg_t *ureg)
     ((handler_args_t *)esp)->ureg_ptr = &(((handler_args_t *)esp)->ureg);
     ((handler_args_t *)esp)->ureg = *ureg;
     unsigned eip = (unsigned)handler->eip;
-    free(handler);
+
+    deregister_swexn_handler(*CUR_PCB);
 
     jmp_user(eip, esp); // reenables interrupts
 
@@ -122,8 +109,7 @@ int swexn(void *esp3, swexn_handler_t eip, void *arg, ureg_t *newureg)
 
     //if one null, remove handler
     if (esp3 == NULL || eip == NULL) {
-        lprintf("attempting to deregister handler");
-        deregister_swexn_handler(getpid());
+        deregister_swexn_handler(*CUR_PCB);
     } else {
         if ((unsigned)eip < USER_MEM_START || !vm_is_present(eip))
             return -1;
@@ -133,7 +119,7 @@ int swexn(void *esp3, swexn_handler_t eip, void *arg, ureg_t *newureg)
             return -2;
         }
 
-        register_swexn_handler(getpid(), eip, esp3, arg);
+        register_swexn_handler(*CUR_PCB, eip, esp3, arg);
     }
 
     if (newureg == NULL) {
@@ -146,33 +132,22 @@ int swexn(void *esp3, swexn_handler_t eip, void *arg, ureg_t *newureg)
 }
 
 
-int deregister_swexn_handler(int pid)
+void deregister_swexn_handler(pcb_t *pcb)
 {
-    return hashtable_remove(&handler_ht, pid);
+    get_swexn_handler(pcb)->eip = NULL;
 }
 
-int register_swexn_handler(int pid, swexn_handler_t eip, void *esp3, void *arg)
+int register_swexn_handler(pcb_t *pcb, swexn_handler_t eip, void *esp3, void *arg)
 {
-    handler_t *handler;
-    if (hashtable_get(&handler_ht, pid, (void **)&handler) < 0) {
-        handler = malloc(sizeof(handler_t));
-        if (handler == NULL) {
-            return -1;
-        }
-        lprintf("adding handler for %d", pid);
-        hashtable_add(&handler_ht, pid, (void *)handler);
-    }
-
+    handler_t *handler = get_swexn_handler(pcb);
     handler->esp3 = esp3;
     handler->eip = eip;
     handler->arg = arg;
     return 0;
 }
 
-int dup_swexn_handler(int src_pid, int dest_pid)
+int dup_swexn_handler(pcb_t *src_pcb, pcb_t *dest_pcb)
 {
-    handler_t *handler;
-    if (hashtable_get(&handler_ht, src_pid, (void **)&handler) < 0)
-        return -1;
-    return register_swexn_handler(dest_pid, handler->eip, handler->esp3, handler->arg);
+    handler_t *src_handler = get_swexn_handler(src_pcb);
+    return register_swexn_handler(dest_pcb, src_handler->eip, src_handler->esp3, src_handler->arg);
 }

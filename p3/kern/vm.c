@@ -34,13 +34,11 @@
 
 #define FLAG_MASK (~PAGE_MASK & ~1)
 #define GET_PRESENT(PTE) ((PTE) & PTE_PRESENT)
+#define GET_USER(PTE) ((PTE) & PTE_USER)
 #define GET_FLAGS(PTE) ((PTE) & FLAG_MASK)
 
-// #define KERNEL_FLAGS (PTE_RW | PTE_GLOBAL)
-// #define USER_FLAGS (PTE_RW | PTE_SU)
-
-#define KERNEL_MEM_FLAGS (PTE_RW | PTE_GLOBAL)
-#define USER_MEM_FLAGS (PTE_USER)
+#define KERNEL_FLAGS (PTE_RW | PTE_GLOBAL)
+#define USER_FLAGS (PTE_USER)
 
 #define PD_SIZE (PAGE_SIZE / sizeof(pde_t))
 #define PT_SIZE (PAGE_SIZE / sizeof(pte_t))
@@ -176,7 +174,7 @@ int vm_new_pd(pd_t *new_pd)
 
     unsigned pa;
     for (pa = KERNEL_MEM_START; pa < USER_MEM_START; pa += PAGE_SIZE) {
-        vm_new_pte(pd, (void *)pa, pa, KERNEL_MEM_FLAGS);
+        vm_new_pte(pd, (void *)pa, pa, KERNEL_FLAGS);
     }
 
     *new_pd = pd;
@@ -322,6 +320,18 @@ bool vm_is_present(void *va)
     return false;
 }
 
+bool vm_user_mem(void *va)
+{
+    if (!vm_is_present(va)) {
+        return false;
+    }
+
+    pde_t pde = GET_PDE(GET_PD(), va);
+    pte_t pte = GET_PTE(pde, va);
+
+    return !!GET_USER(pte);
+}
+
 /** @brief Checks whether a memory region is the page table.
  *
  *  @param base The base of the memory region to allocate.
@@ -414,7 +424,7 @@ void vm_clear() {
          }
 
         pte_t pte = GET_PTE(pde, va);
-        if (!GET_PRESENT(pte)) {
+        if (!GET_PRESENT(pte) || !vm_user_mem((void*)va)) {
             va += (1 << PT_SHIFT);
             continue;
         }
@@ -448,6 +458,17 @@ void vm_read_write(void *va) {
     pde_t pde = GET_PDE(GET_PD(), va);
     pte_t *pte = GET_PT(pde) + GET_PT_IDX(va);
     *pte |= PTE_RW;
+}
+
+/** @brief Sets a virtual address to be supervisor.
+ *
+ *  @param va The virtual address.
+ *  @return Void.
+ */
+void vm_super(void *va) {
+    pde_t pde = GET_PDE(GET_PD(), va);
+    pte_t *pte = GET_PT(pde) + GET_PT_IDX(va);
+    *pte &= ~PTE_USER;
 }
 
 /** @brief Removes a page directory.
@@ -501,7 +522,7 @@ int new_pages(void *base, int len)
     }
 
     for (va = (unsigned)base; va < (unsigned)base + len - 1; va += PAGE_SIZE) {
-        vm_new_pte(GET_PD(), (void *)va, get_frame(), USER_MEM_FLAGS);
+        vm_new_pte(GET_PD(), (void *)va, get_frame(), USER_FLAGS);
         memset((void*)va, 0, PAGE_SIZE);
         vm_read_write((void*)va);
     }

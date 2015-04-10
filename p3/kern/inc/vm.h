@@ -26,6 +26,7 @@ int vm_copy(pd_t *new_pd);
 void vm_clear();
 void vm_read_only();
 void vm_read_write();
+void vm_super();
 void vm_destroy();
 
 #endif /* __VM_H__ */

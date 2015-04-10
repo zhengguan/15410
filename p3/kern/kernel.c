@@ -74,10 +74,6 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
         lprintf("failed to init proc");
     }
 
-    if (exception_init() < 0) {
-        lprintf("failed to init exceptions");
-    }
-
     clear_console();
 
     pd_t init_pd = (pd_t)get_cr3();
@@ -96,8 +92,12 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
         lprintf("vm_new_pd failed");
     }
 
-    //Load idle into memory
     set_cr3((unsigned)idle_pcb->pd);
+    new_pages(CUR_PCB, PAGE_SIZE);
+    vm_super(CUR_PCB);
+    *CUR_PCB = idle_pcb;
+
+    //Load idle into memory
     unsigned idle_eip, idle_esp;
     char *idle_arg[] = IDLE_ARG;
     if (load(IDLE_NAME, idle_arg, &idle_eip, &idle_esp) < 0) {
@@ -136,6 +136,11 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
         lprintf("vm_new_pd failed");
     }
 
+    set_cr3((unsigned)tr_pcb->pd);
+    new_pages(CUR_PCB, PAGE_SIZE);
+    vm_super(CUR_PCB);
+    *CUR_PCB = tr_pcb;
+
     //Artificially define saved regs
     tr_tcb->regs.eip = (unsigned)thread_reaper;
     tr_tcb->regs.esp_offset = 0;
@@ -150,12 +155,15 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
 
     /* Setup init */
     tcb_t *init_tcb;
-    pcb_t *init_pcb;
     if (proc_new_process(&init_pcb, &init_tcb) < 0) {
         lprintf("failed to create init");
     }
     init_pcb->pd = init_pd;
     set_cr3((unsigned)init_pd);
+    new_pages(CUR_PCB, PAGE_SIZE);
+    vm_super(CUR_PCB);
+    *CUR_PCB = init_pcb;
+
     unsigned init_eip, init_esp;
     char *init_arg[] = INIT_ARG;
     if (load(INIT_NAME, init_arg, &init_eip, &init_esp) < 0) {
@@ -164,11 +172,10 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
 
     set_esp0(init_tcb->esp0);
     cur_tid = init_tcb->tid;
-    lprintf("CUR_TID");
-    init_tid = init_tcb->tid;
     linklist_add_head(&scheduler_queue, (void*)init_tcb->tid);
 
     // set_cr0((get_cr0() & ~CR0_AM & ~CR0_WP) | CR0_PE);
+    mt_mode = true;
     jmp_user(init_eip, init_esp);
 
     return -1;

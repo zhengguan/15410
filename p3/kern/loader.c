@@ -33,8 +33,8 @@
 #include <proc.h>
 
 //MUST BE PAGE ALIGNED
-#define USER_ARGV_TOP ((char*)0xD0000000u)
 #define USER_STACK_TOP ((char*)0xC0000000u)
+#define USER_ARGV_START ((char*)USER_STACK_TOP)
 #define USER_STACK_SIZE PAGE_SIZE
 
 #define MAX_TOTAL_ARG_LEN 2048
@@ -141,22 +141,21 @@ static int alloc_pages(unsigned start, unsigned len, bool readonly)
 static unsigned fill_mem(const simple_elf_t *se_hdr, int argc, char *argv[],
                          unsigned arg_lens[], char tmp_args[])
 {
-    vm_clear();
-
-    char *bottom_arg_ptr = USER_ARGV_TOP;
+    char *bottom_arg_ptr = USER_ARGV_START + sizeof(char*)*MAX_ARG_NUM;
 
     /* Copy arguments to argument space */
-    if (new_pages(bottom_arg_ptr - PAGE_SIZE, PAGE_SIZE) < 0) {
+    if (new_pages(USER_ARGV_START, PAGE_SIZE) < 0) {
         kernel_kill("Killing thread. Out of memory.");
     }
 
-    char **new_argv = (char**)(bottom_arg_ptr - PAGE_SIZE);
+    char **new_argv = (char**)(USER_ARGV_START);
+
     int i;
-    for (i = argc - 1; i >= 0; i--) {
-        bottom_arg_ptr -= arg_lens[i] + 1;
-        tmp_args -= arg_lens[i] + 1;
-        strncpy(bottom_arg_ptr, tmp_args, arg_lens[i] + 1);
+    for (i = 0; i < argc; i++) {
+        memcpy(bottom_arg_ptr, tmp_args, arg_lens[i] + 1);
         new_argv[i] = bottom_arg_ptr;
+        bottom_arg_ptr += arg_lens[i] + 1;
+        tmp_args += arg_lens[i] + 1;
     }
 
     if (alloc_pages(se_hdr->e_txtstart, se_hdr->e_txtlen, true) < 0 ||
@@ -274,12 +273,13 @@ int load(char *filename, char *argv[], unsigned *eip, unsigned *esp)
         arg_ptr += arg_lens[i] + 1;
     }
 
+    vm_clear();
     *esp = fill_mem(&se_hdr, argc, argv, arg_lens, tmp_args);
     *eip = se_hdr.e_entry;
     free(arg_lens);
     free(tmp_args);
 
-    deregister_swexn_handler(getpid());
+    deregister_swexn_handler(*CUR_PCB);
 
     if (*esp == 0) {
         return -9;
