@@ -24,6 +24,7 @@
 #include <kern_common.h>
 #include <mutex.h>
 #include <proc.h>
+#include <memlock.h>
 
 #define KERNEL_MEM_START 0x00000000
 
@@ -61,6 +62,8 @@
 #define LOOKUP_PA(ADDR) (GET_PA(GET_PTE(GET_PDE(GET_PD(), ADDR), ADDR)))
 #define PAGE_NUM(ADDR) (LOOKUP_PA(ADDR) >> PT_SHIFT)
 
+#define MEMLOCK_HT_SIZE 128
+
 int vm_new_pde(pde_t *pde, pt_t pt, unsigned flags);
 int vm_new_pt(pde_t *pde, unsigned flags);
 int vm_new_pte(pd_t pd, void *va, unsigned pa, unsigned flags);
@@ -73,6 +76,8 @@ linklist_t free_frames;
 hashtable_t alloc_pages;
 mutex_t free_frames_mutex;
 mutex_t alloc_pages_mutex;
+
+memlock_t vm_memlock;
 
 /** @brief Gets a free physical frame.
  *
@@ -139,9 +144,13 @@ int vm_init()
         return -4;
     }
 
+    if (memlock_init(&vm_memlock, MEMLOCK_HT_SIZE) < 0) {
+        return -5;
+    }
+
     pd_t pd;
     if (vm_new_pd(&pd) < 0) {
-        return -5;
+        return -6;
     }
     set_cr3((unsigned)pd);
 
@@ -543,6 +552,8 @@ int new_pages(void *base, int len)
  */
 int remove_pages(void *base)
 {
+    
+    
     if (((unsigned)base % PAGE_SIZE) != 0) {
         return -1;
     }

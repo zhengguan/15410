@@ -9,14 +9,21 @@
 #ifndef _SVAR_H
 #define _SVAR_H
 
-#include <spinlock.h>
 #include <hashtable.h>
 #include <mutex.h>
+#include <cond.h>
 
 typedef struct memlock {
-    spinlock_t wait_lock;
-    hashtable_t wait_ht;
+    hashtable_t count_ht;
+    mutex_t count_mutex;
+    mutex_t destroy_mutex;
+    cond_t destroy_cv;
 } memlock_t;
+
+typedef enum {
+	MEMLOCK_ACCESS,
+	MEMLOCK_DESTROY
+} memlock_type;
 
 /* Memlock functions */
 int memlock_init(memlock_t *memlock, int size);

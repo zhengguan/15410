@@ -10,11 +10,14 @@
 #define _VM_H
 
 #include <kern_common.h>
+#include <memlock.h>
 
 typedef unsigned pde_t;
 typedef unsigned pte_t;
 typedef pde_t* pd_t;
 typedef pte_t* pt_t;
+
+extern memlock_t vm_memlock;
 
 /* Virtual memory functions */
 bool vm_is_present(void *va);

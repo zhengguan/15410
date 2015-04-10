@@ -100,8 +100,9 @@ int hashtable_get(hashtable_t *table, int key, void **data) {
 
     while (node != NULL) {
         if (node->key == key) {
-            if (data)
+            if (data != NULL) {
                 *data = node->data;
+            }
             return 0;
         }
         node = node->next;
