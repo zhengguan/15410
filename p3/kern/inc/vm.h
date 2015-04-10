@@ -27,4 +27,4 @@ void vm_clear();
 void vm_read_only();
 void vm_destroy();
 
-#endif /* __VM_H__ */
+#endif /* _VM_H */

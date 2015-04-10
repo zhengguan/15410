@@ -19,7 +19,7 @@ void slow() {
 
 int main() {
     char buf[BUF_SIZE];
-    lprintf("Child");
+    int status = 0;
     while(1) {
         int len = readline(BUF_SIZE - 1, buf);
         if (len == 1) {
@@ -29,7 +29,8 @@ int main() {
         lprintf("Return: %d", len);
         lprintf("Return: |%s|", buf);
         print(len, buf);
+        status++;
     }
 
-    return 100;
+    return status;
 }

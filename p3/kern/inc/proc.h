@@ -15,10 +15,17 @@
 #include <kern_common.h>
 #include <mutex.h>
 
-#define PCB_HT_SIZE 128
-#define TCB_HT_SIZE 128
-
 #define KERNEL_STACK_SIZE (2 * PAGE_SIZE)
+
+typedef enum {
+    VM,
+    MALLOC
+} lockid;
+
+typedef struct locks {
+    mutex_t vm;
+    mutex_t malloc;
+} locks_t;
 
 typedef struct regs {
     unsigned ebx;           // 0
@@ -34,30 +41,19 @@ typedef struct regs {
     unsigned cr4;           // 40
 } regs_t;
 
-typedef struct locks {
-    mutex_t vm;
-    mutex_t malloc;
-} locks_t;
-
-typedef enum {
-    VM,
-    MALLOC
-} lockid;
-
 typedef struct pcb {
     int pid;
     int status;
     int num_threads;
     int num_children;
     int parent_pid;
-    int first_tid;
     linklist_t threads;
     
     locks_t locks;
 
-    cond_t waiter_cv;
-    mutex_t vanished_task_mutex;
-    linklist_t vanished_tasks;
+    cond_t wait_cv;
+    mutex_t vanished_procs_mutex;
+    linklist_t vanished_procs;
 } pcb_t;
 
 typedef struct tcb {
@@ -79,8 +75,7 @@ int proc_new_process(pcb_t **pcb_out, tcb_t **tcb_out);
 int proc_new_thread(pcb_t *pcb, tcb_t **tcb_out);
 int getpid();
 void thread_reaper() NORETURN;
-int kernel_kill(const char *fmt, ...) NORETURN;
-
+void proc_kill_thread(const char *fmt, ...) NORETURN;
 void proc_lock(lockid id);
 void proc_unlock(lockid id);
 

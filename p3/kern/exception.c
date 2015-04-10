@@ -88,9 +88,9 @@ void exception_handler(ureg_t ureg)
         case IDT_CSO: /* Coprocessor Segment Overrun (Fault) */
         case IDT_TS:  /* Invalid Task Segment Selector (Fault) */
         case IDT_MC:  /* Machine Check (Abort) */
-            enable_interrupts();
-            kernel_kill("Killing thread: Received exn %d", ureg.cause);
-        /* exceptions passed to user */
+            break;
+        
+        // Exceptions passed to user
         case IDT_DE:  /* Devision Error (Fault) */
         case IDT_DB:  /* Debug Exception (Fault/Trap) */
         case IDT_BP:  /* Breakpoint (Trap) */
@@ -107,10 +107,11 @@ void exception_handler(ureg_t ureg)
             ureg.cr2 = 0;
         case IDT_PF: {  /* Page Fault (Fault) */
             call_user_handler(&ureg);
-            enable_interrupts();
-            kernel_kill("Killing thread: No handler registered to handle exn %d", ureg.cause);
         }
     }
+
+    enable_interrupts();
+    proc_kill_thread("Exception %d", ureg.cause);
 }
 
 int swexn(void *esp3, swexn_handler_t eip, void *arg, ureg_t *newureg)
