@@ -124,7 +124,7 @@ AUTOSTACK_OBJS = autostack.o
 #
 KERNEL_OBJS = console.o kernel.o loader.o malloc_wrappers.o hashtable.o \
 linklist.o circbuf.o handler.o interrupt.o vm.o proc.o exec_run.o fork.o \
-scheduler.o context_switch.o driver.o keyboard.o timer.o asm_common.o \
+scheduler.o context_switch.o keyboard.o timer.o asm_common.o \
 exception.o exception_asm.o atom_xchg.o spinlock.o mutex.o cond.o \
 kern_common.o readfile.o rwlock.o
 
