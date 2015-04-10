@@ -100,7 +100,9 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
     set_cr3((unsigned)idle_pd);
     unsigned idle_eip, idle_esp;
     char *idle_arg[] = IDLE_ARG;
-    load(IDLE_NAME, idle_arg, &idle_eip, &idle_esp);
+    if (load(IDLE_NAME, idle_arg, &idle_eip, &idle_esp) < 0) {
+        lprintf("idle load fails");
+    }
 
     iret_args_t *idle_wrap_esp = (iret_args_t*)(idle_tcb->esp0 -
                                                 sizeof(iret_args_t));
@@ -154,7 +156,9 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
     set_cr3((unsigned)init_pd);
     unsigned init_eip, init_esp;
     char *init_arg[] = INIT_ARG;
-    load(INIT_NAME, init_arg, &init_eip, &init_esp);
+    if (load(INIT_NAME, init_arg, &init_eip, &init_esp) < 0) {
+        lprintf("init load fails");
+    }
 
     set_esp0(init_tcb->esp0);
     cur_tid = init_tcb->tid;

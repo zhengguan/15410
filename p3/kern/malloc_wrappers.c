@@ -39,6 +39,8 @@ void *realloc(void *buf, size_t new_size)
 
 void free(void *buf)
 {
+    if (buf == NULL)
+        return;
     proc_lock(MALLOC);
     _free(buf);
     proc_unlock(MALLOC);
@@ -62,6 +64,8 @@ void *smemalign(size_t alignment, size_t size)
 
 void sfree(void *buf, size_t size)
 {
+    if (buf == NULL)
+        return;
     proc_lock(MALLOC);
     _sfree(buf, size);
     proc_unlock(MALLOC);
