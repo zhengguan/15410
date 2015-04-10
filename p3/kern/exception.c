@@ -90,8 +90,9 @@ static int call_user_handler(ureg_t *ureg)
     tcb_t *tcb = gettcb();
     handler_t *handler = get_swexn_handler(tcb);
 
-    if (handler->eip == NULL)
+    if (handler->eip == NULL) {
         return -2;
+    }
 
     unsigned esp = (unsigned)handler->esp3 - sizeof(handler_args_t);
 

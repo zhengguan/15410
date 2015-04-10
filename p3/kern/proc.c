@@ -254,7 +254,7 @@ static int reap_pcb(pcb_t *pcb, int *status_ptr)
 static void reap_tcb(tcb_t *tcb)
 {
     rwlock_lock(&tcbs_lock, RWLOCK_WRITE);
-    hashtable_remove(&tcbs, tcb->tid);
+    hashtable_remove(&tcbs, tcb->tid, NULL);
     rwlock_unlock(&tcbs_lock);
 
     free((void*)(tcb->esp0 - KERNEL_STACK_SIZE));

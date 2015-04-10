@@ -233,12 +233,8 @@ int make_runnable_kern(tcb_t *tcb, bool user)
         return -1;
     }
 
-    if (user) {
-        if (hashtable_get(&descheduled_tids, tcb->tid, NULL) == 0)
-            assert(hashtable_remove(&descheduled_tids, tcb->tid) == 0);
-        else
-            return -2;
-    }
+    if (user && hashtable_remove(&descheduled_tids, tcb->tid, NULL) < 0)
+        return -2;
 
     linklist_add_head(&scheduler_queue, (void*)tcb);
 

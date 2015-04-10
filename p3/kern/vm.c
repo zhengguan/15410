@@ -550,10 +550,9 @@ int remove_pages(void *base)
     mutex_lock(&alloc_pages_mutex);
 
     int len;
-    if (hashtable_get(&alloc_pages, PAGE_NUM(base), (void**)&len) < 0) {
+    if (hashtable_remove(&alloc_pages, PAGE_NUM(base), (void**)&len) < 0) {
         return -2;
     }
-    hashtable_remove(&alloc_pages, PAGE_NUM(base));
 
     mutex_unlock(&alloc_pages_mutex);
 
