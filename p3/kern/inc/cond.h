@@ -1,4 +1,4 @@
-/** @file mutex.h
+/** @file cond.h
  *  @brief This file defines the interface for condition variables.
  *
  *  @author Patrick Koenig (phkoenig)

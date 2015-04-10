@@ -37,8 +37,9 @@ static int call_user_handler(ureg_t *ureg)
 
     handler_t *handler = get_swexn_handler(*CUR_PCB);
 
-    if (handler->eip == NULL)
+    if (handler->eip == NULL) {
         return -2;
+    }
 
     unsigned esp = (unsigned)handler->esp3 - sizeof(handler_args_t);
     if (!vm_is_present_len((void*)esp, sizeof(handler_args_t))) {

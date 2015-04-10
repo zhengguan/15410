@@ -9,10 +9,10 @@
 #include <rwlock.h>
 #include <stdlib.h>
 
-/**
- * @brief Initializes the rwlock.
- * @param rwlock The rwlock.
- * @return 0 on success, negative error code otherwise.
+/** @brief Initializes the rwlock.
+ *  
+ *  @param rwlock The rwlock.
+ *  @return 0 on success, negative error code otherwise.
  */
 int rwlock_init(rwlock_t *rwlock)
 {
@@ -37,12 +37,11 @@ int rwlock_init(rwlock_t *rwlock)
     return 0;
 }
 
-/**
- * @brief Locks the rwlock.
+/** @brief Locks the rwlock.
  *
- * @param rwlock The rwlock.
- * @param type The type of lock to acquire.
- * @return Void.
+ *  @param rwlock The rwlock.
+ *  @param type The type of lock to acquire.
+ *  @return Void.
  */
 void rwlock_lock(rwlock_t *rwlock, rwlock_type type)
 {
@@ -76,11 +75,10 @@ void rwlock_lock(rwlock_t *rwlock, rwlock_type type)
     }
 }
 
-/**
- * @brief Unlocks the rwlock
+/** @brief Unlocks the rwlock
  *
- * @param rwlock The rwlock.
- * @return Void.
+ *  @param rwlock The rwlock.
+ *  @return Void.
  */
 void rwlock_unlock(rwlock_t *rwlock)
 {

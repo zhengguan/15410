@@ -114,9 +114,10 @@ int hashtable_get(hashtable_t *table, int key, void **data) {
  *
  *  @param table The hash table.
  *  @param key The key.
+ *  @param data A location in memory to store the removed data.
  *  @return 0 on success, negative error code otherwise.
  */
-int hashtable_remove(hashtable_t *table, int key) {
+int hashtable_remove(hashtable_t *table, int key, void **data) {
     if (table == NULL) {
         return -1;
     }
@@ -128,6 +129,9 @@ int hashtable_remove(hashtable_t *table, int key) {
     if (node != NULL) {
         if (node->key == key) {
             table->nodes[idx] = node->next;
+            if (data != NULL) {
+                *data = node->data;
+            }
             free(node);
             return 0;
         } else {
@@ -135,6 +139,9 @@ int hashtable_remove(hashtable_t *table, int key) {
                 if (node->next->key == key) {
                     hashnode_t *oldnode = node->next;
                     node->next = node->next->next;
+                    if (data != NULL) {
+                        *data = oldnode->data;
+                    }
                     free(oldnode);
                     return 0;
                 }

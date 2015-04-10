@@ -226,7 +226,7 @@ static int reap_pcb(pcb_t *pcb, int *status_ptr)
 {
     lprintf("reaping pcb %d", pcb->pid);
     rwlock_lock(&pcbs_lock, RWLOCK_WRITE);
-    assert(hashtable_remove(&pcbs, pcb->pid) == 0);
+    assert(hashtable_remove(&pcbs, pcb->pid, NULL) == 0);
     rwlock_unlock(&pcbs_lock);
 
     int pid = pcb->pid;
@@ -250,7 +250,7 @@ static void reap_tcb(tcb_t *tcb)
 {
     lprintf("reaping tid %d", tcb->tid);
     rwlock_lock(&tcbs_lock, RWLOCK_WRITE);
-    hashtable_remove(&tcbs, tcb->tid);
+    hashtable_remove(&tcbs, tcb->tid, NULL);
     rwlock_unlock(&tcbs_lock);
 
     free((void*)(tcb->esp0 - KERNEL_STACK_SIZE));

@@ -223,10 +223,9 @@ int make_runnable_kern(int tid, bool user)
     }
 
     if (user) {
-        if (hashtable_get(&descheduled_tids, tid, NULL) == 0)
-            assert(hashtable_remove(&descheduled_tids, tid) == 0);
-        else
+        if (hashtable_remove(&descheduled_tids, tid, NULL) == 0) {
             return -2;
+        }
     }
 
     linklist_add_tail(&scheduler_queue, (void*)tid);
