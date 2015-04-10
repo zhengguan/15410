@@ -50,7 +50,7 @@ void mutex_lock(mutex_t *mp) {
         return;
     }
 
-    waiter_t waiter = {gettid(), 0};
+    waiter_t waiter = {gettcb(), 0};
 
     spinlock_lock(&mp->wait_lock);
     if (&mp->count <= 0) {
@@ -81,7 +81,7 @@ void mutex_unlock(mutex_t *mp) {
         waiter_t *waiter;
         linklist_remove_head(&mp->wait_list, (void**)&waiter);
         waiter->reject = 1;
-        make_runnable_kern(waiter->tid, false);
+        make_runnable_kern(waiter->tcb, false);
     } else {
         mp->tid = -1;
     }

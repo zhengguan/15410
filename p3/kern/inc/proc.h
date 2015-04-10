@@ -48,12 +48,15 @@ typedef struct {
     void *arg;
 } handler_t;
 
+
+
 typedef struct pcb {
     int pid;
     int status;
     int num_threads;
     int num_children;
-    int parent_pid;
+    linklist_t children;
+    struct pcb *parent_pcb;
     pd_t pd;
 
     locks_t locks;
@@ -61,21 +64,19 @@ typedef struct pcb {
     cond_t wait_cv;
     mutex_t vanished_procs_mutex;
     linklist_t vanished_procs;
-
-    handler_t swexn_handler;
 } pcb_t;
 
 typedef struct tcb {
     int tid;
-    int pid;
+    pcb_t *pcb;
     unsigned esp0;
     regs_t regs;
+    handler_t swexn_handler;
 } tcb_t;
 
-extern hashtable_t pcbs;
 extern hashtable_t tcbs;
-extern int cur_tid;
-extern int idle_tid;
+extern tcb_t *cur_tcb;
+extern tcb_t *idle_tcb;
 extern pcb_t* init_pcb;
 extern bool mt_mode;
 
@@ -83,7 +84,10 @@ extern bool mt_mode;
 int proc_init();
 int proc_new_process(pcb_t **pcb_out, tcb_t **tcb_out);
 int proc_new_thread(pcb_t *pcb, tcb_t **tcb_out);
+tcb_t *gettcb();
 int getpid();
+pcb_t *getpcb();
+tcb_t *lookup_tcb(int tid);
 void thread_reaper() NORETURN;
 void proc_kill_thread(const char *fmt, ...) NORETURN;
 void proc_lock(lockid id);
