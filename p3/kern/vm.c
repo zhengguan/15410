@@ -29,15 +29,18 @@
 
 #define PTE_PRESENT 0x1
 #define PTE_RW 0x2
-#define PTE_SU 0x4
+#define PTE_USER 0x4
 #define PTE_GLOBAL 0x100
 
 #define FLAG_MASK (~PAGE_MASK & ~1)
 #define GET_PRESENT(PTE) ((PTE) & PTE_PRESENT)
 #define GET_FLAGS(PTE) ((PTE) & FLAG_MASK)
 
-#define KERNEL_FLAGS (PTE_RW | PTE_GLOBAL)
-#define USER_FLAGS (PTE_RW | PTE_SU)
+// #define KERNEL_FLAGS (PTE_RW | PTE_GLOBAL)
+// #define USER_FLAGS (PTE_RW | PTE_SU)
+
+#define KERNEL_MEM_FLAGS (PTE_RW | PTE_GLOBAL)
+#define USER_MEM_FLAGS (PTE_USER)
 
 #define PD_SIZE (PAGE_SIZE / sizeof(pde_t))
 #define PT_SIZE (PAGE_SIZE / sizeof(pte_t))
@@ -133,11 +136,11 @@ int vm_init()
     if (mutex_init(&free_frames_mutex) < 0) {
         return -3;
     }
-    
+
     if (mutex_init(&alloc_pages_mutex) < 0) {
         return -4;
     }
-    
+
     pd_t pd;
     if (vm_new_pd(&pd) < 0) {
         return -5;
@@ -173,7 +176,7 @@ int vm_new_pd(pd_t *new_pd)
 
     unsigned pa;
     for (pa = KERNEL_MEM_START; pa < USER_MEM_START; pa += PAGE_SIZE) {
-        vm_new_pte(pd, (void *)pa, pa, KERNEL_FLAGS);
+        vm_new_pte(pd, (void *)pa, pa, KERNEL_MEM_FLAGS);
     }
 
     *new_pd = pd;
@@ -235,14 +238,13 @@ int vm_new_pte(pd_t pd, void *va, unsigned pa, unsigned flags)
 {
     pde_t *pde = pd + GET_PD_IDX(va);
     if (!GET_PRESENT(*pde)) {
-        if (vm_new_pt(pde, flags) < 0) {
+        if (vm_new_pt(pde, flags | PTE_RW) < 0) {
             return -1;
         }
     }
 
     pte_t *pte = GET_PT(*pde) + GET_PT_IDX(va);
     *pte = ((pa & PAGE_MASK) | PTE_PRESENT | flags);
-
     return 0;
 }
 
@@ -422,7 +424,7 @@ void vm_clear() {
         va += PAGE_SIZE;
     }
 
-    set_cr3(get_cr3());
+    set_cr3(get_cr3()); //clear tlb
 }
 
 
@@ -437,16 +439,24 @@ void vm_read_only(void *va) {
     *pte &= ~PTE_RW;
 }
 
+/** @brief Sets a virtual address to be read-write.
+ *
+ *  @param va The virtual address.
+ *  @return Void.
+ */
+void vm_read_write(void *va) {
+    pde_t pde = GET_PDE(GET_PD(), va);
+    pte_t *pte = GET_PT(pde) + GET_PT_IDX(va);
+    *pte |= PTE_RW;
+}
+
 /** @brief Removes a page directory.
  *
- *  Removes a page directory, all of its page tables, and its mapped physical
- *  frames.
+ *  Removes a page directory. Must call vm_clear() before this call.
  *
  *  @return Void.
  */
 void vm_destroy(pd_t pd) {
-    vm_clear();
-
     unsigned va;
     for(va = KERNEL_MEM_START; va < USER_MEM_START; va += PAGE_SIZE) {
         vm_remove_pte((void *)va);
@@ -491,15 +501,17 @@ int new_pages(void *base, int len)
     }
 
     for (va = (unsigned)base; va < (unsigned)base + len - 1; va += PAGE_SIZE) {
-        vm_new_pte(GET_PD(), (void *)va, get_frame(), USER_FLAGS);
+        vm_new_pte(GET_PD(), (void *)va, get_frame(), USER_MEM_FLAGS);
+        memset((void*)va, 0, PAGE_SIZE);
+        vm_read_write((void*)va);
     }
-    
+
     proc_unlock(VM);
 
     mutex_lock(&alloc_pages_mutex);
     hashtable_add(&alloc_pages, PAGE_NUM(base), (void *)len);
     mutex_unlock(&alloc_pages_mutex);
-    
+
     return 0;
 }
 
@@ -515,13 +527,13 @@ int remove_pages(void *base)
     }
 
     mutex_lock(&alloc_pages_mutex);
-    
+
     int len;
     if (hashtable_get(&alloc_pages, PAGE_NUM(base), (void**)&len) < 0) {
         return -2;
     }
     hashtable_remove(&alloc_pages, PAGE_NUM(base));
-    
+
     mutex_unlock(&alloc_pages_mutex);
 
     unsigned va;

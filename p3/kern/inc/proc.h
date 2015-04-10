@@ -14,6 +14,7 @@
 #include <cond.h>
 #include <kern_common.h>
 #include <mutex.h>
+#include <vm.h>
 
 #define KERNEL_STACK_SIZE (2 * PAGE_SIZE)
 
@@ -47,8 +48,9 @@ typedef struct pcb {
     int num_threads;
     int num_children;
     int parent_pid;
+    pd_t pd;
     linklist_t threads;
-    
+
     locks_t locks;
 
     cond_t wait_cv;

@@ -1,7 +1,7 @@
-/** @file console.c 
+/** @file console.c
  *  @brief A console driver.
  *
- *  This is the implementation of the console driver.  
+ *  This is the implementation of the console driver.
  *
  *  @author Patrick Koenig (phkoenig)
  *  @author Jack Sorrell (jsorrell)
@@ -40,10 +40,10 @@ int putbyte(char ch)
     int row = 0;
     int col = 0;
     get_cursor_pos(&row, &col);
-    
+
     int color = 0;
     get_term_color(&color);
-    
+
     switch(ch) {
     case '\n':
         if (row >= CONSOLE_HEIGHT - 1) {
@@ -53,22 +53,21 @@ int putbyte(char ch)
             set_cursor_pos(row + 1, 0);
         }
         break;
-        
+
     case '\r':
         set_cursor_pos(row, 0);
         break;
-        
+
     case '\b':
         if (col > 0) {
             draw_char(row, col - 1, ' ', color);
             set_cursor_pos(row, col - 1);
         }
         break;
-        
+
     default:
-        // TODO why are colors failing?
         draw_char(row, col, ch, color);
-        
+
         if (col >= CONSOLE_WIDTH - 1) {
             if (row >= CONSOLE_HEIGHT - 1) {
                 scroll_up();
@@ -80,8 +79,8 @@ int putbyte(char ch)
             set_cursor_pos(row, col + 1);
         }
     }
-    
-    return ch; 
+
+    return ch;
 }
 
 /** @brief Prints the string s, starting at the current
@@ -106,7 +105,7 @@ void putbytes(const char *s, int len)
     if (s == NULL || len <= 0) {
         return;
     }
-    
+
     int i;
     for(i=0; i < len; i++) {
         putbyte(s[i]);
@@ -129,7 +128,7 @@ int set_term_color(int color)
     }
 
     term_color = color;
-    
+
     return 0;
 }
 
@@ -145,7 +144,7 @@ void get_term_color(int *color)
     if (color == NULL) {
         return;
     }
-    
+
     *color = term_color;
 }
 
@@ -171,7 +170,7 @@ int set_cursor_pos(int row, int col)
 
     cursor_row = row;
     cursor_col = col;
-    
+
     if (cursor_visible) {
         int offset = row * CONSOLE_WIDTH + col;
         outb(CRTC_IDX_REG, CRTC_CURSOR_LSB_IDX);
@@ -179,7 +178,7 @@ int set_cursor_pos(int row, int col)
         outb(CRTC_IDX_REG, CRTC_CURSOR_MSB_IDX);
         outb(CRTC_DATA_REG, (uint8_t)(offset >> 8));
     }
-    
+
     return 0;
 }
 
@@ -196,14 +195,14 @@ int get_cursor_pos(int *row, int *col)
     if (row == NULL) {
         return -1;
     }
-    
+
     if (col == NULL) {
         return -2;
     }
-    
+
     *row = cursor_row;
     *col = cursor_col;
-    
+
     return 0;
 }
 
@@ -217,7 +216,7 @@ int get_cursor_pos(int *row, int *col)
 void hide_cursor()
 {
     cursor_visible = 0;
-    
+
     int offset = CONSOLE_HEIGHT * CONSOLE_WIDTH;
     outb(CRTC_IDX_REG, CRTC_CURSOR_LSB_IDX);
     outb(CRTC_DATA_REG, (uint8_t)offset);
@@ -226,7 +225,7 @@ void hide_cursor()
 }
 
 /** @brief Shows the cursor.
- *  
+ *
  *  If the cursor is already shown, the function has no effect.
  *
  *  @return Void.
@@ -247,15 +246,15 @@ void clear_console()
 {
     int color = 0;
     get_term_color(&color);
-    
+
     int row;
     int col;
-    for(row = 0; row < CONSOLE_HEIGHT; row++) {    
+    for(row = 0; row < CONSOLE_HEIGHT; row++) {
         for(col = 0; col < CONSOLE_WIDTH; col++) {
-                draw_char(row, col, ' ', color);            
+                draw_char(row, col, ' ', color);
         }
     }
-    
+
     set_cursor_pos(0, 0);
 }
 
@@ -272,8 +271,8 @@ void clear_console()
  */
 void draw_char(int row, int col, int ch, int color)
 {
-    *(char *)(CONSOLE_MEM_BASE + 2*(row*CONSOLE_WIDTH + col)) = ch; 
-    *(char *)(CONSOLE_MEM_BASE + 2*(row*CONSOLE_WIDTH + col) + 1) = color; 
+    *(char *)(CONSOLE_MEM_BASE + 2*(row*CONSOLE_WIDTH + col)) = ch;
+    *(char *)(CONSOLE_MEM_BASE + 2*(row*CONSOLE_WIDTH + col) + 1) = color;
 }
 
 /** @brief Returns the character displayed at position (row, col).
@@ -305,27 +304,27 @@ void scroll_up()
 {
     int row;
     int col;
-    for(row = 1; row < CONSOLE_HEIGHT; row++) {    
+    for(row = 1; row < CONSOLE_HEIGHT; row++) {
         for(col = 0; col < CONSOLE_WIDTH; col++) {
             char ch = get_char(row, col);
             int color = get_color(row, col);
             draw_char(row - 1, col, ch, color);
         }
     }
-    
+
     int color = 0;
     get_term_color(&color);
-    
+
     for(col = 0; col < CONSOLE_WIDTH; col++) {
-        draw_char(CONSOLE_HEIGHT - 1, col, ' ', color);        
+        draw_char(CONSOLE_HEIGHT - 1, col, ' ', color);
     }
 }
 
-int print(int len, char *buf) 
+int print(int len, char *buf)
 {
     // TODO add saftey checks
-    
+
     putbytes(buf, len);
-    
+
     return 0;
 }

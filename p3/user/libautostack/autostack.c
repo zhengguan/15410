@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <syscall.h>
 #include <ureg.h>
+#include <simics.h>
 
 #define MAIN_EXCEPTION_STACK_SIZE PAGE_SIZE
 
@@ -40,7 +41,9 @@ void install_autostack(void *stack_high, void *stack_low)
  *  @return Void.
  */
 static void register_exception_handler(void *esp3, ureg_t *newureg) {
-    swexn(esp3, exception_handler, NULL, newureg);
+    int err;
+    if ( (err = swexn(esp3, exception_handler, NULL, newureg)) < 0)
+        lprintf("failed to register autostack handler");
 }
 
 /** @brief Handles page-faults by performing automatic stack growth.

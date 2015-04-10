@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <rwlock.h>
+#include <exception.h>
 
 #define PCB_HT_SIZE 128
 #define TCB_HT_SIZE 128
@@ -50,7 +51,7 @@ static int init_locks(locks_t *locks) {
         (mutex_init(&locks->malloc) < 0)) {
         return -1;
     }
-    
+
     return 0;
 }
 
@@ -115,7 +116,7 @@ int proc_new_process(pcb_t **pcb_out, tcb_t **tcb_out) {
     if (linklist_init(&pcb->vanished_procs) < 0) {
         return -5;
     }
-      
+
     if (init_locks(&pcb->locks) < 0) {
         return -6;
     }
@@ -245,6 +246,8 @@ static int reap_pcb(pcb_t *pcb, int *status_ptr)
         *status_ptr = pcb->status;
     }
 
+    vm_destroy(pcb->pd);
+
     free(pcb);
 
     return pid;
@@ -337,6 +340,8 @@ void vanish()
         pcb_t *init_pcb;
         hashtable_get(&pcbs, init_tid, (void**)&init_pcb);
 
+        deregister_swexn_handler(pcb->pid);
+
         pcb_t *parent_pcb;
         if (hashtable_get(&pcbs, pcb->parent_pid, (void*)&parent_pcb) == 0) {
             linklist_add_tail(&parent_pcb->vanished_procs, pcb);
@@ -346,6 +351,8 @@ void vanish()
             linklist_add_tail(&init_pcb->vanished_procs, pcb);
             cond_signal(&init_pcb->wait_cv);
         }
+
+        vm_clear();
 
         pcb_t *dead_pcb;
         while (linklist_remove_head(&pcb->vanished_procs, (void**)&dead_pcb) == 0) {

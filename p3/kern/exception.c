@@ -7,8 +7,8 @@
  *  @bug No known bugs.
  */
 
+#include <exception.h>
 #include <simics.h>
-#include <ureg.h>
 #include <vm.h>
 #include <common_kern.h>
 #include <stdlib.h>
@@ -74,7 +74,7 @@ static int call_user_handler(ureg_t *ureg)
 
 void exception_handler(ureg_t ureg)
 {
-    lprintf("exception");
+    lprintf("exception %d in %d", ureg.cause, getpid());
     if ((ureg.cs & 3) == 0) {
         lprintf("kernel mode exception %u", ureg.cause);
         MAGIC_BREAK;
@@ -117,51 +117,63 @@ void exception_handler(ureg_t ureg)
 int swexn(void *esp3, swexn_handler_t eip, void *arg, ureg_t *newureg)
 {
     //check return ureg
-    if (newureg && !vm_is_present_len(newureg, sizeof(ureg_t)))
+    if (newureg && (!vm_is_present_len(newureg, sizeof(ureg_t))
+                    || (unsigned)newureg < USER_MEM_START))
         return -2;
 
     //if one null, remove handler
     if (esp3 == NULL || eip == NULL) {
-        hashtable_remove(&handler_ht, getpid());
+        lprintf("attempting to deregister handler");
+        deregister_swexn_handler(getpid());
     } else {
-        if ((esp3 && (unsigned)esp3 < USER_MEM_START) ||
-            (eip && (unsigned)eip < USER_MEM_START)   ||
-            (newureg && (unsigned)newureg < USER_MEM_START)) {
+        if ((unsigned)eip < USER_MEM_START || !vm_is_present(eip))
             return -1;
+        if ((unsigned)esp3 < USER_MEM_START ||
+            !vm_is_present_len((void*)((unsigned)esp3-sizeof(handler_args_t)),
+                                                      sizeof(handler_args_t))) {
+            return -2;
         }
 
-        if (!vm_is_present_len((void*)((unsigned)esp3-sizeof(handler_args_t)),
-                                                     sizeof(handler_args_t))) {
-            return -4;
-        }
-
-        handler_t *handler;
-        disable_interrupts();
-        if (hashtable_get(&handler_ht, getpid(), (void **)&handler) < 0) {
-            handler = malloc(sizeof(handler_t));
-            if (handler == NULL) {
-                return -3;
-            }
-            hashtable_add(&handler_ht, getpid(), (void *)handler);
-        }
-
-        handler->esp3 = esp3;
-        handler->eip = eip;
-        handler->arg = arg;
-        enable_interrupts();
+        register_swexn_handler(getpid(), eip, esp3, arg);
     }
 
     if (newureg == NULL) {
         return 0;
     }
 
-    disable_interrupts();
-
-    if (!vm_is_present_len(newureg, sizeof(ureg_t))) {
-        enable_interrupts();
-        return -4;
-    }
     jmp_ureg_user(newureg); //reenables interrupts before jmp
 
     return -5;
+}
+
+
+int deregister_swexn_handler(int pid)
+{
+    return hashtable_remove(&handler_ht, pid);
+}
+
+int register_swexn_handler(int pid, swexn_handler_t eip, void *esp3, void *arg)
+{
+    handler_t *handler;
+    if (hashtable_get(&handler_ht, pid, (void **)&handler) < 0) {
+        handler = malloc(sizeof(handler_t));
+        if (handler == NULL) {
+            return -1;
+        }
+        lprintf("adding handler for %d", pid);
+        hashtable_add(&handler_ht, pid, (void *)handler);
+    }
+
+    handler->esp3 = esp3;
+    handler->eip = eip;
+    handler->arg = arg;
+    return 0;
+}
+
+int dup_swexn_handler(int src_pid, int dest_pid)
+{
+    handler_t *handler;
+    if (hashtable_get(&handler_ht, src_pid, (void **)&handler) < 0)
+        return -1;
+    return register_swexn_handler(dest_pid, handler->eip, handler->esp3, handler->arg);
 }

@@ -201,13 +201,14 @@ remove_pages_int:
 readline_int:
     call    set_kernel_segs
     pushl   4(%esi)
-    pushl   (%esi)
-    call    str_check
+    call    buf_check
     test    %eax, %eax
-    js      print_fail
+    js      readline_fail
+    pushl   (%esi)
     call    readline
-readline:
-    addl    $8, %esp
+    addl    $4, %esp
+readline_fail:
+    addl    $4, %esp
     push    %eax
     call    set_user_segs
     pop     %eax
@@ -217,13 +218,14 @@ readline:
 print_int:
     call    set_kernel_segs
     pushl   4(%esi)
-    pushl   (%esi)
     call    str_check
     test    %eax, %eax
     js      print_fail
+    pushl   (%esi)
     call    print
+    addl    $4, %esp
 print_fail:
-    addl    $8, %esp
+    addl    $4, %esp
     push    %eax
     call    set_user_segs
     pop     %eax

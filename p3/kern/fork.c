@@ -17,15 +17,18 @@
 #include <string.h>
 #include <stdlib.h>
 #include <x86/pic.h>
+#include <exception.h>
 
 int fork()
 {
     tcb_t *old_tcb;
     hashtable_get(&tcbs, gettid(), (void**)&old_tcb);
 
+
     pcb_t *old_pcb;
     hashtable_get(&pcbs, getpid(), (void**)&old_pcb);
-    old_pcb->num_children++;
+    if (old_pcb->num_threads > 1) //reject if multithreaded
+        return -1;
 
     disable_interrupts();
 
@@ -33,9 +36,10 @@ int fork()
     pcb_t *new_pcb;
     int new_tid;
     if ( (new_tid = proc_new_process(&new_pcb, &new_tcb)) < 0) {
-        return -1;
+        return -2;
     }
 
+    old_pcb->num_children++;
     new_pcb->parent_pid = getpid();
 
     //swap esp0's for old and new threads
@@ -43,14 +47,15 @@ int fork()
     old_tcb->esp0 = new_tcb->esp0;
     new_tcb->esp0 = cur_esp0;
 
+    dup_swexn_handler(old_pcb->pid, new_pcb->pid);
+
     if (store_regs(&old_tcb->regs, cur_esp0)) { //new thread
 
-        pd_t pd;
-        if (vm_copy(&pd) < 0) {
+        if (vm_copy(&new_pcb->pd) < 0) {
             // TODO handle bad things
-        }    
-        
-        set_cr3((unsigned)pd);
+        }
+
+        set_cr3((unsigned)new_pcb->pd);
 
         cur_tid = new_tid;
 

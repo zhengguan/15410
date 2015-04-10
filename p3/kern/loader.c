@@ -29,6 +29,8 @@
 #include <simics.h>
 #include <hashtable.h>
 #include <assert.h>
+#include <exception.h>
+#include <proc.h>
 
 //MUST BE PAGE ALIGNED
 #define USER_ARGV_TOP ((char*)0xD0000000u)
@@ -145,9 +147,7 @@ static unsigned fill_mem(const simple_elf_t *se_hdr, int argc, char *argv[],
 
     /* Copy arguments to argument space */
     if (new_pages(bottom_arg_ptr - PAGE_SIZE, PAGE_SIZE) < 0) {
-        // TODO handle this
-        lprintf("oops");
-        MAGIC_BREAK;
+        proc_kill_thread("Killing thread. Out of memory.");
     }
 
     char **new_argv = (char**)(bottom_arg_ptr - PAGE_SIZE);
@@ -159,17 +159,13 @@ static unsigned fill_mem(const simple_elf_t *se_hdr, int argc, char *argv[],
         new_argv[i] = bottom_arg_ptr;
     }
 
-    free(tmp_args);
-
     if (alloc_pages(se_hdr->e_txtstart, se_hdr->e_txtlen, true) < 0 ||
         alloc_pages(se_hdr->e_datstart, se_hdr->e_datlen, false) < 0 ||
         alloc_pages(se_hdr->e_rodatstart, se_hdr->e_rodatlen, true) < 0 ||
         alloc_pages(se_hdr->e_bssstart, se_hdr->e_bsslen, false) < 0) {
-        // TODO handle this
-        MAGIC_BREAK;
+        proc_kill_thread("Killing thread. Out of memory.");
     }
 
-    // TODO make txt and rodata read only?
     assert (getbytes(se_hdr->e_fname, se_hdr->e_txtoff, se_hdr->e_txtlen,
                 (char*)se_hdr->e_txtstart) == se_hdr->e_txtlen &&
             getbytes(se_hdr->e_fname, se_hdr->e_datoff, se_hdr->e_datlen,
@@ -181,8 +177,7 @@ static unsigned fill_mem(const simple_elf_t *se_hdr, int argc, char *argv[],
     char *stack_low = USER_STACK_TOP - USER_STACK_SIZE;
 
     if (new_pages(stack_low, USER_STACK_SIZE) < 0) {
-        // TODO handle this
-        MAGIC_BREAK;
+        proc_kill_thread("Killing thread. Out of memory.");
     }
 
     unsigned esp = (unsigned)USER_STACK_TOP;
@@ -199,8 +194,6 @@ static unsigned fill_mem(const simple_elf_t *se_hdr, int argc, char *argv[],
     esp -= sizeof(int);
     *(int*)esp = argc;
 
-    //TODO: need make a wrapper so we don't crash if they DO return?
-    //push return address (isn't one)
     esp -= sizeof(int);
 
     return esp;
@@ -268,19 +261,25 @@ int load(char *filename, char *argv[], unsigned *eip, unsigned *esp)
     }
 
     /* Copy arguments to temp kernel space */
-    char *tmp_args = malloc(sizeof(char) * total_arg_len);
-    if (tmp_args == NULL) {
-        return -9;
-    }
+    char *tmp_args = NULL;
+    if (argc > 0)
+        if ( (tmp_args = malloc(sizeof(char) * total_arg_len)) == NULL) {
+            free(arg_lens);
+            return -9;
+        }
+
+    char *arg_ptr = tmp_args;
     for (i = 0; i < argc; i++) {
-        strncpy(tmp_args, argv[i], arg_lens[i] + 1);
-        tmp_args += arg_lens[i] + 1;
+        strncpy(arg_ptr, argv[i], arg_lens[i] + 1);
+        arg_ptr += arg_lens[i] + 1;
     }
 
     *esp = fill_mem(&se_hdr, argc, argv, arg_lens, tmp_args);
     *eip = se_hdr.e_entry;
-
     free(arg_lens);
+    free(tmp_args);
+
+    deregister_swexn_handler(getpid());
 
     if (*esp == 0) {
         return -9;
