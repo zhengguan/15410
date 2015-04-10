@@ -64,7 +64,7 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
     }
 
     idt_init();
-    
+
     if (vm_init() < 0) {
         lprintf("failed to init vm");
     }
@@ -84,20 +84,20 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
 
     /* Setup idle */
     tcb_t *idle_tcb;
-    if (proc_new_process(NULL, &idle_tcb) < 0) {
+    pcb_t *idle_pcb;
+    if (proc_new_process(&idle_pcb, &idle_tcb) < 0) {
         lprintf("failed to create idle");
     }
     idle_tid = idle_tcb->tid;
     cur_tid = idle_tid;
 
     //Create a new page directory
-    pd_t idle_pd;
-    if (vm_new_pd(&idle_pd) < 0) {
+    if (vm_new_pd(&idle_pcb->pd) < 0) {
         lprintf("vm_new_pd failed");
     }
 
     //Load idle into memory
-    set_cr3((unsigned)idle_pd);
+    set_cr3((unsigned)idle_pcb->pd);
     unsigned idle_eip, idle_esp;
     char *idle_arg[] = IDLE_ARG;
     if (load(IDLE_NAME, idle_arg, &idle_eip, &idle_esp) < 0) {
@@ -112,7 +112,7 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
     idle_tcb->regs.esp_offset = sizeof(iret_args_t);
     idle_tcb->regs.cr0 = KERNEL_CR0;
     idle_tcb->regs.cr2 = 0;
-    idle_tcb->regs.cr3 = (unsigned)idle_pd;
+    idle_tcb->regs.cr3 = (unsigned)idle_pcb->pd;
     idle_tcb->regs.cr4 = get_cr4();
     idle_tcb->regs.ebp_offset = -idle_tcb->esp0;
     idle_tcb->regs.eflags = USER_EFLAGS;
@@ -126,13 +126,13 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
 
     /* Setup Thread Reaper */
     tcb_t *tr_tcb;
-    if (proc_new_process(NULL, &tr_tcb) < 0) {
+    pcb_t *tr_pcb;
+    if (proc_new_process(&tr_pcb, &tr_tcb) < 0) {
         lprintf("failed to create thread reaper");
     }
 
     //Create a new page directory
-    pd_t tr_pd;
-    if (vm_new_pd(&tr_pd) < 0) {
+    if (vm_new_pd(&tr_pcb->pd) < 0) {
         lprintf("vm_new_pd failed");
     }
 
@@ -141,7 +141,7 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
     tr_tcb->regs.esp_offset = 0;
     tr_tcb->regs.cr0 = KERNEL_CR0;
     tr_tcb->regs.cr2 = 0;
-    tr_tcb->regs.cr3 = (unsigned)tr_pd;
+    tr_tcb->regs.cr3 = (unsigned)tr_pcb->pd;
     tr_tcb->regs.cr4 = get_cr4();
     tr_tcb->regs.ebp_offset = -tr_tcb->esp0;
     tr_tcb->regs.eflags = USER_EFLAGS;
@@ -150,9 +150,11 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
 
     /* Setup init */
     tcb_t *init_tcb;
-    if (proc_new_process(NULL, &init_tcb) < 0) {
+    pcb_t *init_pcb;
+    if (proc_new_process(&init_pcb, &init_tcb) < 0) {
         lprintf("failed to create init");
     }
+    init_pcb->pd = init_pd;
     set_cr3((unsigned)init_pd);
     unsigned init_eip, init_esp;
     char *init_arg[] = INIT_ARG;

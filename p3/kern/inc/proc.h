@@ -14,6 +14,7 @@
 #include <cond.h>
 #include <kern_common.h>
 #include <mutex.h>
+#include <vm.h>
 
 #define PCB_HT_SIZE 128
 #define TCB_HT_SIZE 128
@@ -51,8 +52,9 @@ typedef struct pcb {
     int num_children;
     int parent_pid;
     int first_tid;
+    pd_t pd;
     linklist_t threads;
-    
+
     locks_t locks;
 
     cond_t waiter_cv;

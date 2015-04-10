@@ -19,6 +19,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <exception.h>
 
 #define FIRST_TID 1
 
@@ -40,7 +41,7 @@ static int init_locks(locks_t *locks) {
         (mutex_init(&locks->malloc) < 0)) {
         return -1;
     }
-    
+
     return 0;
 }
 
@@ -61,7 +62,7 @@ static mutex_t *get_mutex(lockid id) {
     default:
         break;
     }
-    
+
     return NULL;
 }
 
@@ -118,7 +119,7 @@ int proc_new_process(pcb_t **pcb_out, tcb_t **tcb_out) {
     if (linklist_init(&pcb->vanished_tasks) < 0) {
         return -5;
     }
-      
+
     if (init_locks(&pcb->locks) < 0) {
         return -6;
     }
@@ -230,10 +231,12 @@ void set_status(int status)
 
 static int reap_pcb(pcb_t *pcb, int *status_ptr)
 {
+    lprintf("reap_pcb");
     assert(hashtable_remove(&pcbs, pcb->pid) == 0);
     if (status_ptr)
         *status_ptr = pcb->status;
     int pid = pcb->pid;
+    vm_destroy(pcb->pd);
     free(pcb);
     return pid;
 }
@@ -307,6 +310,7 @@ void vanish()
         hashtable_get(&pcbs, init_tid, (void**)&init_pcb);
 
         assert(pcb->parent_pid >= FIRST_TID);
+        deregister_swexn_handler(pcb->pid);
 
         pcb_t *parent_pcb;
         if (hashtable_get(&pcbs, pcb->parent_pid, (void*)&parent_pcb) < 0) {
@@ -318,6 +322,7 @@ void vanish()
             cond_signal(&parent_pcb->waiter_cv);
         }
 
+        vm_clear();
 
         pcb_t *dead_pcb;
         while (linklist_remove_head(&pcb->vanished_tasks, (void**)&dead_pcb) == 0) {

@@ -55,6 +55,8 @@ set_kernel_segs:
     mov     $SEGSEL_KERNEL_DS, %eax
     mov     %eax, %ds
     mov     %eax, %es
+    mov     %eax, %fs
+    mov     %eax, %gs
     ret
 
 .globl set_user_segs
@@ -62,4 +64,6 @@ set_user_segs:
     mov     $SEGSEL_USER_DS, %eax
     mov     %eax, %ds
     mov     %eax, %es
+    mov     %eax, %fs
+    mov     %eax, %gs
     ret
