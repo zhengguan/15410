@@ -145,7 +145,7 @@ static unsigned fill_mem(const simple_elf_t *se_hdr, int argc, char *argv[],
 
     /* Copy arguments to argument space */
     if (new_pages(USER_ARGV_START, PAGE_SIZE) < 0) {
-        kernel_kill("Killing thread. Out of memory.");
+        proc_kill_thread("Killing thread. Out of memory.");
     }
 
     char **new_argv = (char**)(USER_ARGV_START);
@@ -162,7 +162,7 @@ static unsigned fill_mem(const simple_elf_t *se_hdr, int argc, char *argv[],
         alloc_pages(se_hdr->e_datstart, se_hdr->e_datlen, false) < 0 ||
         alloc_pages(se_hdr->e_rodatstart, se_hdr->e_rodatlen, true) < 0 ||
         alloc_pages(se_hdr->e_bssstart, se_hdr->e_bsslen, false) < 0) {
-        kernel_kill("Killing thread. Out of memory.");
+        proc_kill_thread("Killing thread. Out of memory.");
     }
 
     assert (getbytes(se_hdr->e_fname, se_hdr->e_txtoff, se_hdr->e_txtlen,
@@ -176,7 +176,7 @@ static unsigned fill_mem(const simple_elf_t *se_hdr, int argc, char *argv[],
     char *stack_low = USER_STACK_TOP - USER_STACK_SIZE;
 
     if (new_pages(stack_low, USER_STACK_SIZE) < 0) {
-        kernel_kill("Killing thread. Out of memory.");
+        proc_kill_thread("Killing thread. Out of memory.");
     }
 
     unsigned esp = (unsigned)USER_STACK_TOP;

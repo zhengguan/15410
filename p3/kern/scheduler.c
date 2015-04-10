@@ -6,7 +6,7 @@
 #include <scheduler.h>
 #include <asm.h>
 #include <cr.h>
-#include <driver.h>
+#include <x86/pic.h>
 #include <common_kern.h>
 #include <vm.h>
 #include <assert.h>
@@ -136,7 +136,7 @@ int yield(int tid)
     assert (context_switch(tid) == 0);
 
     //FIXME: not always from timer call
-    notify_interrupt_complete(); //we are coming from timer call but not returning
+    pic_acknowledge_any_master();
 
     return 0;
 }

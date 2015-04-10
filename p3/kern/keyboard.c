@@ -9,7 +9,7 @@
  */
 
 #include <x86/video_defines.h>
-#include <driver.h>
+#include <x86/pic.h>
 #include <asm.h>
 #include <keyhelp.h>
 #include <stdio.h>
@@ -72,7 +72,7 @@ void keyboard_handler()
 
     cond_signal(&readchar_cond);
 
-	notify_interrupt_complete();
+    pic_acknowledge_any_master();
 }
 
 /** @brief Returns the next character in the keyboard buffer.

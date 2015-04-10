@@ -16,7 +16,7 @@
 #include <vm.h>
 #include <string.h>
 #include <stdlib.h>
-#include <driver.h>
+#include <x86/pic.h>
 #include <exception.h>
 
 int fork()
@@ -63,7 +63,8 @@ int fork()
         linklist_add_tail(&scheduler_queue, (void *)new_tid);
         return 0;
     } else { //old thread
-        notify_interrupt_complete(); //we are coming from timer call but not returning
+        // FIXME not always from timer call (see yield)
+        pic_acknowledge_any_master();
         return new_tid;
     }
 }
@@ -101,7 +102,8 @@ int thread_fork()
         enable_interrupts();
         return 0;
     } else { //old_thread
-        notify_interrupt_complete(); //we are returning from timer but didn't come from timer
+        // FIXME not always from timer call (see yield)
+        pic_acknowledge_any_master();
         enable_interrupts();
         return new_tid;
     }

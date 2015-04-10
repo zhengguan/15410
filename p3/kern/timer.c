@@ -6,11 +6,11 @@
  *  @bug No known bugs.
  */
 
-#include <driver.h>
 #include <timer.h>
 #include <stdlib.h>
 #include <x86/asm.h>
 #include <x86/timer_defines.h>
+#include <x86/pic.h>
 #include <scheduler.h>
 #include <syscall.h>
 #include <simics.h>
@@ -43,7 +43,7 @@ void timer_handler()
 	
 	scheduler_tick(ticks);
 	
-	notify_interrupt_complete();
+	pic_acknowledge_any_master();
 }
 
 /** @brief Returns the number of timer ticks which have occured since system

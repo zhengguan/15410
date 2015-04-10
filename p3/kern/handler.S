@@ -80,11 +80,6 @@ wait_int:
     test    %eax, %eax
     js      wait_fail
     call    wait
-    addl    $4, %esp
-    push    %eax
-    call    set_user_segs
-    pop     %eax
-    iret
 wait_fail:
     addl    $4, %esp
     pushl   %eax
@@ -122,11 +117,6 @@ deschedule_int:
     test    %eax, %eax
     js      deschedule_fail
     call    deschedule
-    addl    $4, %esp
-    push    %eax
-    call    set_user_segs
-    pop     %eax
-    iret
 deschedule_fail:
     addl    $4, %esp
     pushl   %eax
@@ -211,9 +201,14 @@ remove_pages_int:
 readline_int:
     call    set_kernel_segs
     pushl   4(%esi)
+    call    buf_check
+    test    %eax, %eax
+    js      readline_fail
     pushl   (%esi)
     call    readline
-    addl    $8, %esp
+    addl    $4, %esp
+readline_fail:
+    addl    $4, %esp
     push    %eax
     call    set_user_segs
     pop     %eax
@@ -223,9 +218,14 @@ readline_int:
 print_int:
     call    set_kernel_segs
     pushl   4(%esi)
+    call    str_check
+    test    %eax, %eax
+    js      print_fail
     pushl   (%esi)
     call    print
-    addl    $8, %esp
+    addl    $4, %esp
+print_fail:
+    addl    $4, %esp
     push    %eax
     call    set_user_segs
     pop     %eax
@@ -258,9 +258,18 @@ set_cursor_pos_int:
 get_cursor_pos_int:
     call    set_kernel_segs
     pushl   4(%esi)
+    call    int_check
+    test    %eax, %eax
+    js      get_cursor_pos_row_fail
     pushl   (%esi)
+    call    int_check
+    test    %eax, %eax
+    js      get_cursor_pos_col_fail
     call    get_cursor_pos
-    addl    $8, %esp
+get_cursor_pos_col_fail:
+    addl    $4, %esp
+get_cursor_pos_row_fail:
+    addl    $4, %esp
     push    %eax
     call    set_user_segs
     pop     %eax

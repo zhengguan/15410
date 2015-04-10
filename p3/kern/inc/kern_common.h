@@ -35,6 +35,7 @@ typedef enum {
 
 int str_arr_check(char *arr[]);
 int str_check(char *str);
+int buf_check(char *buf);
 
 #endif /* ASSEMBLER */
 

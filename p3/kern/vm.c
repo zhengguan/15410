@@ -66,7 +66,7 @@ int vm_new_pt(pde_t *pde, unsigned flags);
 int vm_new_pte(pd_t pd, void *va, unsigned pa, unsigned flags);
 void vm_remove_pde(pde_t *pde);
 void vm_remove_pt(pde_t *pde);
-void vm_remove_pte(void *va);
+void vm_remove_pte(pd_t pd, void *va);
 
 unsigned next_frame = USER_MEM_START;
 linklist_t free_frames;
@@ -279,12 +279,12 @@ void vm_remove_pt(pde_t *pde) {
  *  @param va The virtual address.
  *  @return Void.
  */
-void vm_remove_pte(void *va) {
+void vm_remove_pte(pd_t pd, void *va) {
     if (!vm_is_present(va)) {
         return;
     }
 
-    pde_t *pde = GET_PD() + GET_PD_IDX(va);
+    pde_t *pde = pd + GET_PD_IDX(va);
 
     pte_t *pte =  GET_PT(*pde) + GET_PT_IDX(va);
     *pte &= ~PTE_PRESENT;
@@ -429,7 +429,7 @@ void vm_clear() {
             continue;
         }
 
-        vm_remove_pte((void *)va);
+        vm_remove_pte(GET_PD(), (void *)va);
 
         va += PAGE_SIZE;
     }
@@ -480,7 +480,7 @@ void vm_super(void *va) {
 void vm_destroy(pd_t pd) {
     unsigned va;
     for(va = KERNEL_MEM_START; va < USER_MEM_START; va += PAGE_SIZE) {
-        vm_remove_pte((void *)va);
+        vm_remove_pte(pd, (void *)va);
     }
 
     sfree(pd, PAGE_SIZE);
@@ -559,7 +559,7 @@ int remove_pages(void *base)
 
     unsigned va;
     for (va = (unsigned)base; va < (unsigned)base + len - 1; va += PAGE_SIZE) {
-        vm_remove_pte((void *)va);
+        vm_remove_pte(GET_PD(), (void *)va);
     }
 
     return 0;

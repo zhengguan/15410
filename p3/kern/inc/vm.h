@@ -29,4 +29,4 @@ void vm_read_write();
 void vm_super();
 void vm_destroy();
 
-#endif /* __VM_H__ */
+#endif /* _VM_H */

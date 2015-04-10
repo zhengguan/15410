@@ -57,6 +57,19 @@ int str_check(char *str)
     return -1;
 }
 
+int buf_check(char *buf)
+{
+    if ((unsigned)buf < USER_MEM_START) {
+        return -1;
+    }
+    
+    if (!vm_is_present(buf)) {
+        return -2;
+    }
+
+    return 0;
+}
+
 int int_check(int *n)
 {
     if (n == NULL)
