@@ -468,6 +468,12 @@ void proc_unlock(lockid id)
     mutex_unlock(mutex);
 }
 
+
+/**
+ * @brief Looks up a tcb given a tid.
+ * @param tid The tid.
+ * @return The tcb or NULL if it does not exist.
+ */
 tcb_t *lookup_tcb(int tid)
 {
     tcb_t *tcb;
