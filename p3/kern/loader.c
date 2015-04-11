@@ -222,6 +222,10 @@ int str_arr_len(char *arr[])
  */
 int load(char *filename, char *argv[], unsigned *eip, unsigned *esp)
 {
+    if (getpcb()->num_threads > 1) {
+        return -1;
+    }
+
     if (elf_check_header(filename) != ELF_SUCCESS) {
         return -2;
     }
@@ -278,7 +282,7 @@ int load(char *filename, char *argv[], unsigned *eip, unsigned *esp)
     free(arg_lens);
     free(tmp_args);
 
-    deregister_swexn_handler(*CUR_PCB);
+    deregister_swexn_handler(gettcb());
 
     if (*esp == 0) {
         return -9;
@@ -316,10 +320,12 @@ int exec(char *filename, char *argv[])
     strcpy(new_filename, filename);
 
     unsigned eip, esp;
-    if (load(new_filename, argv, &eip, &esp) < 0)
+    if (load(new_filename, argv, &eip, &esp) < 0) {
+        free(new_filename);
         return -4;
-    free(new_filename);
+    }
 
+    free(new_filename);
     jmp_user(eip, esp);
 
     return -5;

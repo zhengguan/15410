@@ -154,6 +154,7 @@ int linklist_remove_head(linklist_t *list, void **data) {
  *
  *  @param list The list.
  *  @param data A location in memory to store the removed data.
+ *  @param Equality test. Passed data is the second argument.
  *  @return 0 on success, negative error code otherwise.
  */
 int linklist_peek_head(linklist_t *list, void **data) {
@@ -179,21 +180,22 @@ int linklist_peek_head(linklist_t *list, void **data) {
  *
  *  @param list The list.
  *  @param data The data of the item to remove.
+ *  @param Equality test. Passed data is the second argument.
  *  @return 0 on success, negative error code otherwise.
  */
-int linklist_remove(linklist_t *list, void *data) {
+int linklist_remove(linklist_t *list, void *data, bool (*eq)(void*, void*)) {
     if (list == NULL || list->head == NULL) {
         return -1;
     }
 
     listnode_t *node = list->head;
-    if (node->data == data) {
+    if (eq(node->data, data)) {
         linklist_remove_head(list, NULL);
         return 0;
     }
 
     while (node->next != NULL) {
-        if (node->next->data == data) {
+        if (eq(node->next->data, data)) {
             listnode_t *tmp = node->next;
             node->next = tmp->next;
             if (tmp == list->tail) {
@@ -229,14 +231,14 @@ int linklist_remove_all(linklist_t *list) {
  *  @param data The data of the item to remove.
  *  @return True if the list contains the data, false otherwise.
  */
-bool linklist_contains(linklist_t *list, void *data) {
+bool linklist_contains(linklist_t *list, void *data, bool (*eq)(void*, void*)) {
     if (list == NULL || list->head == NULL) {
         return false;
     }
 
     listnode_t *node = list->head;
     while (node->next != NULL) {
-        if (node->next->data == data) {
+        if (eq(node->next->data, data)) {
             return true;
         }
         node = node->next;

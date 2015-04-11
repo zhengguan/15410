@@ -12,8 +12,8 @@
 #include <syscall.h>
 #include <proc.h>
 
-void deregister_swexn_handler(pcb_t *pcb);
-int register_swexn_handler(pcb_t *pcb, swexn_handler_t eip, void *esp3, void *arg);
-int dup_swexn_handler(pcb_t *src_pcb, pcb_t *dest_pcb);
+void deregister_swexn_handler(tcb_t *tcb);
+void register_swexn_handler(tcb_t *tcb, swexn_handler_t eip, void *esp3, void *arg);
+void dup_swexn_handler(tcb_t *src_tcb, tcb_t *dest_tcb);
 
 #endif /* _EXCEPTION_H */

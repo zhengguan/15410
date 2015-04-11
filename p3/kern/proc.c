@@ -29,14 +29,13 @@
 
 #define FIRST_TID 1
 
-rwlock_t pcbs_lock;
 rwlock_t tcbs_lock;
-hashtable_t pcbs;
 hashtable_t tcbs;
 
 unsigned next_tid = FIRST_TID;
-int cur_tid = 0;
-int idle_tid;
+
+tcb_t *cur_tcb = NULL;
+tcb_t *idle_tcb;
 pcb_t *init_pcb;
 
 bool mt_mode = false;
@@ -66,10 +65,6 @@ static int init_locks(locks_t *locks) {
  *  @return 0 on success, negative error code otherwise.
  */
 int proc_init() {
-     if (hashtable_init(&pcbs, PCB_HT_SIZE) < 0) {
-        return -1;
-     }
-
      if (hashtable_init(&tcbs, TCB_HT_SIZE) < 0) {
         return -2;
      }
@@ -84,10 +79,6 @@ int proc_init() {
 
      if (cond_init(&thread_reap_cv) < 0) {
         return -5;
-     }
-
-     if (rwlock_init(&pcbs_lock) < 0) {
-        return -6;
      }
 
      if (rwlock_init(&tcbs_lock) < 0) {
@@ -111,6 +102,10 @@ int proc_new_process(pcb_t **pcb_out, tcb_t **tcb_out) {
         return -1;
     }
 
+    if (linklist_init(&pcb->children) < 0) {
+        return -2;
+    }
+
     if (cond_init(&pcb->wait_cv) < 0) {
         return -3;
     }
@@ -131,7 +126,6 @@ int proc_new_process(pcb_t **pcb_out, tcb_t **tcb_out) {
     MAGIC_BREAK;
 
     pcb->pid = -1;
-    pcb->swexn_handler.eip = NULL;
     pcb->status = 0;
     pcb->num_threads = 0;
     pcb->num_children = 0;
@@ -141,13 +135,6 @@ int proc_new_process(pcb_t **pcb_out, tcb_t **tcb_out) {
         free(pcb);
         return -7;
     }
-
-    lprintf("Adding pcb");
-    MAGIC_BREAK;
-
-    rwlock_lock(&pcbs_lock, RWLOCK_WRITE);
-    hashtable_add(&pcbs, pcb->pid, (void *)pcb);
-    rwlock_unlock(&pcbs_lock);
 
     if (pcb_out != NULL) {
         *pcb_out = pcb;
@@ -179,8 +166,10 @@ int proc_new_thread(pcb_t *pcb, tcb_t **tcb_out) {
     if (pcb->pid == -1) {
         pcb->pid = tcb->tid;
     }
-    tcb->pid = pcb->pid;
+
+    tcb->pcb = pcb;
     tcb->esp0 = (unsigned)esp0;
+    deregister_swexn_handler(tcb);
 
     pcb->num_threads++;
 
@@ -195,6 +184,16 @@ int proc_new_thread(pcb_t *pcb, tcb_t **tcb_out) {
     return tcb->tid;
 }
 
+
+/**
+ * @brief Gets the current tcb.
+ * @return The tcb.
+ */
+tcb_t *gettcb()
+{
+    return cur_tcb;
+}
+
 /** @brief Returns the thread ID of the invoking thread.
  *
  *  @return The thread ID of the invoking thread or 0 if invoked before a
@@ -202,7 +201,16 @@ int proc_new_thread(pcb_t *pcb, tcb_t **tcb_out) {
  */
 int gettid()
 {
-    return cur_tid;
+    return gettcb()->tid;
+}
+
+/**
+ * @brief Gets the current pcb.
+ * @return The pcb.
+ */
+pcb_t *getpcb()
+{
+    return gettcb()->pcb;
 }
 
 /** @brief Returns the process ID of the invoking thread.
@@ -212,7 +220,7 @@ int gettid()
  */
 int getpid()
 {
-    return (*CUR_PCB)->pid;
+    return getpcb()->pid;
 }
 
 /** @brief Sets the exit status of the current task to status.
@@ -222,7 +230,7 @@ int getpid()
  */
 void set_status(int status)
 {
-    (*CUR_PCB)->status = status;
+    getpcb()->status = status;
 }
 /** @brief Reaps a process.
  *
@@ -234,11 +242,6 @@ void set_status(int status)
  */
 static int reap_pcb(pcb_t *pcb, int *status_ptr)
 {
-    lprintf("reaping pcb %d", pcb->pid);
-    rwlock_lock(&pcbs_lock, RWLOCK_WRITE);
-    assert(hashtable_remove(&pcbs, pcb->pid, NULL) == 0);
-    rwlock_unlock(&pcbs_lock);
-
     int pid = pcb->pid;
     if (status_ptr != NULL) {
         *status_ptr = pcb->status;
@@ -247,7 +250,6 @@ static int reap_pcb(pcb_t *pcb, int *status_ptr)
     vm_destroy(pcb->pd);
 
     free(pcb);
-    lprintf("done reaping pcb");
     return pid;
 }
 
@@ -258,14 +260,12 @@ static int reap_pcb(pcb_t *pcb, int *status_ptr)
  */
 static void reap_tcb(tcb_t *tcb)
 {
-    lprintf("reaping tid %d", tcb->tid);
     rwlock_lock(&tcbs_lock, RWLOCK_WRITE);
     hashtable_remove(&tcbs, tcb->tid, NULL);
     rwlock_unlock(&tcbs_lock);
 
     free((void*)(tcb->esp0 - KERNEL_STACK_SIZE));
     free(tcb);
-    lprintf("done reaping tcb");
 }
 
 /** @brief Reaping all threads as they vanish.
@@ -322,36 +322,36 @@ static void destroy_thread(tcb_t *tcb)
  */
 void vanish()
 {
-    rwlock_lock(&tcbs_lock, RWLOCK_READ);
-    tcb_t *tcb;
-    assert(hashtable_get(&tcbs, gettid(), (void **)&tcb) == 0);
-    rwlock_unlock(&tcbs_lock);
+    tcb_t *tcb = gettcb();
+    pcb_t *pcb = getpcb();
 
-    pcb_t *pcb = *CUR_PCB;
     disable_interrupts();
+    vm_clear();
 
     // No need for locking because interrupts are disabled
     if (pcb->num_threads == 1) {
-        assert(pcb->parent_pid >= FIRST_TID);
-        deregister_swexn_handler(*CUR_PCB);
+        deregister_swexn_handler(gettcb());
 
-        pcb_t *parent_pcb;
-        if (hashtable_get(&pcbs, pcb->parent_pid, (void*)&parent_pcb) == 0) {
-            linklist_add_tail(&parent_pcb->vanished_procs, pcb);
-            parent_pcb->num_children--;
-            cond_signal(&parent_pcb->wait_cv);
+        if (pcb->parent_pcb) {
+            linklist_add_tail(&pcb->parent_pcb->vanished_procs, pcb);
+            pcb->parent_pcb->num_children--;
+            cond_signal(&pcb->parent_pcb->wait_cv);
         } else {
             linklist_add_tail(&init_pcb->vanished_procs, pcb);
             cond_signal(&init_pcb->wait_cv);
         }
 
-        vm_clear();
-        remove_pages(CUR_PCB);
-
+        //Pass dead children to init
         pcb_t *dead_pcb;
         while (linklist_remove_head(&pcb->vanished_procs, (void**)&dead_pcb) == 0) {
             linklist_add_tail(&init_pcb->vanished_procs, dead_pcb);
             cond_signal(&init_pcb->wait_cv);
+        }
+
+        //Tell children their father died :(
+        pcb_t *child;
+        while (linklist_remove_head(&pcb->children, (void**)&child) == 0) {
+            child->parent_pcb = NULL;
         }
     }
 
@@ -375,9 +375,7 @@ void vanish()
  */
 int wait(int *status_ptr)
 {
-    tcb_t *tcb;
-    assert (hashtable_get(&tcbs, gettid(), (void **)&tcb) == 0);
-    pcb_t *pcb = *CUR_PCB;
+    pcb_t *pcb = getpcb();
 
     mutex_lock(&pcb->vanished_procs_mutex);
 
@@ -395,6 +393,12 @@ int wait(int *status_ptr)
     return reap_pcb(dead_pcb, status_ptr);
 }
 
+/**
+ * @brief Kills a user thread.
+ * @details Prints an error message.
+ *
+ * @param fmt The format of the string to print.
+ */
 void proc_kill_thread(const char *fmt, ...)
 {
     // Print error msg
@@ -415,7 +419,7 @@ void proc_kill_thread(const char *fmt, ...)
     //TODO: Register Dump
 
     /* Kill thread */
-    pcb_t *pcb = *CUR_PCB;
+    pcb_t *pcb = getpcb();
 
     if (pcb->num_threads == 1) {
         set_status(-2);

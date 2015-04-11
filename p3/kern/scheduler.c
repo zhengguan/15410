@@ -17,11 +17,21 @@ linklist_t sleep_queue;
 #define DESCHEDULED_HT_SIZE 100
 hashtable_t descheduled_tids;
 
-
 typedef struct sleep_info {
-    int tid;
+    tcb_t *tcb;
     unsigned wake_ticks;
 } sleep_info_t;
+
+bool tcb_is_tid(void *tcb, void *tid)
+{
+    return ((tcb_t *)tcb)->tid == (int)tid;
+}
+
+bool ident(void *tcb0, void *tcb1)
+{
+    return tcb0 == tcb1;
+}
+
 
 /** @brief Compares the wake times of sleep_info structs.  See linklist.h.
  *
@@ -62,22 +72,22 @@ int scheduler_init()
  */
 void scheduler_tick(unsigned ticks)
 {
-    // TODO add linklist_get method to use instead
     // Wake sleeping threads
     sleep_info_t *sleep_info;
+    //FIXME: ta's dislike unbounded times in handlers. maybe max to awaken at a time?
     while ((linklist_peek_head(&sleep_queue, (void **)&sleep_info) == 0) &&
                                         sleep_info->wake_ticks <= ticks) {
-        make_runnable(sleep_info->tid);
+        make_runnable_kern(sleep_info->tcb, false);
         assert (linklist_remove_head(&sleep_queue, NULL) == 0);
     }
 
-    int tid;
-    if (linklist_remove_head(&scheduler_queue, (void**)&tid) < 0) {
-        assert(gettid() == idle_tid);
+    tcb_t *tcb;
+    if (linklist_remove_head(&scheduler_queue, (void**)&tcb) < 0) {
+        assert(gettid() == idle_tcb->tid);
         return;
     }
-    linklist_add_tail(&scheduler_queue, (void*)tid);
-    context_switch(tid);
+    linklist_add_tail(&scheduler_queue, (void*)tcb);
+    assert(context_switch(tcb) == 0);
 }
 
 /** @brief Context switches to the thread with ID tid.
@@ -87,23 +97,20 @@ void scheduler_tick(unsigned ticks)
  *  @param tid The tid of the thread to context switch to.
  *  @return 0 on success, negative error code otherwise.
  */
-int context_switch(int tid)
+int context_switch(tcb_t *new_tcb)
 {
-    if (tid == gettid()) {
+    if (new_tcb == NULL)
+        return -1;
+
+    tcb_t *old_tcb = gettcb();
+    if (new_tcb->tid == old_tcb->tid) {
         return 0;
     }
-    tcb_t *new_tcb;
-    if (hashtable_get(&tcbs, tid, (void**)&new_tcb) < 0) {
-        return -1;
-    }
-
-    tcb_t *old_tcb;
-    assert(hashtable_get(&tcbs, gettid(), (void**)&old_tcb) == 0);
 
     disable_interrupts();
 
     if (store_regs(&old_tcb->regs, old_tcb->esp0)) {
-        cur_tid = new_tcb->tid;
+        cur_tcb = new_tcb;
         set_esp0(new_tcb->esp0);
         restore_regs(&new_tcb->regs, new_tcb->esp0);
     }
@@ -121,19 +128,19 @@ int context_switch(int tid)
  */
 int yield(int tid)
 {
+    tcb_t *tcb;
     if (tid == -1) {
-        if (linklist_remove_head(&scheduler_queue, (void**)&tid) < 0) {
+        if (linklist_remove_head(&scheduler_queue, (void**)&tcb) < 0) {
             //no threads so run idle
-            assert (context_switch(idle_tid) == 0);
+            assert (context_switch(idle_tcb) == 0);
             return 0;
         }
-    } else if (linklist_remove(&scheduler_queue, (void *)tid) < 0) {
+    } else if (linklist_remove(&scheduler_queue, (void *)tid, tcb_is_tid) < 0) {
         return -1;
     }
 
-    linklist_add_tail(&scheduler_queue, (void*)tid);
-
-    assert (context_switch(tid) == 0);
+    linklist_add_tail(&scheduler_queue, (void*)tcb);
+    assert (context_switch(tcb) == 0);
 
     //FIXME: not always from timer call
     pic_acknowledge_any_master();
@@ -183,7 +190,7 @@ int deschedule_kern(int *flag, bool user)
         return 0;
     }
 
-    assert(linklist_remove(&scheduler_queue, (void*)gettid()) == 0);
+    assert(linklist_remove(&scheduler_queue, (void*)gettid(), tcb_is_tid) == 0);
 
     if (user) {
         hashtable_add(&descheduled_tids, gettid(), NULL);
@@ -204,7 +211,11 @@ int deschedule_kern(int *flag, bool user)
  */
 int make_runnable(int tid)
 {
-    return make_runnable_kern(tid, true);
+    //TODO: need locks here
+    tcb_t *tcb = lookup_tcb(tid);
+    if (tcb == NULL)
+        return -1;
+    return make_runnable_kern(tcb, true);
 }
 
 /** @brief Makes the descheduled thread with ID tid runnable.
@@ -216,24 +227,22 @@ int make_runnable(int tid)
  *  @param user User bool
  *  @return 0 on success, negative error code otherwise.
  */
-int make_runnable_kern(int tid, bool user)
+int make_runnable_kern(tcb_t *tcb, bool user)
 {
-    if (linklist_contains(&scheduler_queue, (void *)tid)) {
+    if (linklist_contains(&scheduler_queue, (void *)tcb, ident)) {
         return -1;
     }
 
-    if (user) {
-        if (hashtable_remove(&descheduled_tids, tid, NULL) == 0) {
-            return -2;
-        }
+    if (user && hashtable_remove(&descheduled_tids, tcb->tid, NULL) < 0) {
+        return -2;
     }
 
-    linklist_add_tail(&scheduler_queue, (void*)tid);
+    linklist_add_head(&scheduler_queue, (void*)tcb);
 
     return 0;
 }
 
-/** @brief Deschedules the calling thread until atleast ticks timer interrupts
+/** @brief Deschedules the calling thread until at least ticks timer interrupts
  *  have occured after the call.
  *
  *  Returns immediately if ticks is zero.  Returns an integer error code less
@@ -253,7 +262,7 @@ int sleep(int ticks)
     }
 
     sleep_info_t sleep_info;
-    sleep_info.tid = gettid();
+    sleep_info.tcb = gettcb();
     sleep_info.wake_ticks = get_ticks() + ticks;
 
     linklist_add_sorted(&sleep_queue, (void *)&sleep_info, sleep_info_cmp);

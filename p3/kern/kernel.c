@@ -82,13 +82,11 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
     lprintf("begin setup idle");
 
     /* Setup idle */
-    tcb_t *idle_tcb;
     pcb_t *idle_pcb;
     if (proc_new_process(&idle_pcb, &idle_tcb) < 0) {
         lprintf("failed to create idle");
     }
-    idle_tid = idle_tcb->tid;
-    cur_tid = idle_tid;
+    cur_tcb = idle_tcb;
 
     lprintf("idle proc setup completed");
 
@@ -98,9 +96,6 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
     }
 
     set_cr3((unsigned)idle_pcb->pd);
-    new_pages(CUR_PCB, PAGE_SIZE);
-    vm_super(CUR_PCB);
-    *CUR_PCB = idle_pcb;
 
 
     lprintf("begin load idle");
@@ -145,9 +140,6 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
     }
 
     set_cr3((unsigned)tr_pcb->pd);
-    new_pages(CUR_PCB, PAGE_SIZE);
-    vm_super(CUR_PCB);
-    *CUR_PCB = tr_pcb;
 
     //Artificially define saved regs
     tr_tcb->regs.eip = (unsigned)thread_reaper;
@@ -159,7 +151,7 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
     tr_tcb->regs.ebp_offset = -tr_tcb->esp0;
     tr_tcb->regs.eflags = USER_EFLAGS;
 
-    linklist_add_head(&scheduler_queue, (void*)tr_tcb->tid);
+    linklist_add_head(&scheduler_queue, (void*)tr_tcb);
 
     /* Setup init */
     tcb_t *init_tcb;
@@ -168,9 +160,6 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
     }
     init_pcb->pd = init_pd;
     set_cr3((unsigned)init_pd);
-    new_pages(CUR_PCB, PAGE_SIZE);
-    vm_super(CUR_PCB);
-    *CUR_PCB = init_pcb;
 
     unsigned init_eip, init_esp;
     char *init_arg[] = INIT_ARG;
@@ -179,8 +168,8 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
     }
 
     set_esp0(init_tcb->esp0);
-    cur_tid = init_tcb->tid;
-    linklist_add_head(&scheduler_queue, (void*)init_tcb->tid);
+    cur_tcb = init_tcb;
+    linklist_add_head(&scheduler_queue, (void*)init_tcb);
 
     // set_cr0((get_cr0() & ~CR0_AM & ~CR0_WP) | CR0_PE);
     mt_mode = true;

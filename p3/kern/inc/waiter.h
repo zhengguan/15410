@@ -10,8 +10,9 @@
 #ifndef _WAITER_H
 #define _WAITER_H
 
+#include <proc.h>
 typedef struct waiter {
-    int tid;
+    tcb_t *tcb;
     int reject;
 } waiter_t;
 

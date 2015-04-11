@@ -26,8 +26,6 @@
 #define ROUND_DOWN_PAGE(ADDR) ((unsigned)(ADDR) & PAGE_MASK)
 #define ROUND_UP_PAGE(ADDR) (ROUND_DOWN_PAGE((ADDR) + PAGE_SIZE - 1))
 
-#define CUR_PCB ((pcb_t**)0xC0001000u)
-
 typedef enum {
     false = 0,
     true

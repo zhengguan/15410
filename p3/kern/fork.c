@@ -21,10 +21,8 @@
 
 int fork()
 {
-    tcb_t *old_tcb;
-    hashtable_get(&tcbs, gettid(), (void**)&old_tcb);
-
-    pcb_t *old_pcb = *CUR_PCB;
+    tcb_t *old_tcb = gettcb();
+    pcb_t *old_pcb = getpcb();
 
     if (old_pcb->num_threads > 1) //reject if multithreaded
         return -1;
@@ -39,14 +37,15 @@ int fork()
     }
 
     old_pcb->num_children++;
-    new_pcb->parent_pid = getpid();
+    linklist_add_head(&old_pcb->children, new_pcb);
+    new_pcb->parent_pcb = getpcb();
 
     //swap esp0's for old and new threads
     int cur_esp0 = old_tcb->esp0;
     old_tcb->esp0 = new_tcb->esp0;
     new_tcb->esp0 = cur_esp0;
 
-    dup_swexn_handler(old_pcb, new_pcb);
+    dup_swexn_handler(old_tcb, new_tcb);
 
     if (store_regs(&old_tcb->regs, cur_esp0)) { //new thread
         if (vm_copy(&new_pcb->pd) < 0) {
@@ -54,13 +53,13 @@ int fork()
         }
 
         set_cr3((unsigned)new_pcb->pd);
-        *CUR_PCB = new_pcb;
-        cur_tid = new_tid;
+        cur_tcb = new_tcb;
 
         //give the old thread back his stack that the new one stole
-        memcpy((void *)(old_tcb->esp0 - KERNEL_STACK_SIZE), (void *)(new_tcb->esp0 - KERNEL_STACK_SIZE), KERNEL_STACK_SIZE);
+        memcpy((void *)(old_tcb->esp0 - KERNEL_STACK_SIZE),
+               (void *)(new_tcb->esp0 - KERNEL_STACK_SIZE), KERNEL_STACK_SIZE);
 
-        linklist_add_tail(&scheduler_queue, (void *)new_tid);
+        linklist_add_head(&scheduler_queue, (void *)new_tcb);
         return 0;
     } else { //old thread
         // FIXME not always from timer call (see yield)
@@ -71,10 +70,8 @@ int fork()
 
 int thread_fork()
 {
-    tcb_t *old_tcb;
-    hashtable_get(&tcbs, gettid(), (void**)&old_tcb);
-
-    pcb_t *pcb = *CUR_PCB;
+    tcb_t *old_tcb = gettcb();
+    pcb_t *pcb = getpcb();
 
     disable_interrupts();
 
@@ -92,12 +89,13 @@ int thread_fork()
     new_tcb->esp0 = cur_esp0;
 
     if (store_regs(&old_tcb->regs, cur_esp0)) { //new_thread
-        cur_tid = new_tid;
+        cur_tcb = new_tcb;
 
         //give the old thread back his stack that the new one stole
-        memcpy((void *)(old_tcb->esp0 - KERNEL_STACK_SIZE), (void *)(new_tcb->esp0 - KERNEL_STACK_SIZE), KERNEL_STACK_SIZE);
+        memcpy((void *)(old_tcb->esp0 - KERNEL_STACK_SIZE),
+               (void *)(new_tcb->esp0 - KERNEL_STACK_SIZE), KERNEL_STACK_SIZE);
 
-        linklist_add_tail(&scheduler_queue, (void *)new_tid);
+        linklist_add_head(&scheduler_queue, (void *)new_tcb);
 
         enable_interrupts();
         return 0;

@@ -27,16 +27,69 @@ typedef struct {
     ureg_t ureg;
 } handler_args_t;
 
-handler_t *get_swexn_handler(pcb_t *pcb)
+
+/**
+ * @brief Gets the registered software exception handler for a process.
+ *
+ * @param tcb The tcb of the process to get the handler for.
+ * @return The handler
+ */
+static handler_t *get_swexn_handler(tcb_t *tcb)
 {
-    return &(pcb->swexn_handler);
+    return &(tcb->swexn_handler);
 }
 
+/**
+ * @brief Deregisters a registered software exception handler for a process
+ * if one exists.
+ * @details Has no effect if no handler is registered.
+ *
+ * @param tcb The tcb of the process to deregister the handler for.
+ */
+void deregister_swexn_handler(tcb_t *tcb)
+{
+    get_swexn_handler(tcb)->eip = NULL;
+}
+
+/**
+ * @brief Registers a software exception handler for a process.
+ * @details Replaces any existing handler.
+ *
+ * @param tcb The tcb of the process to register the handler for.
+ * @param eip The handler function.
+ * @param esp3 The bottom of the handler stack.
+ * @param arg The argument to pass the handler function.
+ */
+void register_swexn_handler(tcb_t *tcb, swexn_handler_t eip, void *esp3, void *arg)
+{
+    handler_t *handler = get_swexn_handler(tcb);
+    handler->esp3 = esp3;
+    handler->eip = eip;
+    handler->arg = arg;
+}
+
+/**
+ * @brief Duplicates a software exception handler from one process to another.
+ * @param src_tcb The tcb of the source process.
+ * @param dest_tcb The tcb of the destination process.
+ */
+void dup_swexn_handler(tcb_t *src_tcb, tcb_t *dest_tcb)
+{
+    handler_t *src_handler = get_swexn_handler(src_tcb);
+    register_swexn_handler(dest_tcb, src_handler->eip, src_handler->esp3,
+                                                       src_handler->arg);
+}
+
+/**
+ * @brief Calls a registered user exception handler.
+ * @param ureg The ureg to pass to the user handler.
+ * @return Doesn't return on success. A negative error code on error.
+ */
 static int call_user_handler(ureg_t *ureg)
 {
-    disable_interrupts();
 
-    handler_t *handler = get_swexn_handler(*CUR_PCB);
+    tcb_t *tcb = gettcb();
+    handler_t *handler = get_swexn_handler(tcb);
 
     if (handler->eip == NULL) {
         return -2;
@@ -52,22 +105,30 @@ static int call_user_handler(ureg_t *ureg)
     ((handler_args_t *)esp)->arg = handler->arg;
     ((handler_args_t *)esp)->ureg_ptr = &(((handler_args_t *)esp)->ureg);
     ((handler_args_t *)esp)->ureg = *ureg;
+    //VM LOCK END
+
+
     unsigned eip = (unsigned)handler->eip;
 
-    deregister_swexn_handler(*CUR_PCB);
+    deregister_swexn_handler(tcb);
 
-    jmp_user(eip, esp); // reenables interrupts
+    jmp_user(eip, esp);
 
     panic("returned from user handler");
     return -4;
 }
 
+/**
+ * @brief Handles all x86 exceptions.
+ * @details If a user exception handler is registered, this will be called
+ * before killing a thread.
+ * @param ureg The ureg containing the registers at the time of the exception.
+ */
 void exception_handler(ureg_t ureg)
 {
-    lprintf("exception %d in %d", ureg.cause, getpid());
+    lprintf("exception %d in %d", ureg.cause, gettid());
     if ((ureg.cs & 3) == 0) {
-        lprintf("kernel mode exception %u", ureg.cause);
-        MAGIC_BREAK;
+        panic("kernel mode exception %u", ureg.cause);
     }
 
     ureg.zero = 0;
@@ -79,7 +140,7 @@ void exception_handler(ureg_t ureg)
         case IDT_TS:  /* Invalid Task Segment Selector (Fault) */
         case IDT_MC:  /* Machine Check (Abort) */
             break;
-        
+
         // Exceptions passed to user
         case IDT_DE:  /* Devision Error (Fault) */
         case IDT_DB:  /* Debug Exception (Fault/Trap) */
@@ -95,27 +156,33 @@ void exception_handler(ureg_t ureg)
         case IDT_AC:  /* Alignment Check (Fault) */
         case IDT_XF:  /* SSE Floating Point Exception (Fault) */
             ureg.cr2 = 0;
-        case IDT_PF: {  /* Page Fault (Fault) */
+        case IDT_PF:  /* Page Fault (Fault) */
             call_user_handler(&ureg);
-        }
     }
 
-    enable_interrupts();
     proc_kill_thread("Exception %d", ureg.cause);
 }
 
 int swexn(void *esp3, swexn_handler_t eip, void *arg, ureg_t *newureg)
 {
     //check return ureg
-    if ((unsigned)newureg < USER_MEM_START || !vm_check_flags_len(newureg, sizeof(ureg_t), USER_FLAGS)) {
-        return -3;
+
+    ureg_t newureg_kern;
+    if (newureg) {
+        if ((unsigned)newureg < USER_MEM_START || !vm_check_flags_len(newureg, sizeof(ureg_t), USER_FLAGS)) {
+            return -3;
+        }
+        newureg_kern = *newureg;
     }
+
+    tcb_t *tcb = gettcb();
 
     //if one null, remove handler
     // TODO does this need to be locked with remove_pages?
     if (esp3 == NULL || eip == NULL) {
-        deregister_swexn_handler(*CUR_PCB);
+        deregister_swexn_handler(tcb);
     } else {
+        //Check vm present for user's sake. No locks needed.
         if ((unsigned)eip < USER_MEM_START || !vm_check_flags(eip, USER_FLAGS)) {
             return -1;
         }
@@ -125,35 +192,12 @@ int swexn(void *esp3, swexn_handler_t eip, void *arg, ureg_t *newureg)
             return -2;
         }
 
-        register_swexn_handler(*CUR_PCB, eip, esp3, arg);
+        register_swexn_handler(tcb, eip, esp3, arg);
     }
 
-    if (newureg == NULL) {
-        return 0;
+    if (newureg) {
+        jmp_ureg_user(&newureg_kern);
     }
 
-    jmp_ureg_user(newureg); //reenables interrupts before jmp
-
-    return -5;
-}
-
-
-void deregister_swexn_handler(pcb_t *pcb)
-{
-    get_swexn_handler(pcb)->eip = NULL;
-}
-
-int register_swexn_handler(pcb_t *pcb, swexn_handler_t eip, void *esp3, void *arg)
-{
-    handler_t *handler = get_swexn_handler(pcb);
-    handler->esp3 = esp3;
-    handler->eip = eip;
-    handler->arg = arg;
     return 0;
-}
-
-int dup_swexn_handler(pcb_t *src_pcb, pcb_t *dest_pcb)
-{
-    handler_t *src_handler = get_swexn_handler(src_pcb);
-    return register_swexn_handler(dest_pcb, src_handler->eip, src_handler->esp3, src_handler->arg);
 }

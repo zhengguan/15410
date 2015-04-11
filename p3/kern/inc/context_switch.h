@@ -12,7 +12,7 @@
 
 #include <proc.h>
 
-int store_regs(regs_t *regs, unsigned cur_esp0);
+int store_regs(regs_t *regs, unsigned cur_esp0) __attribute__((returns_twice));
 void restore_regs(regs_t *regs, unsigned new_esp0) NORETURN;
 
 #endif /* _CONTEXT_SWITCH_H */

@@ -452,35 +452,35 @@ bool vm_check_flags_len(void *base, int len, unsigned flags)
 }
 
 bool vm_lock(void *va) {
-    mutex_lock(&(*CUR_PCB)->locks.remove_pages);
+    mutex_lock(&getpcb()->locks.remove_pages);
     bool valid = vm_check_flags(va, USER_FLAGS);
     if (valid) {
-        memlock_lock(&(*CUR_PCB)->locks.memlock, (void *)va, MEMLOCK_ACCESS);
+        memlock_lock(&getpcb()->locks.memlock, (void *)va, MEMLOCK_ACCESS);
     }
-    mutex_unlock(&(*CUR_PCB)->locks.remove_pages);
+    mutex_unlock(&getpcb()->locks.remove_pages);
     return valid;
 }
 
 
 bool vm_lock_len(void *base, int len) {
-    mutex_lock(&(*CUR_PCB)->locks.remove_pages);
+    mutex_lock(&getpcb()->locks.remove_pages);
     bool valid = vm_check_flags_len(base, len, USER_FLAGS);
     unsigned va;
     for (va = (unsigned)base;  va < (unsigned)base + len - 1; va += PAGE_SIZE) {
-        memlock_lock(&(*CUR_PCB)->locks.memlock, (void *)va, MEMLOCK_ACCESS);
+        memlock_lock(&getpcb()->locks.memlock, (void *)va, MEMLOCK_ACCESS);
     }
-    mutex_unlock(&(*CUR_PCB)->locks.remove_pages);
+    mutex_unlock(&getpcb()->locks.remove_pages);
     return valid;
 }
 
 void vm_unlock(void *va) {
-        memlock_unlock(&(*CUR_PCB)->locks.memlock, (void *)va);
+        memlock_unlock(&getpcb()->locks.memlock, (void *)va);
 }
 
 void vm_unlock_len(void *base, int len) {
     unsigned va;
     for (va = (unsigned)base;  va < (unsigned)base + len - 1; va += PAGE_SIZE) {
-        memlock_unlock(&(*CUR_PCB)->locks.memlock, (void *)va);
+        memlock_unlock(&getpcb()->locks.memlock, (void *)va);
     }
 }
 
@@ -510,7 +510,7 @@ int new_pages(void *base, int len)
     if ((unsigned)base > -(unsigned)len)
         return -5;
 
-    mutex_lock(&(*CUR_PCB)->locks.new_pages);
+    mutex_lock(&getpcb()->locks.new_pages);
 
     unsigned va;
     for (va = (unsigned)base; va < (unsigned)base + len - 1; va += PAGE_SIZE) {
@@ -519,7 +519,7 @@ int new_pages(void *base, int len)
         }
     }
 
-    mutex_unlock(&(*CUR_PCB)->locks.new_pages);
+    mutex_unlock(&getpcb()->locks.new_pages);
 
     for (va = (unsigned)base; va < (unsigned)base + len - 1; va += PAGE_SIZE) {
         vm_new_pte(GET_PD(), (void *)va, get_frame(), USER_FLAGS);
@@ -554,16 +554,16 @@ int remove_pages(void *base)
 
     mutex_unlock(&alloc_pages_mutex);
 
-    mutex_lock(&(*CUR_PCB)->locks.remove_pages);
+    mutex_lock(&getpcb()->locks.remove_pages);
 
     unsigned va;
     for (va = (unsigned)base; va < (unsigned)base + len - 1; va += PAGE_SIZE) {
-        memlock_lock(&(*CUR_PCB)->locks.memlock, (void *)va, MEMLOCK_DESTROY);
+        memlock_lock(&getpcb()->locks.memlock, (void *)va, MEMLOCK_DESTROY);
         vm_remove_pte(GET_PD(), (void *)va);
-        memlock_unlock(&(*CUR_PCB)->locks.memlock, (void *)va);
+        memlock_unlock(&getpcb()->locks.memlock, (void *)va);
     }
 
-    mutex_unlock(&(*CUR_PCB)->locks.remove_pages);
+    mutex_unlock(&getpcb()->locks.remove_pages);
 
     return 0;
 }
