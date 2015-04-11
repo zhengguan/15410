@@ -11,6 +11,7 @@
 #include <syscall.h>
 #include <waiter.h>
 #include <scheduler.h>
+#include <kern_common.h>
 
 /** @brief Initializes a memlock.
  *
@@ -49,12 +50,14 @@ void memlock_lock(memlock_t *memlock, void *ptr, memlock_type type)
         return;
     }
 
+    ptr = (void *)ROUND_DOWN_PAGE(ptr);
+
     switch (type) {
         case MEMLOCK_ACCESS: {
             mutex_lock(&memlock->destroy_mutex);
             mutex_lock(&memlock->count_mutex);
-            int count = 0;
-            hashtable_remove(&memlock->count_ht, (int)ptr, (void **)&count);
+            int count = 1;
+            hashtable_add(&memlock->count_ht, (int)ptr, (void **)count);
             count++;
             hashtable_add(&memlock->count_ht, (int)ptr, (void *)count);
             mutex_unlock(&memlock->count_mutex);
@@ -83,6 +86,8 @@ void memlock_unlock(memlock_t *memlock, void *ptr)
     if (memlock == NULL) {
         return;
     }
+
+    ptr = (void *)ROUND_DOWN_PAGE(ptr);
 
     mutex_lock(&memlock->count_mutex);
     int count;

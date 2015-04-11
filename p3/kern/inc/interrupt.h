@@ -13,8 +13,8 @@
 
 #include <stdint.h>
 
-#define TIMER_IDT_ENTRY 0x20
-#define KEY_IDT_ENTRY 0x21
+#define TIMER_IDT_ENTRY 32
+#define KEY_IDT_ENTRY 	33
 
 /* IDT functions */
 void idt_init();

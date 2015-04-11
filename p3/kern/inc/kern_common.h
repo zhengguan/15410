@@ -33,8 +33,8 @@ typedef enum {
     true
 } bool;
 
-int str_arr_check(char *arr[]);
-int str_check(char *str);
+int str_arr_check(char *arr[], unsigned flags);
+int str_check(char *str, unsigned flags);
 int buf_check(char *buf);
 
 #endif /* ASSEMBLER */

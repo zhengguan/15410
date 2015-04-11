@@ -7,68 +7,81 @@
 /* safe versions of malloc functions */
 void *malloc(size_t size)
 {
-    proc_lock(MALLOC);
+    // TODO make this less ugly
+    int tid = gettid();
+    if (tid != 0) {
+        mutex_lock(&(*CUR_PCB)->locks.malloc);
+    }
     void *mem = _malloc(size);
-    proc_unlock(MALLOC);
+    if (tid != 0) {
+        mutex_unlock(&(*CUR_PCB)->locks.malloc);
+    }
     return mem;
 }
 
 void *memalign(size_t alignment, size_t size)
 {
-    proc_lock(MALLOC);
+    mutex_lock(&(*CUR_PCB)->locks.malloc);
     void *mem = _memalign(alignment, size);
-    proc_unlock(MALLOC);
+    mutex_unlock(&(*CUR_PCB)->locks.malloc);
     return mem;
 }
 
 void *calloc(size_t nelt, size_t eltsize)
 {
-    proc_lock(MALLOC);
+    mutex_lock(&(*CUR_PCB)->locks.malloc);
     void *mem = _calloc(nelt, eltsize);
-    proc_unlock(MALLOC);
+    mutex_unlock(&(*CUR_PCB)->locks.malloc);
     return mem;
 }
 
 void *realloc(void *buf, size_t new_size)
 {
-    proc_lock(MALLOC);
+    mutex_lock(&(*CUR_PCB)->locks.malloc);
     void *mem = _realloc(buf, new_size);
-    proc_unlock(MALLOC);
+    mutex_unlock(&(*CUR_PCB)->locks.malloc);
     return mem;
 }
 
 void free(void *buf)
 {
-    if (buf == NULL)
+    if (buf == NULL) {
         return;
-    proc_lock(MALLOC);
+    }
+    mutex_lock(&(*CUR_PCB)->locks.malloc);
     _free(buf);
-    proc_unlock(MALLOC);
+    mutex_unlock(&(*CUR_PCB)->locks.malloc);
 }
 
 void *smalloc(size_t size)
 {
-    proc_lock(MALLOC);
+    mutex_lock(&(*CUR_PCB)->locks.malloc);
     void *mem = _smalloc(size);
-    proc_unlock(MALLOC);
+    mutex_unlock(&(*CUR_PCB)->locks.malloc);
     return mem;
 }
 
 void *smemalign(size_t alignment, size_t size)
 {
-    proc_lock(MALLOC);
+    int tid = gettid();
+    if (tid != 0) {
+        mutex_lock(&(*CUR_PCB)->locks.malloc);
+    }
     void *mem = _smemalign(alignment, size);
-    proc_unlock(MALLOC);
+    if (tid != 0) {
+        mutex_unlock(&(*CUR_PCB)->locks.malloc);
+    }
     return mem;
 }
 
 void sfree(void *buf, size_t size)
 {
-    if (buf == NULL)
+    if (buf == NULL) {
         return;
-    proc_lock(MALLOC);
+    }
+    mutex_lock(&(*CUR_PCB)->locks.malloc);
     _sfree(buf, size);
-    proc_unlock(MALLOC);
+    mutex_unlock(&(*CUR_PCB)->locks.malloc);
 }
 
 

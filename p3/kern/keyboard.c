@@ -95,12 +95,6 @@ int readchar()
 
 int readline(int len, char *buf)
 {
-    if (!vm_is_present_len(buf, len)) {
-        return -1;
-    }
-
-    // TODO check if buf falls in read only memory region
-
     if (len > MAX_READLINE) {
         return -3;
     }

@@ -18,6 +18,7 @@
 #include <idt.h>
 #include <asm_common.h>
 #include <proc.h>
+#include <vm.h>
 
 typedef struct {
     unsigned ret;
@@ -42,7 +43,8 @@ static int call_user_handler(ureg_t *ureg)
     }
 
     unsigned esp = (unsigned)handler->esp3 - sizeof(handler_args_t);
-    if (!vm_is_present_len((void*)esp, sizeof(handler_args_t))) {
+    // TODO how to handle locking this address when we have a jmp?
+    if (!vm_check_flags_len((void*)esp, sizeof(handler_args_t), USER_FLAGS)) {
         return -3;
     }
 
@@ -105,19 +107,21 @@ void exception_handler(ureg_t ureg)
 int swexn(void *esp3, swexn_handler_t eip, void *arg, ureg_t *newureg)
 {
     //check return ureg
-    if (newureg && (!vm_is_present_len(newureg, sizeof(ureg_t))
-                    || (unsigned)newureg < USER_MEM_START))
-        return -2;
+    if ((unsigned)newureg < USER_MEM_START || !vm_check_flags_len(newureg, sizeof(ureg_t), USER_FLAGS)) {
+        return -3;
+    }
 
     //if one null, remove handler
+    // TODO does this need to be locked with remove_pages?
     if (esp3 == NULL || eip == NULL) {
         deregister_swexn_handler(*CUR_PCB);
     } else {
-        if ((unsigned)eip < USER_MEM_START || !vm_is_present(eip))
+        if ((unsigned)eip < USER_MEM_START || !vm_check_flags(eip, USER_FLAGS)) {
             return -1;
+        }
         if ((unsigned)esp3 < USER_MEM_START ||
-            !vm_is_present_len((void*)((unsigned)esp3-sizeof(handler_args_t)),
-                                                      sizeof(handler_args_t))) {
+            !vm_check_flags_len((void*)((unsigned)esp3-sizeof(handler_args_t)),
+                                                      sizeof(handler_args_t), USER_FLAGS)) {
             return -2;
         }
 

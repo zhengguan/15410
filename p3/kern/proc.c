@@ -25,6 +25,8 @@
 #define PCB_HT_SIZE 128
 #define TCB_HT_SIZE 128
 
+#define MEMLOCK_SIZE 128
+
 #define FIRST_TID 1
 
 rwlock_t pcbs_lock;
@@ -49,7 +51,9 @@ linklist_t tcbs_to_reap;
  *  @return 0 on success, negative error code otherwise.
  */
 static int init_locks(locks_t *locks) {
-    if ((mutex_init(&locks->vm) < 0) ||
+    if ((mutex_init(&locks->new_pages) < 0) ||
+        (mutex_init(&locks->remove_pages) < 0) ||
+        (memlock_init(&locks->memlock, MEMLOCK_SIZE) < 0) ||
         (mutex_init(&locks->malloc) < 0)) {
         return -1;
     }
@@ -123,6 +127,9 @@ int proc_new_process(pcb_t **pcb_out, tcb_t **tcb_out) {
         return -6;
     }
 
+    lprintf("Inited proc vars");
+    MAGIC_BREAK;
+
     pcb->pid = -1;
     pcb->swexn_handler.eip = NULL;
     pcb->status = 0;
@@ -134,6 +141,9 @@ int proc_new_process(pcb_t **pcb_out, tcb_t **tcb_out) {
         free(pcb);
         return -7;
     }
+
+    lprintf("Adding pcb");
+    MAGIC_BREAK;
 
     rwlock_lock(&pcbs_lock, RWLOCK_WRITE);
     hashtable_add(&pcbs, pcb->pid, (void *)pcb);
@@ -411,49 +421,4 @@ void proc_kill_thread(const char *fmt, ...)
         set_status(-2);
     }
     vanish();
-}
-
-/** @brief Lookup the specified process mutex for the current process.
- *
- *  @param id The process mutex to lookup.
- *  @return A pointer to the process mutex, NULL on error.
- */
-static mutex_t *get_mutex(lockid id) {
-    //check to see if still in kernel main
-    if (!mt_mode) {
-        return NULL;
-    }
-
-    pcb_t *pcb = *CUR_PCB;
-
-    switch(id) {
-    case VM:
-        return &pcb->locks.vm;
-    case MALLOC:
-        return &pcb->locks.malloc;
-    default:
-        break;
-    }
-
-    return NULL;
-}
-
-/** @brief Locks the specified process mutex.
- *
- *  @param id Which process mutex to lock.
- *  @return Void.
- */
-void proc_lock(lockid id) {
-    mutex_t *mutex = get_mutex(id);
-    mutex_lock(mutex);
-}
-
-/** @brief Unlocks the specified process mutex.
- *
- *  @param id Which process mutex to unlock.
- *  @return Void.
- */
-void proc_unlock(lockid id) {
-    mutex_t *mutex = get_mutex(id);
-    mutex_unlock(mutex);
 }

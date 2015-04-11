@@ -27,7 +27,7 @@ typedef enum {
 
 /* Memlock functions */
 int memlock_init(memlock_t *memlock, int size);
-void memlock_wait(memlock_t *memlock, void *ptr, mutex_t *mp);
-void memlock_broadcast(memlock_t *memlock, void *ptr);
+void memlock_lock(memlock_t *memlock, void *ptr, memlock_type type);
+void memlock_unlock(memlock_t *memlock, void *ptr);
 
 #endif /* _SVAR_H */

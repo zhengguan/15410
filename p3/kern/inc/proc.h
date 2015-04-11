@@ -18,13 +18,10 @@
 
 #define KERNEL_STACK_SIZE (2 * PAGE_SIZE)
 
-typedef enum {
-    VM,
-    MALLOC
-} lockid;
-
 typedef struct locks {
-    mutex_t vm;
+    mutex_t new_pages;
+    mutex_t remove_pages;
+    memlock_t memlock;
     mutex_t malloc;
 } locks_t;
 
@@ -86,7 +83,5 @@ int proc_new_thread(pcb_t *pcb, tcb_t **tcb_out);
 int getpid();
 void thread_reaper() NORETURN;
 void proc_kill_thread(const char *fmt, ...) NORETURN;
-void proc_lock(lockid id);
-void proc_unlock(lockid id);
 
 #endif /* _PROC_H */

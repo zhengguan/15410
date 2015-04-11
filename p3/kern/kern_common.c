@@ -18,22 +18,25 @@
  * a negative error code if invalid.
  */
 
-int str_arr_check(char *arr[])
+int str_arr_check(char *arr[], unsigned flags)
 {
-    if ((unsigned)arr < USER_MEM_START)
-        return -3;
+    if ((unsigned)arr < USER_MEM_START) {
+        return -1;
+    }
+
     int len = 0;
-    while (vm_is_present_len(arr + len, sizeof(char*))) {
-        if (arr[len] == NULL)
+    while (vm_check_flags_len(arr + len, sizeof(char *), flags)) {
+        if (arr[len] == NULL) {
             return len;
-        if (str_check(arr[len]) < 0)
+        }
+        if (str_check(arr[len], flags) < 0) {
             return -2;
+        }
         len++;
     }
 
-    return -1;
+    return -3;
 }
-
 
 /**
  * @brief Check a nil terminated user string for validity.
@@ -42,41 +45,45 @@ int str_arr_check(char *arr[])
  * @return The length of the string if valid, a negative error code if
  * invalid.
  */
-
-int str_check(char *str)
+int str_check(char *str, unsigned flags)
 {
-    if ((unsigned)str < USER_MEM_START)
-        return -2;
+    if ((unsigned)str < USER_MEM_START) {
+        return -1;
+    }
+
     int len = 0;
-    while (vm_is_present(str + len)) {
-        if (str[len] == '\0')
+    while (vm_check_flags(str + len, flags)) {
+        if (str[len] == '\0') {
             return len;
+        }   
         len++;
     }
 
-    return -1;
+    return -2;
 }
 
-int buf_check(char *buf)
+int buf_lock(int len, char *buf)
 {
     if ((unsigned)buf < USER_MEM_START) {
         return -1;
     }
     
-    if (!vm_is_present(buf)) {
+    if (!vm_lock_len(buf, len)) {
         return -2;
     }
 
     return 0;
 }
 
-int int_check(int *n)
+int int_lock(int *n)
 {
-    if (n == NULL)
-        return 0;
-    if ((unsigned)n < USER_MEM_START)
+    if ((unsigned)n < USER_MEM_START) {
         return -1;
-    if (!vm_is_present_len(n, sizeof(int)))
+    }
+
+    if (!vm_lock(n)) {
         return -2;
+    }
+
     return 0;
 }

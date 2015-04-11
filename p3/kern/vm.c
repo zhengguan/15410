@@ -28,18 +28,10 @@
 
 #define KERNEL_MEM_START 0x00000000
 
-#define PTE_PRESENT 0x1
-#define PTE_RW 0x2
-#define PTE_USER 0x4
-#define PTE_GLOBAL 0x100
-
 #define FLAG_MASK (~PAGE_MASK & ~1)
 #define GET_PRESENT(PTE) ((PTE) & PTE_PRESENT)
-#define GET_USER(PTE) ((PTE) & PTE_USER)
+#define GET_SU(PTE) ((PTE) & PTE_PRESENT)
 #define GET_FLAGS(PTE) ((PTE) & FLAG_MASK)
-
-#define KERNEL_FLAGS (PTE_RW | PTE_GLOBAL)
-#define USER_FLAGS (PTE_USER)
 
 #define PD_SIZE (PAGE_SIZE / sizeof(pde_t))
 #define PT_SIZE (PAGE_SIZE / sizeof(pte_t))
@@ -60,7 +52,7 @@
 
 #define PAGES_HT_SIZE 128
 #define LOOKUP_PA(ADDR) (GET_PA(GET_PTE(GET_PDE(GET_PD(), ADDR), ADDR)))
-#define PAGE_NUM(ADDR) (LOOKUP_PA(ADDR) >> PT_SHIFT)
+#define FRAME_NUM(ADDR) (LOOKUP_PA(ADDR) >> PT_SHIFT)
 
 #define MEMLOCK_HT_SIZE 128
 
@@ -76,8 +68,6 @@ linklist_t free_frames;
 hashtable_t alloc_pages;
 mutex_t free_frames_mutex;
 mutex_t alloc_pages_mutex;
-
-memlock_t vm_memlock;
 
 /** @brief Gets a free physical frame.
  *
@@ -144,13 +134,9 @@ int vm_init()
         return -4;
     }
 
-    if (memlock_init(&vm_memlock, MEMLOCK_HT_SIZE) < 0) {
-        return -5;
-    }
-
     pd_t pd;
     if (vm_new_pd(&pd) < 0) {
-        return -6;
+        return -5;
     }
     set_cr3((unsigned)pd);
 
@@ -289,7 +275,7 @@ void vm_remove_pt(pde_t *pde) {
  *  @return Void.
  */
 void vm_remove_pte(pd_t pd, void *va) {
-    if (!vm_is_present(va)) {
+    if (!vm_check_flags(va, PTE_PRESENT)) {
         return;
     }
 
@@ -308,64 +294,6 @@ void vm_remove_pte(pd_t pd, void *va) {
     if (is_pt_empty(pde)) {
         vm_remove_pt(pde);
     }
-}
-
-/** @brief Checks whether a virtual address in the page table.
- *
- *  @param va The virtual address.
- *  @return True if present, false otherwise.
- */
-bool vm_is_present(void *va)
-{
-    va = (void*)ROUND_DOWN_PAGE(va);
-    pde_t pde = GET_PDE(GET_PD(), va);
-    if (GET_PRESENT(pde)) {
-        pte_t pte = GET_PTE(pde, va);
-        if (GET_PRESENT(pte)) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-bool vm_user_mem(void *va)
-{
-    if (!vm_is_present(va)) {
-        return false;
-    }
-
-    pde_t pde = GET_PDE(GET_PD(), va);
-    pte_t pte = GET_PTE(pde, va);
-
-    return !!GET_USER(pte);
-}
-
-/** @brief Checks whether a memory region is the page table.
- *
- *  @param base The base of the memory region to allocate.
- *  @param len The number of bytes to allocate.
- *  @return True if present, false otherwise.
- */
-bool vm_is_present_len(void *base, unsigned len)
-{
-
-    if ((unsigned)base > -len)
-        return false;
-
-    unsigned va = (unsigned)base;
-
-    if (va > va + len - 1) {
-        return false;
-    }
-
-    for (;  va < (unsigned)base + len - 1; va += PAGE_SIZE) {
-        if (!vm_is_present((void*)va)) {
-            return false;
-        }
-    }
-
-    return true;
 }
 
 /** @brief Copies the virtual address space into new page directory.
@@ -433,7 +361,7 @@ void vm_clear() {
          }
 
         pte_t pte = GET_PTE(pde, va);
-        if (!GET_PRESENT(pte) || !vm_user_mem((void*)va)) {
+        if (!GET_PRESENT(pte) || !GET_SU(pte)) {
             va += (1 << PT_SHIFT);
             continue;
         }
@@ -446,6 +374,20 @@ void vm_clear() {
     set_cr3(get_cr3()); //clear tlb
 }
 
+/** @brief Removes a page directory.
+ *
+ *  Removes a page directory. Must call vm_clear() before this call.
+ *
+ *  @return Void.
+ */
+void vm_destroy(pd_t pd) {
+    unsigned va;
+    for(va = KERNEL_MEM_START; va < USER_MEM_START; va += PAGE_SIZE) {
+        vm_remove_pte(pd, (void *)va);
+    }
+
+    sfree(pd, PAGE_SIZE);
+}
 
 /** @brief Sets a virtual address to be read-only.
  *
@@ -477,22 +419,69 @@ void vm_read_write(void *va) {
 void vm_super(void *va) {
     pde_t pde = GET_PDE(GET_PD(), va);
     pte_t *pte = GET_PT(pde) + GET_PT_IDX(va);
-    *pte &= ~PTE_USER;
+    *pte &= ~PTE_SU;
 }
 
-/** @brief Removes a page directory.
- *
- *  Removes a page directory. Must call vm_clear() before this call.
- *
- *  @return Void.
- */
-void vm_destroy(pd_t pd) {
-    unsigned va;
-    for(va = KERNEL_MEM_START; va < USER_MEM_START; va += PAGE_SIZE) {
-        vm_remove_pte(pd, (void *)va);
+bool vm_check_flags(void *va, unsigned flags)
+{
+    va = (void*)ROUND_DOWN_PAGE(va);
+    pde_t pde = GET_PDE(GET_PD(), va);
+    if (GET_PRESENT(pde)) {
+        pte_t pte = GET_PTE(pde, va);
+        return (pte & flags) == flags;
     }
 
-    sfree(pd, PAGE_SIZE);
+    return false;
+}
+
+bool vm_check_flags_len(void *base, int len, unsigned flags)
+{
+    unsigned va = (unsigned)base;
+
+    if (va > va + len - 1) {
+        return false;
+    }
+
+    for (; va < (unsigned)base + len - 1; va += PAGE_SIZE) {
+        if (!vm_check_flags((void*)va, flags)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool vm_lock(void *va) {
+    mutex_lock(&(*CUR_PCB)->locks.remove_pages);
+    bool valid = vm_check_flags(va, USER_FLAGS);
+    if (valid) {
+        memlock_lock(&(*CUR_PCB)->locks.memlock, (void *)va, MEMLOCK_ACCESS);
+    }
+    mutex_unlock(&(*CUR_PCB)->locks.remove_pages);
+    return valid;
+}
+
+
+bool vm_lock_len(void *base, int len) {
+    mutex_lock(&(*CUR_PCB)->locks.remove_pages);
+    bool valid = vm_check_flags_len(base, len, USER_FLAGS);
+    unsigned va;
+    for (va = (unsigned)base;  va < (unsigned)base + len - 1; va += PAGE_SIZE) {
+        memlock_lock(&(*CUR_PCB)->locks.memlock, (void *)va, MEMLOCK_ACCESS);
+    }
+    mutex_unlock(&(*CUR_PCB)->locks.remove_pages);
+    return valid;
+}
+
+void vm_unlock(void *va) {
+        memlock_unlock(&(*CUR_PCB)->locks.memlock, (void *)va);
+}
+
+void vm_unlock_len(void *base, int len) {
+    unsigned va;
+    for (va = (unsigned)base;  va < (unsigned)base + len - 1; va += PAGE_SIZE) {
+        memlock_unlock(&(*CUR_PCB)->locks.memlock, (void *)va);
+    }
 }
 
 /** @brief Allocated memory starting at base and extending for len bytes.
@@ -521,14 +510,16 @@ int new_pages(void *base, int len)
     if ((unsigned)base > -(unsigned)len)
         return -5;
 
-    proc_lock(VM);
+    mutex_lock(&(*CUR_PCB)->locks.new_pages);
 
     unsigned va;
     for (va = (unsigned)base; va < (unsigned)base + len - 1; va += PAGE_SIZE) {
-        if (vm_is_present((void *)va)) {
+        if (vm_check_flags((void *)va, PTE_PRESENT)) {
             return -3;
         }
     }
+
+    mutex_unlock(&(*CUR_PCB)->locks.new_pages);
 
     for (va = (unsigned)base; va < (unsigned)base + len - 1; va += PAGE_SIZE) {
         vm_new_pte(GET_PD(), (void *)va, get_frame(), USER_FLAGS);
@@ -536,10 +527,8 @@ int new_pages(void *base, int len)
         vm_read_write((void*)va);
     }
 
-    proc_unlock(VM);
-
     mutex_lock(&alloc_pages_mutex);
-    hashtable_add(&alloc_pages, PAGE_NUM(base), (void *)len);
+    hashtable_add(&alloc_pages, FRAME_NUM(base), (void *)len);
     mutex_unlock(&alloc_pages_mutex);
 
     return 0;
@@ -552,8 +541,6 @@ int new_pages(void *base, int len)
  */
 int remove_pages(void *base)
 {
-    
-    
     if (((unsigned)base % PAGE_SIZE) != 0) {
         return -1;
     }
@@ -561,16 +548,22 @@ int remove_pages(void *base)
     mutex_lock(&alloc_pages_mutex);
 
     int len;
-    if (hashtable_remove(&alloc_pages, PAGE_NUM(base), (void**)&len) < 0) {
+    if (hashtable_remove(&alloc_pages, FRAME_NUM(base), (void**)&len) < 0) {
         return -2;
     }
 
     mutex_unlock(&alloc_pages_mutex);
 
+    mutex_lock(&(*CUR_PCB)->locks.remove_pages);
+
     unsigned va;
     for (va = (unsigned)base; va < (unsigned)base + len - 1; va += PAGE_SIZE) {
+        memlock_lock(&(*CUR_PCB)->locks.memlock, (void *)va, MEMLOCK_DESTROY);
         vm_remove_pte(GET_PD(), (void *)va);
+        memlock_unlock(&(*CUR_PCB)->locks.memlock, (void *)va);
     }
+
+    mutex_unlock(&(*CUR_PCB)->locks.remove_pages);
 
     return 0;
 }

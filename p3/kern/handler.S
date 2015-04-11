@@ -76,7 +76,7 @@ vanish_int:
 wait_int:
     call    set_kernel_segs
     pushl   %esi
-    call    int_check
+    call    int_lock
     test    %eax, %eax
     js      wait_fail
     call    wait
@@ -113,7 +113,7 @@ yield_int:
 deschedule_int:
     call    set_kernel_segs
     pushl   %esi
-    call    int_check
+    call    int_lock
     test    %eax, %eax
     js      deschedule_fail
     call    deschedule
@@ -201,14 +201,13 @@ remove_pages_int:
 readline_int:
     call    set_kernel_segs
     pushl   4(%esi)
-    call    buf_check
+    pushl   (%esi)
+    call    buf_lock
     test    %eax, %eax
     js      readline_fail
-    pushl   (%esi)
     call    readline
-    addl    $4, %esp
 readline_fail:
-    addl    $4, %esp
+    addl    $8, %esp
     push    %eax
     call    set_user_segs
     pop     %eax
@@ -218,14 +217,13 @@ readline_fail:
 print_int:
     call    set_kernel_segs
     pushl   4(%esi)
-    call    str_check
+    pushl   (%esi)
+    call    buf_lock
     test    %eax, %eax
     js      print_fail
-    pushl   (%esi)
     call    print
-    addl    $4, %esp
 print_fail:
-    addl    $4, %esp
+    addl    $8, %esp
     push    %eax
     call    set_user_segs
     pop     %eax
@@ -258,17 +256,17 @@ set_cursor_pos_int:
 get_cursor_pos_int:
     call    set_kernel_segs
     pushl   4(%esi)
-    call    int_check
-    test    %eax, %eax
-    js      get_cursor_pos_row_fail
-    pushl   (%esi)
-    call    int_check
+    call    int_lock
     test    %eax, %eax
     js      get_cursor_pos_col_fail
+    pushl   (%esi)
+    call    int_lock
+    test    %eax, %eax
+    js      get_cursor_pos_row_fail
     call    get_cursor_pos
-get_cursor_pos_col_fail:
-    addl    $4, %esp
 get_cursor_pos_row_fail:
+    addl    $4, %esp
+get_cursor_pos_col_fail:
     addl    $4, %esp
     push    %eax
     call    set_user_segs
@@ -283,8 +281,14 @@ readfile_int:
     pushl   12(%esi)
     pushl   8(%esi)
     pushl   4(%esi)
+    pushl   8(%esi)
+    call    buf_lock
+    test    %eax, %eax
+    js      get_cursor_pos_col_fail
+    addl    $4, %esp
     pushl   (%esi)
     call    readfile
+readfile_fail:
     addl    $16, %esp
     push    %eax
     call    set_user_segs

@@ -78,6 +78,9 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
 
     pd_t init_pd = (pd_t)get_cr3();
 
+
+    lprintf("begin setup idle");
+
     /* Setup idle */
     tcb_t *idle_tcb;
     pcb_t *idle_pcb;
@@ -86,6 +89,8 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
     }
     idle_tid = idle_tcb->tid;
     cur_tid = idle_tid;
+
+    lprintf("idle proc setup completed");
 
     //Create a new page directory
     if (vm_new_pd(&idle_pcb->pd) < 0) {
@@ -96,6 +101,9 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
     new_pages(CUR_PCB, PAGE_SIZE);
     vm_super(CUR_PCB);
     *CUR_PCB = idle_pcb;
+
+
+    lprintf("begin load idle");
 
     //Load idle into memory
     unsigned idle_eip, idle_esp;
