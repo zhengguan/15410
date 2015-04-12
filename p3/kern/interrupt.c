@@ -59,15 +59,17 @@ void idt_add_desc(int idt_entry, void *handler, unsigned gate_type, unsigned dpl
  *
  *  @return Void.
  */
-void idt_init() {
+int idt_init() {
 
     /* Add timer and keyboard interrupt gate descriptors */
-    if (timer_init() == 0) {
-        idt_add_desc(TIMER_IDT_ENTRY, timer_handler_int, IDT_INT, IDT_DPL_KERNEL);
-    }
-    if (keyboard_init() == 0) {
-        idt_add_desc(KEY_IDT_ENTRY, keyboard_int, IDT_INT, IDT_DPL_KERNEL);
-    }
+    if (timer_init() < 0)
+        return -1;
+
+    if (keyboard_init() < 0)
+        return -2;
+
+    idt_add_desc(TIMER_IDT_ENTRY, timer_handler_int, IDT_INT, IDT_DPL_KERNEL);
+    idt_add_desc(KEY_IDT_ENTRY, keyboard_int, IDT_INT, IDT_DPL_KERNEL);
 
     /* Add system call trap gate descriptors */
     idt_add_desc(FORK_INT, fork_int, IDT_TRAP, IDT_DPL_USER);
@@ -108,4 +110,11 @@ void idt_init() {
     idt_add_desc(IDT_MF, exn_fpufault_wrapper, IDT_INT, IDT_DPL_USER);
     idt_add_desc(IDT_AC, exn_alignfault_wrapper, IDT_INT, IDT_DPL_USER);
     idt_add_desc(IDT_XF, exn_simdfault_wrapper, IDT_INT, IDT_DPL_USER);
+
+    idt_add_desc(IDT_NMI, exn_nmi_wrapper, IDT_INT, IDT_DPL_USER);
+    idt_add_desc(IDT_CSO, exn_cso_wrapper, IDT_INT, IDT_DPL_USER);
+    idt_add_desc(IDT_MC, exn_mc_wrapper, IDT_INT, IDT_DPL_USER);
+    idt_add_desc(IDT_TS, exn_ts_wrapper, IDT_INT, IDT_DPL_USER);
+
+    return 0;
 }
