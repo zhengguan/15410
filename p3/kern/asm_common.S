@@ -67,3 +67,15 @@ set_user_segs:
     mov     %eax, %fs
     mov     %eax, %gs
     ret
+
+.globl flush_tlb
+flush_tlb:
+    mov %cr3, %eax
+    mov %eax, %cr3
+    ret
+
+.globl flush_tlb_entry
+flush_tlb_entry:
+    mov     4(%esp), %eax
+    invlpg  (%eax)
+    ret

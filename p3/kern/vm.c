@@ -17,7 +17,6 @@
 #include <string.h>
 #include <syscall.h>
 #include <common_kern.h>
-#include <linklist.h>
 #include <hashtable.h>
 #include <simics.h>
 #include <string.h>
@@ -26,6 +25,8 @@
 #include <proc.h>
 #include <memlock.h>
 #include <assert.h>
+#include <free_page_linklist.h>
+#include <asm_common.h>
 
 #define PHYS_VA 0xC0001000
 
@@ -33,7 +34,7 @@
 
 #define FLAG_MASK (~PAGE_MASK & ~1)
 #define GET_PRESENT(PTE) ((PTE) & PTE_PRESENT)
-#define GET_SU(PTE) ((PTE) & PTE_PRESENT)
+#define GET_SU(PTE) ((PTE) & PTE_SU)
 #define GET_FLAGS(PTE) ((PTE) & FLAG_MASK)
 
 #define PD_SIZE (PAGE_SIZE / sizeof(pde_t))
@@ -67,7 +68,6 @@ void vm_remove_pt(pde_t *pde);
 void vm_remove_pte(pd_t pd, void *va);
 
 unsigned next_frame = USER_MEM_START;
-linklist_t free_frames;
 hashtable_t alloc_pages;
 mutex_t free_frames_mutex;
 mutex_t alloc_pages_mutex;
@@ -83,23 +83,22 @@ mutex_t alloc_pages_mutex;
 static int get_frame(unsigned *frame)
 {
     mutex_lock(&free_frames_mutex);
-    if (linklist_empty(&free_frames)) {
+    if ( (void*)(*frame = free_page_remove()) == NULL) {
         *frame = next_frame;
         if (*frame > machine_phys_frames() * PAGE_SIZE) {
             MAGIC_BREAK;
             return -1;
         }
         next_frame += PAGE_SIZE;
-    } else {
-        linklist_remove_head(&free_frames, (void **)frame);
     }
     mutex_unlock(&free_frames_mutex);
-    
+
     return 0;
 }
 
 static void vm_set_phys_pte(unsigned pa) {
     assert(vm_new_pte(GET_PD(), (void *)PHYS_VA, pa, KERNEL_FLAGS) == 0);
+    flush_tlb_entry((void*)PHYS_VA);
 }
 
 /** @brief Checks whether the page table referenced by a page directory entry
@@ -130,10 +129,6 @@ static bool is_pt_empty(pde_t *pde) {
  */
 int vm_init()
 {
-    if (linklist_init(&free_frames) < 0) {
-        return -1;
-    }
-
     if (hashtable_init(&alloc_pages, PAGES_HT_SIZE) < 0) {
         return -2;
     }
@@ -300,7 +295,7 @@ void vm_remove_pte(pd_t pd, void *va) {
     unsigned pa = GET_PA(*pte);
     if (pa >= USER_MEM_START) {
         mutex_lock(&free_frames_mutex);
-        linklist_add_tail(&free_frames, (void *)(*pte & PAGE_MASK));
+        free_page_add((unsigned)(*pte & PAGE_MASK));
         mutex_unlock(&free_frames_mutex);
     }
 
@@ -383,13 +378,12 @@ void vm_clear() {
             va += (1 << PT_SHIFT);
             continue;
         }
-
         vm_remove_pte(GET_PD(), (void *)va);
 
         va += PAGE_SIZE;
     }
 
-    set_cr3(get_cr3()); //clear tlb
+    flush_tlb();
 }
 
 /** @brief Removes a page directory.
@@ -565,7 +559,7 @@ int new_pages(void *base, int len)
     for (va = (unsigned)base; va < (unsigned)base + len - 1; va += PAGE_SIZE) {
         unsigned frame;
         if (get_frame(&frame) < 0) {
-            for (; va >= (unsigned)base; va -= PAGE_SIZE) {
+            for (va -= PAGE_SIZE; va >= (unsigned)base; va -= PAGE_SIZE) {
                 vm_remove_pte(GET_PD(), (void *)va);
             }
             return -6;
