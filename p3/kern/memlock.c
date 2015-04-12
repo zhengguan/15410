@@ -1,6 +1,11 @@
 /** @file memlock.c
  *  @brief This file implements the interface for memory locks.
  *
+ *  Memlocks are similar to reader writer locks but for virtual memory pages. 
+ *  When locking, callers must specify a virtual address they wish to lock and
+ *  the type of access they need.  Lcking or unlocking a page in memory does
+ *  not affect locking or unlocking for any other pages
+ *
  *  @author Patrick Koenig (phkoenig)
  *  @author Jack Sorrell (jsorrell)
  *  @bug No known bugs.
@@ -24,7 +29,7 @@ typedef struct {
  *
  *  @param memlock The memlock.
  *  @param size The size of the wait hashtable.
- *  @return 0 on success, number error code otherwise.
+ *  @return 0 on success, negative error code otherwise.
  */
 int memlock_init(memlock_t *memlock, int size)
 {
@@ -43,8 +48,13 @@ int memlock_init(memlock_t *memlock, int size)
     return 0;
 }
 
-
-
+/** @brief Locks a memlock.
+ *
+ *  @param memlock The memlock.
+ *  @param ptr The memory address to lock.
+ *  @param type The type of lock to acquire.
+ *  @return 0 on success, negative error code otherwise.
+ */
 int memlock_lock(memlock_t *memlock, void *ptr, memlock_type type)
 {
     if (memlock == NULL) {
@@ -87,6 +97,12 @@ int memlock_lock(memlock_t *memlock, void *ptr, memlock_type type)
     return 0;
 }
 
+/** @brief Unlocks a memlock.
+ *
+ *  @param memlock The memlock.
+ *  @param ptr The memory address to unlock.
+ *  @return Void.
+ */
 void memlock_unlock(memlock_t *memlock, void *ptr)
 {
 

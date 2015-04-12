@@ -386,6 +386,7 @@ void vm_clear() {
             continue;
         }
         vm_remove_pte(GET_PD(), (void *)va);
+        hashtable_remove(&alloc_pages, FRAME_NUM(va), NULL);
 
         va += PAGE_SIZE;
     }
@@ -440,11 +441,7 @@ void vm_super(void *va) {
     pte_t *pte = GET_PT(pde) + GET_PT_IDX(va);
     *pte &= ~PTE_SU;
 }
-
-/**
- * @brief Checks the flags of a virtual address.
- * @details Ensures the flags of the page table entry
- * are at least the given flags.
+/** @brief Checks if flags are set for a virtual memory address.
  *
  * @param va The virtual address of which to check the flags.
  * @param flags The flags.
@@ -559,19 +556,20 @@ int vm_lock_str(char *str) {
     return len;
 }
 
-/**
- * @brief Unlocks a virtual address.
+/** @brief Unlocks a virtual memory address.
  *
- * @param va The virtual address.
+ *  @param va The virtual address.
+ *  @return Void.
  */
 void vm_unlock(void *va) {
         memlock_unlock(&getpcb()->locks.memlock, (void *)va);
 }
 
-/**
- * @brief Unlocks a length of virtual addresses.
- * @param base The start of the virtual addresses.
- * @param len The length of locked virtual addresses.
+/** @brief Unlocks a virtual memory region.
+ *
+ *  @param base The base virtual address.
+ *  @param len The length.
+ *  @return Void.
  */
 void vm_unlock_len(void *base, int len) {
     unsigned va;
@@ -580,20 +578,21 @@ void vm_unlock_len(void *base, int len) {
     }
 }
 
-/**
- * @brief Reads a physical address.
- * @param pa The physical address to read.
- * @return The 4 bytes at the physical address.
+/** @brief Reads from a physical address.
+ *
+ *  @param pa The physical address.
+ *  @return The value.
  */
 unsigned vm_phys_read(unsigned pa) {
     vm_set_phys_pte(pa);
     return *(unsigned *)(PHYS_VA + (pa & (~PAGE_MASK)));
 }
 
-/**
- * @brief Writes to a physical address.
- * @param pa The physical address.
- * @param val 4 bytes to write to the address.
+/** @brief Writes to a physical address.
+ *
+ *  @param pa The physical address.
+ *  @param val The value.
+ *  @return Void.
  */
 void vm_phys_write(unsigned pa, unsigned val) {
     vm_set_phys_pte(pa);
@@ -649,6 +648,7 @@ int new_pages(void *base, int len)
     }
 
     mutex_lock(&alloc_pages_mutex);
+    lprintf("Add %p - (%p, %p)", &alloc_pages, base, (void *)len);
     hashtable_add(&alloc_pages, FRAME_NUM(base), (void *)len);
     mutex_unlock(&alloc_pages_mutex);
 
@@ -667,12 +667,10 @@ int remove_pages(void *base)
     }
 
     mutex_lock(&alloc_pages_mutex);
-
     int len;
     if (hashtable_remove(&alloc_pages, FRAME_NUM(base), (void**)&len) < 0) {
         return -2;
     }
-
     mutex_unlock(&alloc_pages_mutex);
 
     rwlock_lock(&getpcb()->locks.remove_pages, RWLOCK_WRITE);

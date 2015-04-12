@@ -12,6 +12,8 @@
 #include <hashtable.h>
 #include <stdlib.h>
 #include <string.h>
+#include <simics.h>
+#include <proc.h>
 
 struct hashnode {
     int key;
@@ -73,6 +75,9 @@ void hashtable_add(hashtable_t *table, int key, void *data)
     }
 
     hashnode_t *addnode = (hashnode_t *)malloc(sizeof(hashnode_t));
+    if (addnode == NULL) {
+        lprintf("Malloc fail");
+    }
     addnode->key = key;
     addnode->data = data;
     addnode->next = NULL;
@@ -89,6 +94,8 @@ void hashtable_add(hashtable_t *table, int key, void *data)
         }
         node->next = addnode;
     }
+
+    lprintf("Add (%d) %p[%d]: %p - %d", mt_mode ? getpid() : 0, table, idx, addnode, addnode->key);
 }
 
 /** @brief Gets data from a hash table.
@@ -163,16 +170,4 @@ int hashtable_remove(hashtable_t *table, int key, void **data)
     }
 
     return -2;
-}
-
-/** @brief Destroys a hashtable.
- *
- *  @param table The hashtable
- */
-void hashtable_destroy(hashtable_t *table)
-{
-    if (table == NULL)
-      return;
-
-    free(table->nodes);
 }
