@@ -50,10 +50,11 @@ linklist_t tcbs_to_reap;
  *  @return 0 on success, negative error code otherwise.
  */
 static int init_locks(locks_t *locks) {
+    // Initialize memlock last to prevent memory leaks from hashtable_init
     if ((mutex_init(&locks->new_pages) < 0) ||
         (mutex_init(&locks->remove_pages) < 0) ||
-        (memlock_init(&locks->memlock, MEMLOCK_SIZE) < 0) ||
-        (mutex_init(&locks->malloc) < 0)) {
+        (mutex_init(&locks->malloc) < 0) ||
+        (memlock_init(&locks->memlock, MEMLOCK_SIZE) < 0)) {
         return -1;
     }
 
@@ -121,9 +122,6 @@ int proc_new_process(pcb_t **pcb_out, tcb_t **tcb_out) {
     if (init_locks(&pcb->locks) < 0) {
         return -6;
     }
-
-    lprintf("Inited proc vars");
-    MAGIC_BREAK;
 
     pcb->pid = -1;
     pcb->status = 0;
@@ -221,6 +219,21 @@ pcb_t *getpcb()
 int getpid()
 {
     return getpcb()->pid;
+}
+
+/** @brief Looks up a tcb given a tid.
+ *
+ *  @param tid The tid.
+ *  @return The tcb or NULL if it does not exist.
+ */
+tcb_t *lookup_tcb(int tid)
+{
+    tcb_t *tcb;
+    rwlock_lock(&tcbs_lock, RWLOCK_READ);
+    if (hashtable_get(&tcbs, tid, (void**)&tcb) < 0)
+        tcb = NULL;
+    rwlock_unlock(&tcbs_lock);
+    return tcb;
 }
 
 /** @brief Sets the exit status of the current task to status.

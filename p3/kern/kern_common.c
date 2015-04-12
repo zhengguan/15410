@@ -62,6 +62,14 @@ int str_check(char *str, unsigned flags)
     return -2;
 }
 
+int str_lock(char *str) {
+    if ((unsigned)str < USER_MEM_START) {
+        return -1;
+    }
+
+    return vm_lock_str(str);
+}
+
 int buf_lock(int len, char *buf)
 {
     if ((unsigned)buf < USER_MEM_START) {
@@ -86,4 +94,12 @@ int int_lock(int *n)
     }
 
     return 0;
+}
+
+void buf_unlock(int len, char *buf) {
+    vm_unlock_len(buf, len);
+}
+
+void int_unlock(int *n) {
+    vm_unlock(n);
 }

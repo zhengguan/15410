@@ -7,13 +7,11 @@
 /* safe versions of malloc functions */
 void *malloc(size_t size)
 {
-    // TODO make this less ugly
-    int tid = gettid();
-    if (tid != 0) {
+    if (mt_mode) {
         mutex_lock(&getpcb()->locks.malloc);
     }
     void *mem = _malloc(size);
-    if (tid != 0) {
+    if (mt_mode) {
         mutex_unlock(&getpcb()->locks.malloc);
     }
     return mem;
@@ -21,25 +19,37 @@ void *malloc(size_t size)
 
 void *memalign(size_t alignment, size_t size)
 {
-    mutex_lock(&getpcb()->locks.malloc);
+    if (mt_mode) {
+        mutex_lock(&getpcb()->locks.malloc);
+    }
     void *mem = _memalign(alignment, size);
-    mutex_unlock(&getpcb()->locks.malloc);
+    if (mt_mode) {
+        mutex_unlock(&getpcb()->locks.malloc);
+    }
     return mem;
 }
 
 void *calloc(size_t nelt, size_t eltsize)
 {
-    mutex_lock(&getpcb()->locks.malloc);
+    if (mt_mode) {
+        mutex_lock(&getpcb()->locks.malloc);
+    }
     void *mem = _calloc(nelt, eltsize);
-    mutex_unlock(&getpcb()->locks.malloc);
+    if (mt_mode) {
+        mutex_unlock(&getpcb()->locks.malloc);
+    }
     return mem;
 }
 
 void *realloc(void *buf, size_t new_size)
 {
-    mutex_lock(&getpcb()->locks.malloc);
+    if (mt_mode) {
+        mutex_lock(&getpcb()->locks.malloc);
+    }
     void *mem = _realloc(buf, new_size);
-    mutex_unlock(&getpcb()->locks.malloc);
+    if (mt_mode) {
+        mutex_unlock(&getpcb()->locks.malloc);
+    }
     return mem;
 }
 
@@ -48,27 +58,34 @@ void free(void *buf)
     if (buf == NULL) {
         return;
     }
-    mutex_lock(&getpcb()->locks.malloc);
+    if (mt_mode) {
+        mutex_lock(&getpcb()->locks.malloc);
+    }
     _free(buf);
-    mutex_unlock(&getpcb()->locks.malloc);
+    if (mt_mode) {
+        mutex_unlock(&getpcb()->locks.malloc);
+    }
 }
 
 void *smalloc(size_t size)
 {
-    mutex_lock(&getpcb()->locks.malloc);
+    if (mt_mode) {
+        mutex_lock(&getpcb()->locks.malloc);
+    }
     void *mem = _smalloc(size);
-    mutex_unlock(&getpcb()->locks.malloc);
+    if (mt_mode) {
+        mutex_unlock(&getpcb()->locks.malloc);
+    }
     return mem;
 }
 
 void *smemalign(size_t alignment, size_t size)
 {
-    int tid = gettid();
-    if (tid != 0) {
+    if (mt_mode) {
         mutex_lock(&getpcb()->locks.malloc);
     }
     void *mem = _smemalign(alignment, size);
-    if (tid != 0) {
+    if (mt_mode) {
         mutex_unlock(&getpcb()->locks.malloc);
     }
     return mem;
@@ -79,9 +96,13 @@ void sfree(void *buf, size_t size)
     if (buf == NULL) {
         return;
     }
-    mutex_lock(&getpcb()->locks.malloc);
+    if (mt_mode) {
+        mutex_lock(&getpcb()->locks.malloc);
+    }
     _sfree(buf, size);
-    mutex_unlock(&getpcb()->locks.malloc);
+    if (mt_mode) {
+        mutex_unlock(&getpcb()->locks.malloc);
+    }
 }
 
 

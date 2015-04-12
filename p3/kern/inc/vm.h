@@ -40,6 +40,7 @@ bool vm_check_flags(void *va, unsigned flags);
 bool vm_check_flags_len(void *base, int len, unsigned flags);
 bool vm_lock(void *va);
 bool vm_lock_len(void *base, int len);
+int vm_lock_str(char *str);
 void vm_unlock(void *va);
 void vm_unlock_len(void *base, int len);
 

@@ -154,7 +154,6 @@ int linklist_remove_head(linklist_t *list, void **data) {
  *
  *  @param list The list.
  *  @param data A location in memory to store the removed data.
- *  @param Equality test. Passed data is the second argument.
  *  @return 0 on success, negative error code otherwise.
  */
 int linklist_peek_head(linklist_t *list, void **data) {
@@ -229,6 +228,7 @@ int linklist_remove_all(linklist_t *list) {
  *
  *  @param list The list.
  *  @param data The data of the item to remove.
+ *  @param Equality test. Passed data is the second argument.
  *  @return True if the list contains the data, false otherwise.
  */
 bool linklist_contains(linklist_t *list, void *data, bool (*eq)(void*, void*)) {

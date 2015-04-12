@@ -465,12 +465,27 @@ bool vm_lock(void *va) {
 bool vm_lock_len(void *base, int len) {
     mutex_lock(&getpcb()->locks.remove_pages);
     bool valid = vm_check_flags_len(base, len, USER_FLAGS);
-    unsigned va;
-    for (va = (unsigned)base;  va < (unsigned)base + len - 1; va += PAGE_SIZE) {
-        memlock_lock(&getpcb()->locks.memlock, (void *)va, MEMLOCK_ACCESS);
+    if (valid) {
+        unsigned va;
+        for (va = (unsigned)base;  va < (unsigned)base + len - 1; va += PAGE_SIZE) {
+            memlock_lock(&getpcb()->locks.memlock, (void *)va, MEMLOCK_ACCESS);
+        }
     }
     mutex_unlock(&getpcb()->locks.remove_pages);
     return valid;
+}
+
+int vm_lock_str(char *str) {
+    mutex_lock(&getpcb()->locks.remove_pages);
+    int len = str_check(str, USER_FLAGS);
+    if (len >= 0) {
+        unsigned va;
+        for (va = (unsigned)str;  va < (unsigned)str + len - 1; va += PAGE_SIZE) {
+            memlock_lock(&getpcb()->locks.memlock, (void *)va, MEMLOCK_ACCESS);
+        }
+    }
+    mutex_unlock(&getpcb()->locks.remove_pages);
+    return len;
 }
 
 void vm_unlock(void *va) {
@@ -504,18 +519,16 @@ int new_pages(void *base, int len)
         return -3;
     }
 
-    if ((unsigned)base < USER_MEM_START)
+    if ((unsigned)base < USER_MEM_START) {
         return -4;
-
-    if ((unsigned)base > -(unsigned)len)
-        return -5;
+    }
 
     mutex_lock(&getpcb()->locks.new_pages);
 
     unsigned va;
     for (va = (unsigned)base; va < (unsigned)base + len - 1; va += PAGE_SIZE) {
         if (vm_check_flags((void *)va, PTE_PRESENT)) {
-            return -3;
+            return -5;
         }
     }
 

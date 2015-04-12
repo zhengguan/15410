@@ -80,6 +80,9 @@ wait_int:
     test    %eax, %eax
     js      wait_fail
     call    wait
+    pushl   %eax
+    call    int_unlock
+    pop     %eax
 wait_fail:
     addl    $4, %esp
     pushl   %eax
@@ -117,6 +120,9 @@ deschedule_int:
     test    %eax, %eax
     js      deschedule_fail
     call    deschedule
+    pushl   %eax
+    call    int_unlock
+    pop     %eax
 deschedule_fail:
     addl    $4, %esp
     pushl   %eax
@@ -206,6 +212,9 @@ readline_int:
     test    %eax, %eax
     js      readline_fail
     call    readline
+    pushl   %eax
+    call    buf_unlock
+    pop     %eax
 readline_fail:
     addl    $8, %esp
     push    %eax
@@ -222,6 +231,7 @@ print_int:
     test    %eax, %eax
     js      print_fail
     call    print
+    call    buf_lock
 print_fail:
     addl    $8, %esp
     push    %eax
@@ -264,8 +274,14 @@ get_cursor_pos_int:
     test    %eax, %eax
     js      get_cursor_pos_row_fail
     call    get_cursor_pos
+    pushl   %eax
+    call    int_unlock
+    pop     %eax
 get_cursor_pos_row_fail:
     addl    $4, %esp
+    pushl   %eax
+    call    int_unlock
+    pop     %eax
 get_cursor_pos_col_fail:
     addl    $4, %esp
     push    %eax
@@ -278,18 +294,32 @@ get_cursor_pos_col_fail:
 .globl readfile_int
 readfile_int:
     call    set_kernel_segs
-    pushl   12(%esi)
-    pushl   8(%esi)
+    pushl   (%esi)
+    call    str_lock
+    pushl   %eax        # push str len
+    test    %eax, %eax
+    js      readline_filename_fail
     pushl   4(%esi)
     pushl   8(%esi)
     call    buf_lock
     test    %eax, %eax
-    js      get_cursor_pos_col_fail
-    addl    $4, %esp
+    js      readline_buf_fail
+    pushl   12(%esi)
+    pushl   8(%esi)
+    pushl   4(%esi)
     pushl   (%esi)
     call    readfile
-readfile_fail:
     addl    $16, %esp
+    pushl   %eax
+    call    buf_unlock
+    pop     %eax
+readline_buf_fail:
+    addl    $8, %esp
+    pushl   %eax
+    call    buf_unlock
+    pop     %eax
+readline_filename_fail:
+    addl    $8, %esp
     push    %eax
     call    set_user_segs
     pop     %eax

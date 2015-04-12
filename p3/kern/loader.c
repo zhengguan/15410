@@ -115,13 +115,15 @@ static int alloc_pages(unsigned start, unsigned len, bool readonly)
 {
     unsigned base;
     for (base = ROUND_DOWN_PAGE(start); base < start + len; base += PAGE_SIZE) {
-        if (new_pages((void*)base, PAGE_SIZE) < 0) {
-            return -1;
+        if (!vm_check_flags((void *)base, PTE_PRESENT)) {
+            if (new_pages((void *)base, PAGE_SIZE) < 0) {
+                return -1;
+            }
+            if (readonly) {
+                vm_read_only((void*)base);
+            }
         }
-
-        if (readonly) {
-            vm_read_only((void*)base);
-        }
+        
     }
     return 0;
 }
