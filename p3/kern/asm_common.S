@@ -31,23 +31,29 @@ jmp_ureg_user:
     mov     %eax, 12(%esp)
     popa
     addl    $4, %esp
-    movl $SEGSEL_USER_CS, 4(%esp)
-    movl $USER_EFLAGS, 8(%esp)
-    movl $SEGSEL_USER_DS, 16(%esp)
+    movl    $SEGSEL_USER_CS, 4(%esp)
+    movl    $USER_EFLAGS, 8(%esp)
+    movl    $SEGSEL_USER_DS, 16(%esp)
     iret
 
 .globl jmp_user
 jmp_user:
-    mov %esp, %eax
-    push $SEGSEL_USER_DS
-    push 8(%eax)
-    push $USER_EFLAGS
-    push $SEGSEL_USER_CS
-    push 4(%eax)
+    mov     %esp, %eax
+    push    $SEGSEL_USER_DS
+    push    8(%eax)
+    push    $USER_EFLAGS
+    push    $SEGSEL_USER_CS
+    push    4(%eax)
 .globl iret_user
 iret_user:
-    call set_user_segs
-    mov $0, %ebp
+    call    set_user_segs
+    mov     $0, %edi
+    mov     $0, %esi
+    mov     $0, %ebp
+    mov     $0, %ebx
+    mov     $0, %edx
+    mov     $0, %ecx
+    mov     $0, %eax
     iret
 
 .globl set_kernel_segs
@@ -70,8 +76,8 @@ set_user_segs:
 
 .globl flush_tlb
 flush_tlb:
-    mov %cr3, %eax
-    mov %eax, %cr3
+    mov     %cr3, %eax
+    movl    %eax, %cr3
     ret
 
 .globl flush_tlb_entry

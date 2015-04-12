@@ -13,6 +13,9 @@ timer_handler_int:
     call    set_kernel_segs
     call    timer_handler
     call    set_user_segs
+    mov     $0, %ecx
+    mov     $0, %edx
+    mov     $0, %eax
     iret
 
 .globl keyboard_int
@@ -20,6 +23,9 @@ keyboard_int:
     call    set_kernel_segs
     call    keyboard_handler
     call    set_user_segs
+    mov     $0, %ecx
+    mov     $0, %edx
+    mov     $0, %eax
     iret
 
 /* Life cycle */
@@ -31,6 +37,8 @@ fork_int:
     push    %eax
     call    set_user_segs
     pop     %eax
+    mov     $0, %ecx
+    mov     $0, %edx
     iret
 
 .globl thread_fork_int
@@ -40,6 +48,8 @@ thread_fork_int:
     push    %eax
     call    set_user_segs
     pop     %eax
+    mov     $0, %ecx
+    mov     $0, %edx
     iret
 
 .globl exec_int
@@ -63,6 +73,8 @@ exec_esi_fail:
     push    %eax
     call    set_user_segs
     pop     %eax
+    mov     $0, %ecx
+    mov     $0, %edx
     iret
 
 .globl set_status_int
@@ -74,14 +86,15 @@ set_status_int:
     push    %eax
     call    set_user_segs
     pop     %eax
+    mov     $0, %ecx
+    mov     $0, %edx
     iret
 
 .globl vanish_int
 vanish_int:
     call    set_kernel_segs
     call    vanish
-    call    set_user_segs
-    iret
+    #shouldn't get here
 
 .globl wait_int
 wait_int:
@@ -100,6 +113,8 @@ wait_fail:
     pushl   %eax                # save the return value
     call    set_user_segs       # set user data segments
     pop     %eax                # restore the return value
+    mov     $0, %ecx
+    mov     $0, %edx
     iret                        # return from the interrupt
 
 /* Thread management */
@@ -111,6 +126,8 @@ gettid_int:
     push    %eax
     call    set_user_segs
     pop     %eax
+    mov     $0, %ecx
+    mov     $0, %edx
     iret
 
 .globl yield_int
@@ -122,6 +139,8 @@ yield_int:
     push    %eax
     call    set_user_segs
     pop     %eax
+    mov     $0, %ecx
+    mov     $0, %edx
     iret
 
 .globl deschedule_int
@@ -141,6 +160,8 @@ deschedule_fail:
     pushl   %eax                # save the return value
     call    set_user_segs       # set user data segments
     pop     %eax                # restore the return value
+    mov     $0, %ecx
+    mov     $0, %edx
     iret                        # return from the interrupt
 
 .globl make_runnable_int
@@ -152,6 +173,8 @@ make_runnable_int:
     push    %eax
     call    set_user_segs
     pop     %eax
+    mov     $0, %ecx
+    mov     $0, %edx
     iret
 
 .globl get_ticks_int
@@ -161,6 +184,8 @@ get_ticks_int:
     push    %eax
     call    set_user_segs
     pop     %eax
+    mov     $0, %ecx
+    mov     $0, %edx
     iret
 
 .globl sleep_int
@@ -172,6 +197,8 @@ sleep_int:
     push    %eax
     call    set_user_segs
     pop     %eax
+    mov     $0, %ecx
+    mov     $0, %edx
     iret
 
 .globl swexn_int
@@ -197,6 +224,8 @@ swexn_esi_fail:
     push    %eax
     call    set_user_segs
     pop     %eax
+    mov     $0, %ecx
+    mov     $0, %edx
     iret
 
 /* Memory management */
@@ -222,6 +251,8 @@ new_pages_esi_fail:
     push    %eax
     call    set_user_segs
     pop     %eax
+    mov     $0, %ecx
+    mov     $0, %edx
     iret
 
 .globl remove_pages_int
@@ -233,6 +264,8 @@ remove_pages_int:
     push    %eax
     call    set_user_segs
     pop     %eax
+    mov     $0, %ecx
+    mov     $0, %edx
     iret
 
 
@@ -266,6 +299,8 @@ readline_esi_fail:
     push    %eax                # save the return value
     call    set_user_segs       # set user data segments
     pop     %eax                # restore the return value
+    mov     $0, %ecx
+    mov     $0, %edx
     iret                        # return from the interrupt
 
 .globl print_int
@@ -296,6 +331,8 @@ print_esi_fail:
     push    %eax                # save the return value
     call    set_user_segs       # set user data segments
     pop     %eax                # restore the return value
+    mov     $0, %ecx
+    mov     $0, %edx
     iret                        # return from the interrupt
 
 .globl set_term_color_int
@@ -307,6 +344,8 @@ set_term_color_int:
     push    %eax
     call    set_user_segs
     pop     %eax
+    mov     $0, %ecx
+    mov     $0, %edx
     iret
 
 .globl set_cursor_pos_int
@@ -330,6 +369,8 @@ set_cursor_pos_esi_fail:
     push    %eax
     call    set_user_segs
     pop     %eax
+    mov     $0, %ecx
+    mov     $0, %edx
     iret
 
 .globl get_cursor_pos_int
@@ -368,6 +409,8 @@ get_cursor_pos_esi_fail:
     push    %eax                        # save the return value
     call    set_user_segs               # set user data segments
     pop     %eax                        # restore the return value
+    mov     $0, %ecx
+    mov     $0, %edx
     iret                                # return from the interrupt
 
 
@@ -416,12 +459,17 @@ readfile_esi_fail:
     push    %eax                    # save the return value
     call    set_user_segs           # set user data segments
     pop     %eax                    # restore the return value
+    mov     $0, %ecx
+    mov     $0, %edx
     iret                            # return from the interrupt
 
 .globl halt_int
 halt_int:
     call sim_halt
     hlt
+    mov     $0, %ecx
+    mov     $0, %edx
+    mov     $0, %eax
     iret
 
 /* "Special" */
