@@ -497,14 +497,24 @@ bool vm_check_flags_len(void *base, int len, unsigned flags)
  * @return A boolean indicating whether the address is present and
  * has user privilege level.
  */
-bool vm_lock(void *va) {
+static bool vm_lock_flags(void *va, unsigned flags) {
     rwlock_lock(&getpcb()->locks.remove_pages, RWLOCK_READ);
-    bool valid = vm_check_flags(va, USER_FLAGS);
+    bool valid = vm_check_flags(va, flags);
     if (valid) {
         memlock_lock(&getpcb()->locks.memlock, (void *)va, MEMLOCK_ACCESS);
     }
     rwlock_unlock(&getpcb()->locks.remove_pages);
     return valid;
+}
+
+bool vm_lock(void *base)
+{
+    return vm_lock_flags(base, USER_FLAGS);
+}
+
+bool vm_lock_rw(void *base)
+{
+    return vm_lock_flags(base, USER_FLAGS | PTE_RW);
 }
 
 /**
@@ -519,9 +529,9 @@ bool vm_lock(void *va) {
  * @return A boolean indicating whether the whole memory length is present
  * and has user privilege level.
  */
-bool vm_lock_len(void *base, int len) {
+static bool vm_lock_len_flags(void *base, int len, unsigned flags) {
     rwlock_lock(&getpcb()->locks.remove_pages, RWLOCK_READ);
-    bool valid = vm_check_flags_len(base, len, USER_FLAGS);
+    bool valid = vm_check_flags_len(base, len, flags);
     if (valid) {
         unsigned va;
         for (va = (unsigned)base;  va < (unsigned)base + len - 1; va += PAGE_SIZE) {
@@ -530,6 +540,16 @@ bool vm_lock_len(void *base, int len) {
     }
     rwlock_unlock(&getpcb()->locks.remove_pages);
     return valid;
+}
+
+bool vm_lock_len(void *base, int len)
+{
+    return vm_lock_len_flags(base, len, USER_FLAGS);
+}
+
+bool vm_lock_len_rw(void *base, int len)
+{
+    return vm_lock_len_flags(base, len, USER_FLAGS | PTE_RW);
 }
 
 /**

@@ -36,7 +36,9 @@ int str_check(char *str, unsigned flags);
 int buf_check(char *buf);
 int str_lock(char *str);
 int buf_lock(int len, char *buf);
+int buf_lock_rw(int len, char *buf);
 int int_lock(int *n);
+int int_lock_rw(int *n);
 void buf_unlock(int len, char *buf);
 void int_unlock(int *n);
 

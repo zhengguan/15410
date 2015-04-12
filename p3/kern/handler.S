@@ -101,7 +101,7 @@ wait_int:
     call    set_kernel_segs     # set kernel data segments
     subl    $4, %esp            # allocate space for return value
     pushl   %esi                # push the status_ptr
-    call    int_lock            # check the status_ptr
+    call    int_lock_rw         # check the status_ptr
     test    %eax, %eax          # test if the check failed
     js      wait_fail           # if so, jump
     call    wait                # call wait
@@ -282,7 +282,7 @@ readline_int:
     js      readline_esi_fail   # if not, jump
     pushl   4(%esi)             # push the buf
     pushl   (%esi)              # push the len
-    call    buf_lock            # check the buf
+    call    buf_lock_rw         # check the buf
     test    %eax, %eax          # test if the buf is valid
     js      readline_fail       # jump if not
     call    readline            # call readline
@@ -383,11 +383,11 @@ get_cursor_pos_int:
     test    %eax, %eax                  # check if lock passes
     js      get_cursor_pos_esi_fail     # if not, jump
     pushl   4(%esi)                     # push the col
-    call    int_lock                    # check the col
+    call    int_lock_rw                 # check the col
     test    %eax, %eax                  # test if check failed
     js      get_cursor_pos_col_fail     # jump if it failed
     pushl   (%esi)                      # push the row
-    call    int_lock                    # check the row
+    call    int_lock_rw                 # check the row
     test    %eax, %eax                  # test if the check failed
     js      get_cursor_pos_row_fail     # jump if it failed
     call    get_cursor_pos              # call the function
@@ -432,7 +432,7 @@ readfile_int:
     push    %eax                    # save str len
     pushl   4(%esi)                 # push buf
     pushl   8(%esi)                 # push count
-    call    buf_lock                # check the buffer
+    call    buf_lock_rw             # check the buffer
     test    %eax, %eax              # test if check failed
     js      readfile_buf_fail       # jump if it failed
     pushl   12(%esi)                # push offset

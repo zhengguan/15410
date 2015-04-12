@@ -97,6 +97,26 @@ int buf_lock(int len, char *buf)
     return 0;
 }
 
+/** @brief Checks a user buffer for validity and locks the
+ *  virtual memory region.
+ *
+ *  @param len The length.
+ *  @param buf The buffer.
+ *  @return 0 on success, negative error code if invalid.
+ */
+int buf_lock_rw(int len, char *buf)
+{
+    if ((unsigned)buf < USER_MEM_START) {
+        return -1;
+    }
+
+    if (!vm_lock_len_rw(buf, len)) {
+        return -2;
+    }
+
+    return 0;
+}
+
 /** @brief Checks a user integer pointer for validity and locks the
  *  virtual memory address.
  *
@@ -115,6 +135,26 @@ int int_lock(int *n)
 
     return 0;
 }
+
+/** @brief Checks a user integer pointer for validity and locks the
+ *  virtual memory address.
+ *
+ *  @param n The interger pointer.
+ *  @return 0 on success, negative error code if invalid.
+ */
+int int_lock_rw(int *n)
+{
+    if ((unsigned)n < USER_MEM_START) {
+        return -1;
+    }
+
+    if (!vm_lock_rw(n)) {
+        return -2;
+    }
+
+    return 0;
+}
+
 
 /** @brief Unlcok a buffer memory lock.
  *
