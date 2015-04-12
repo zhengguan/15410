@@ -60,18 +60,20 @@ typedef struct {
 int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
 {
     if (scheduler_init() < 0) {
-        lprintf("failed to init scheduler");
+        panic("failed to init scheduler");
     }
 
-    idt_init();
+    if (idt_init() < 0) {
+        panic("failed to init idt");
+    }
 
     if (vm_init() < 0) {
-        lprintf("failed to init vm");
+        panic("failed to init vm");
     }
     set_cr0(KERNEL_CR0);
 
     if (proc_init() < 0) {
-        lprintf("failed to init proc");
+        panic("failed to init proc");
     }
 
     clear_console();
@@ -84,7 +86,7 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
     /* Setup idle */
     pcb_t *idle_pcb;
     if (proc_new_process(&idle_pcb, &idle_tcb) < 0) {
-        lprintf("failed to create idle");
+        panic("failed to create idle");
     }
     cur_tcb = idle_tcb;
 
@@ -92,7 +94,7 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
 
     //Create a new page directory
     if (vm_new_pd(&idle_pcb->pd) < 0) {
-        lprintf("vm_new_pd failed");
+        panic("vm_new_pd failed");
     }
 
     set_cr3((unsigned)idle_pcb->pd);
@@ -104,7 +106,7 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
     unsigned idle_eip, idle_esp;
     char *idle_arg[] = IDLE_ARG;
     if (load(IDLE_NAME, idle_arg, &idle_eip, &idle_esp) < 0) {
-        lprintf("idle load fails");
+        panic("idle load fails");
     }
 
     iret_args_t *idle_wrap_esp = (iret_args_t*)(idle_tcb->esp0 -
@@ -131,12 +133,12 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
     tcb_t *tr_tcb;
     pcb_t *tr_pcb;
     if (proc_new_process(&tr_pcb, &tr_tcb) < 0) {
-        lprintf("failed to create thread reaper");
+        panic("failed to create thread reaper");
     }
 
     //Create a new page directory
     if (vm_new_pd(&tr_pcb->pd) < 0) {
-        lprintf("vm_new_pd failed");
+        panic("vm_new_pd failed");
     }
 
     set_cr3((unsigned)tr_pcb->pd);
@@ -156,7 +158,7 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
     /* Setup init */
     tcb_t *init_tcb;
     if (proc_new_process(&init_pcb, &init_tcb) < 0) {
-        lprintf("failed to create init");
+        panic("failed to create init");
     }
     init_pcb->pd = init_pd;
     set_cr3((unsigned)init_pd);
@@ -164,14 +166,14 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
     unsigned init_eip, init_esp;
     char *init_arg[] = INIT_ARG;
     if (load(INIT_NAME, init_arg, &init_eip, &init_esp) < 0) {
-        lprintf("init load fails");
+        panic("init load fails");
     }
 
     set_esp0(init_tcb->esp0);
     cur_tcb = init_tcb;
     linklist_add_head(&scheduler_queue, (void*)init_tcb);
 
-    // set_cr0((get_cr0() & ~CR0_AM & ~CR0_WP) | CR0_PE);
+    set_cr0(KERNEL_CR0);
     mt_mode = true;
     jmp_user(init_eip, init_esp);
 

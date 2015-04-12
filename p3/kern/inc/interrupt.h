@@ -17,7 +17,7 @@
 #define KEY_IDT_ENTRY 	33
 
 /* IDT functions */
-void idt_init();
+int idt_init();
 void idt_add_desc(int idt_entry, void *handler, unsigned gate_type, unsigned dpl);
 
 #endif /* _INTERRUPT_H */

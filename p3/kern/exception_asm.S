@@ -7,6 +7,7 @@
  */
 
 #include <ureg.h>
+#include <idt.h>
 
 .macro EXN_WRAPPER NAME CAUSE
 .globl \NAME
@@ -52,6 +53,9 @@ EXN_WRAPPER exn_opcode_wrapper, SWEXN_CAUSE_OPCODE
 EXN_WRAPPER exn_nofpu_wrapper, SWEXN_CAUSE_NOFPU
 EXN_WRAPPER exn_fpufault_wrapper, SWEXN_CAUSE_FPUFAULT
 EXN_WRAPPER exn_simdfault_wrapper, SWEXN_CAUSE_SIMDFAULT
+EXN_WRAPPER exn_nmi_wrapper, IDT_NMI
+EXN_WRAPPER exn_cso_wrapper, IDT_CSO
+EXN_WRAPPER exn_mc_wrapper, IDT_MC
 
 // Hardware pushes error code for below exceptions
 EXN_WRAPPER_ERR exn_segfault_wrapper, SWEXN_CAUSE_SEGFAULT
@@ -59,3 +63,5 @@ EXN_WRAPPER_ERR exn_stackfault_wrapper, SWEXN_CAUSE_STACKFAULT
 EXN_WRAPPER_ERR exn_protfault_wrapper, SWEXN_CAUSE_PROTFAULT
 EXN_WRAPPER_ERR exn_pagefault_wrapper, SWEXN_CAUSE_PAGEFAULT
 EXN_WRAPPER_ERR exn_alignfault_wrapper, SWEXN_CAUSE_ALIGNFAULT
+EXN_WRAPPER_ERR exn_ts_wrapper, IDT_TS
+

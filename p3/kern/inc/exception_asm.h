@@ -18,4 +18,9 @@ void exn_fpufault_wrapper();
 void exn_alignfault_wrapper();
 void exn_simdfault_wrapper();
 
+void exn_nmi_wrapper();
+void exn_cso_wrapper();
+void exn_mc_wrapper();
+void exn_ts_wrapper();
+
 #endif /* _ASM_EXCEPTION_H_ */
