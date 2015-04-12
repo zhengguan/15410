@@ -43,5 +43,6 @@ bool vm_lock_len(void *base, int len);
 int vm_lock_str(char *str);
 void vm_unlock(void *va);
 void vm_unlock_len(void *base, int len);
+void vm_phys_write(unsigned pa, unsigned val);
 
 #endif /* _VM_H */

@@ -25,6 +25,9 @@
 #include <mutex.h>
 #include <proc.h>
 #include <memlock.h>
+#include <assert.h>
+
+#define PHYS_VA 0xC0001000
 
 #define KERNEL_MEM_START 0x00000000
 
@@ -74,20 +77,29 @@ mutex_t alloc_pages_mutex;
  *  Returns a previously allocated free physical frame if one is available.
  *  Otherwise it gets a new free physical frame.
  *
- *  @return Physical address of the frame.
+ *  @param frame Memory address to write the physical address of the frame.
+ *  @return 0 on success, negative error code otherwise.
  */
-static unsigned get_frame()
+static int get_frame(unsigned *frame)
 {
     mutex_lock(&free_frames_mutex);
-    unsigned frame;
     if (linklist_empty(&free_frames)) {
-        frame = next_frame;
+        *frame = next_frame;
+        if (*frame > machine_phys_frames() * PAGE_SIZE) {
+            MAGIC_BREAK;
+            return -1;
+        }
         next_frame += PAGE_SIZE;
     } else {
-        linklist_remove_head(&free_frames, (void **)&frame);
+        linklist_remove_head(&free_frames, (void **)frame);
     }
     mutex_unlock(&free_frames_mutex);
-    return frame;
+    
+    return 0;
+}
+
+static void vm_set_phys_pte(unsigned pa) {
+    assert(vm_new_pte(GET_PD(), (void *)PHYS_VA, pa, KERNEL_FLAGS) == 0);
 }
 
 /** @brief Checks whether the page table referenced by a page directory entry
@@ -171,6 +183,7 @@ int vm_new_pd(pd_t *new_pd)
     for (pa = KERNEL_MEM_START; pa < USER_MEM_START; pa += PAGE_SIZE) {
         vm_new_pte(pd, (void *)pa, pa, KERNEL_FLAGS);
     }
+    vm_set_phys_pte(0);
 
     *new_pd = pd;
 
@@ -329,7 +342,12 @@ int vm_copy(pd_t *new_pd)
             continue;
         }
 
-        vm_new_pte(*new_pd, va, get_frame(), GET_FLAGS(pte));
+        unsigned frame;
+        if (get_frame(&frame) < 0) {
+            vm_destroy(*new_pd);
+            return -3;
+        }
+        vm_new_pte(*new_pd, va, frame, GET_FLAGS(pte));
 
         memcpy(buf, va, PAGE_SIZE);
         set_cr3((unsigned)*new_pd);
@@ -499,6 +517,16 @@ void vm_unlock_len(void *base, int len) {
     }
 }
 
+unsigned vm_phys_read(unsigned pa) {
+    vm_set_phys_pte(pa);
+    return *(unsigned *)PHYS_VA;
+}
+
+void vm_phys_write(unsigned pa, unsigned val) {
+    vm_set_phys_pte(pa);
+    *(unsigned *)PHYS_VA = val;
+}
+
 /** @brief Allocated memory starting at base and extending for len bytes.
  *
  *  @param base The base of the memory region to allocate.
@@ -535,7 +563,14 @@ int new_pages(void *base, int len)
     mutex_unlock(&getpcb()->locks.new_pages);
 
     for (va = (unsigned)base; va < (unsigned)base + len - 1; va += PAGE_SIZE) {
-        vm_new_pte(GET_PD(), (void *)va, get_frame(), USER_FLAGS);
+        unsigned frame;
+        if (get_frame(&frame) < 0) {
+            for (; va >= (unsigned)base; va -= PAGE_SIZE) {
+                vm_remove_pte(GET_PD(), (void *)va);
+            }
+            return -6;
+        }
+        vm_new_pte(GET_PD(), (void *)va, frame, USER_FLAGS);
         memset((void*)va, 0, PAGE_SIZE);
         vm_read_write((void*)va);
     }
