@@ -26,8 +26,15 @@ struct hashnode {
  * @param key The key.
  * @return The index.
  */
-static inline int hashtable_idx(hashtable_t *table, int key) {
-    return key % table->size;
+static inline int hashtable_idx(hashtable_t *table, int key)
+{
+    unsigned h = key;
+    h ^= h >> 16;
+    h *= 0x85ebca6b;
+    h ^= h >> 13;
+    h *= 0xc2b2ae35;
+    h ^= h >> 16;
+    return h % table->size;
 }
 
 /** @brief Initializes a hash table to be empty.
@@ -35,11 +42,12 @@ static inline int hashtable_idx(hashtable_t *table, int key) {
  *  @param size The hash table size.
  *  @return 0 on success, negative error code otherwise.
  */
-int hashtable_init(hashtable_t *table, int size) {
+int hashtable_init(hashtable_t *table, int size)
+{
     if (table == NULL) {
         return -1;
     }
-    
+
     table->nodes = malloc(size*sizeof(hashnode_t));
     if (table->nodes == NULL) {
         return -2;
@@ -58,7 +66,8 @@ int hashtable_init(hashtable_t *table, int size) {
  *  @param data The data.
  *  @return Void.
  */
-void hashtable_add(hashtable_t *table, int key, void *data) {
+void hashtable_add(hashtable_t *table, int key, void *data)
+{
     if (table == NULL) {
         return;
     }
@@ -89,7 +98,8 @@ void hashtable_add(hashtable_t *table, int key, void *data) {
  *  @param data A location in memory to store the gotten data.
  *  @return 0 on success, negative error code otherwise.
  */
-int hashtable_get(hashtable_t *table, int key, void **data) {
+int hashtable_get(hashtable_t *table, int key, void **data)
+{
     if (table == NULL) {
         return -1;
     }
@@ -118,7 +128,8 @@ int hashtable_get(hashtable_t *table, int key, void **data) {
  *  @param data A location in memory to store the removed data.
  *  @return 0 on success, negative error code otherwise.
  */
-int hashtable_remove(hashtable_t *table, int key, void **data) {
+int hashtable_remove(hashtable_t *table, int key, void **data)
+{
     if (table == NULL) {
         return -1;
     }
@@ -158,9 +169,10 @@ int hashtable_remove(hashtable_t *table, int key, void **data) {
  *
  *  @param table The hashtable
  */
-void hashtable_destroy(hashtable_t *table) {
+void hashtable_destroy(hashtable_t *table)
+{
     if (table == NULL)
       return;
-    
+
     free(table->nodes);
 }

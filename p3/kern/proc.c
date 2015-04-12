@@ -52,7 +52,7 @@ linklist_t tcbs_to_reap;
 static int init_locks(locks_t *locks) {
     // Initialize memlock last to prevent memory leaks from hashtable_init
     if ((mutex_init(&locks->new_pages) < 0) ||
-        (mutex_init(&locks->remove_pages) < 0) ||
+        (rwlock_init(&locks->remove_pages) < 0) ||
         (mutex_init(&locks->malloc) < 0) ||
         (memlock_init(&locks->memlock, MEMLOCK_SIZE) < 0)) {
         return -1;

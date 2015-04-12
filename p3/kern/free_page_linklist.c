@@ -26,7 +26,7 @@ void free_page_add(unsigned pa)
 
 /**
  * @brief Removes a free page from the list of free pages.
- * @return The physical address that we removed.
+ * @return The physical address that we removed or 0 if the list is empty.
  */
 unsigned free_page_remove()
 {

@@ -15,12 +15,13 @@
 #include <kern_common.h>
 #include <mutex.h>
 #include <vm.h>
+#include <rwlock.h>
 
 #define KERNEL_STACK_SIZE (2 * PAGE_SIZE)
 
 typedef struct locks {
     mutex_t new_pages;
-    mutex_t remove_pages;
+    rwlock_t remove_pages;
     memlock_t memlock;
     mutex_t malloc;
 } locks_t;

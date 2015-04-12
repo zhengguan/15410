@@ -138,7 +138,6 @@ int yield(int tid)
     } else if (linklist_remove(&scheduler_queue, (void *)tid, tcb_is_tid) < 0) {
         return -1;
     }
-
     linklist_add_tail(&scheduler_queue, (void*)tcb);
     assert (context_switch(tcb) == 0);
 
@@ -211,6 +210,7 @@ int deschedule_kern(int *flag, bool user)
  */
 int make_runnable(int tid)
 {
+
     //TODO: need locks here
     tcb_t *tcb = lookup_tcb(tid);
     if (tcb == NULL)

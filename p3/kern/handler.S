@@ -45,10 +45,21 @@ thread_fork_int:
 .globl exec_int
 exec_int:
     call    set_kernel_segs
+    subl    $4, %esp
+    pushl   %esi
+    pushl   $8
+    call    buf_lock
+    test    %eax, %eax
+    js      exec_esi_fail
     pushl   4(%esi)
     pushl   (%esi)
     call    exec
     addl    $8, %esp
+    mov     %eax, 8(%esp)
+    call    buf_unlock
+    mov     8(%esp), %eax
+exec_esi_fail:
+    addl    $12, %esp
     push    %eax
     call    set_user_segs
     pop     %eax
@@ -74,21 +85,22 @@ vanish_int:
 
 .globl wait_int
 wait_int:
-    call    set_kernel_segs
-    pushl   %esi
-    call    int_lock
-    test    %eax, %eax
-    js      wait_fail
-    call    wait
-    pushl   %eax
-    call    int_unlock
-    pop     %eax
+    call    set_kernel_segs     # set kernel data segments
+    subl    $4, %esp            # allocate space for return value
+    pushl   %esi                # push the status_ptr
+    call    int_lock            # check the status_ptr
+    test    %eax, %eax          # test if the check failed
+    js      wait_fail           # if so, jump
+    call    wait                # call wait
+    mov     %eax, 4(%esp)       # save the return value
+    call    int_unlock          # unlock the status_ptr
+    mov     4(%esp), %eax       # restore the return value
 wait_fail:
-    addl    $4, %esp
-    pushl   %eax
-    call    set_user_segs
-    pop     %eax
-    iret
+    addl    $8, %esp            # remove the status_ptr and ret from the stack
+    pushl   %eax                # save the return value
+    call    set_user_segs       # set user data segments
+    pop     %eax                # restore the return value
+    iret                        # return from the interrupt
 
 /* Thread management */
 
@@ -114,21 +126,22 @@ yield_int:
 
 .globl deschedule_int
 deschedule_int:
-    call    set_kernel_segs
-    pushl   %esi
-    call    int_lock
-    test    %eax, %eax
-    js      deschedule_fail
-    call    deschedule
-    pushl   %eax
-    call    int_unlock
-    pop     %eax
+    call    set_kernel_segs     # set kernel data segments
+    subl    $4, %esp            # allocate space for return value
+    pushl   %esi                # push the flag
+    call    int_lock            # check the flag
+    test    %eax, %eax          # test if the flag is valid
+    js      deschedule_fail     # if not, jump
+    call    deschedule          # call deschedule
+    mov     %eax, 4(%esp)       # save the return value
+    call    int_unlock          # unlock the flag
+    mov     4(%esp), %eax       # restore the return value
 deschedule_fail:
-    addl    $4, %esp
-    pushl   %eax
-    call    set_user_segs
-    pop     %eax
-    iret
+    addl    $8, %esp            # remove flag and ret from stack
+    pushl   %eax                # save the return value
+    call    set_user_segs       # set user data segments
+    pop     %eax                # restore the return value
+    iret                        # return from the interrupt
 
 .globl make_runnable_int
 make_runnable_int:
@@ -163,13 +176,24 @@ sleep_int:
 
 .globl swexn_int
 swexn_int:
+    call    set_kernel_segs
+    subl    $4, %esp
+    pushl   %esi
+    pushl   $16
+    call    buf_lock
+    test    %eax, %eax
+    js      swexn_esi_fail
     pushl   12(%esi)
     pushl   8(%esi)
     pushl   4(%esi)
     pushl   (%esi)
-    call    set_kernel_segs
     call    swexn
     addl    $16, %esp
+    mov     %eax, 8(%esp)
+    call    buf_unlock
+    mov     8(%esp), %eax
+swexn_esi_fail:
+    addl    $12, %esp
     push    %eax
     call    set_user_segs
     pop     %eax
@@ -180,10 +204,21 @@ swexn_int:
 .globl new_pages_int
 new_pages_int:
     call    set_kernel_segs
+    subl    $4, %esp
+    push    %esi
+    push    $8
+    call    buf_lock
+    test %eax, %eax
+    js      new_pages_esi_fail
     pushl   4(%esi)
     pushl   (%esi)
     call    new_pages
     addl    $8, %esp
+    mov     %eax, 8(%esp)
+    call    buf_unlock
+    mov     8(%esp), %eax
+new_pages_esi_fail:
+    addl    $12, %esp
     push    %eax
     call    set_user_segs
     pop     %eax
@@ -205,39 +240,63 @@ remove_pages_int:
 
 .globl readline_int
 readline_int:
-    call    set_kernel_segs
-    pushl   4(%esi)
-    pushl   (%esi)
-    call    buf_lock
-    test    %eax, %eax
-    js      readline_fail
-    call    readline
-    pushl   %eax
-    call    buf_unlock
-    pop     %eax
+    call    set_kernel_segs     # set kernel data segments
+    subl    $4, %esp            # allocate space for return value
+    push    %esi                # push esi
+    push    $8                  # push total arg len
+    call    buf_lock            # lock esi
+    test    %eax, %eax          # test if the lock was successful
+    js      readline_esi_fail   # if not, jump
+    pushl   4(%esi)             # push the buf
+    pushl   (%esi)              # push the len
+    call    buf_lock            # check the buf
+    test    %eax, %eax          # test if the buf is valid
+    js      readline_fail       # jump if not
+    call    readline            # call readline
+    mov     %eax, 16(%esp)      # save the return value
+    call    buf_unlock          # unlock the buf
+    mov     16(%esp), %eax      # restore the return value
 readline_fail:
-    addl    $8, %esp
-    push    %eax
-    call    set_user_segs
-    pop     %eax
-    iret
+    addl    $8, %esp            # remove the args from stack
+    mov     %eax, 8(%esp)       # save the return value
+    call    buf_unlock          # unlock esi
+    mov     8(%esp), %eax       # restore the return value
+readline_esi_fail:
+    addl    $12, %esp           # remove ret, esi, and arg len from stack
+    push    %eax                # save the return value
+    call    set_user_segs       # set user data segments
+    pop     %eax                # restore the return value
+    iret                        # return from the interrupt
 
 .globl print_int
 print_int:
-    call    set_kernel_segs
-    pushl   4(%esi)
-    pushl   (%esi)
-    call    buf_lock
-    test    %eax, %eax
-    js      print_fail
-    call    print
-    call    buf_lock
+    call    set_kernel_segs     # set kernel data segments
+    subl    $4, %esp            # allocate space for return value
+    push    %esi                # push esi
+    push    $8                  # push total arg len
+    call    buf_lock            # lock esi
+    test    %eax, %eax          # test if the lock was successful
+    js      print_esi_fail      # if not, jump
+    pushl   4(%esi)             # push the buf
+    pushl   (%esi)              # push the len
+    call    buf_lock            # check the buf
+    test    %eax, %eax          # test to see if check failed
+    js      print_fail          # jump if it failed
+    call    print               # call print
+    mov     %eax, 16(%esp)      # save the return value
+    call    buf_unlock          # unlock the buf
+    mov     16(%esp), %eax      # restore the return value
 print_fail:
-    addl    $8, %esp
-    push    %eax
-    call    set_user_segs
-    pop     %eax
-    iret
+    addl    $8, %esp            # remove the args from stack
+    mov     %eax, 8(%esp)       # save the return value
+    call    buf_unlock          # unlock esi
+    mov     8(%esp), %eax       # restore the return value
+print_esi_fail:
+    addl    $12, %esp           # remove ret, esi, and arg len from stack
+    push    %eax                # save the return value
+    call    set_user_segs       # set user data segments
+    pop     %eax                # restore the return value
+    iret                        # return from the interrupt
 
 .globl set_term_color_int
 set_term_color_int:
@@ -253,10 +312,21 @@ set_term_color_int:
 .globl set_cursor_pos_int
 set_cursor_pos_int:
     call    set_kernel_segs
+    subl    $4, %esp
+    push    %esi
+    push    $8
+    call    buf_lock
+    test    %eax, %eax
+    js      set_cursor_pos_esi_fail
     pushl   4(%esi)
     pushl   (%esi)
     call    set_cursor_pos
     addl    $8, %esp
+    mov     %eax, 8(%esp)
+    call    buf_unlock
+    mov     8(%esp), %eax
+set_cursor_pos_esi_fail:
+    addl    $12, %esp
     push    %eax
     call    set_user_segs
     pop     %eax
@@ -264,66 +334,89 @@ set_cursor_pos_int:
 
 .globl get_cursor_pos_int
 get_cursor_pos_int:
-    call    set_kernel_segs
-    pushl   4(%esi)
-    call    int_lock
-    test    %eax, %eax
-    js      get_cursor_pos_col_fail
-    pushl   (%esi)
-    call    int_lock
-    test    %eax, %eax
-    js      get_cursor_pos_row_fail
-    call    get_cursor_pos
-    pushl   %eax
-    call    int_unlock
-    pop     %eax
+    call    set_kernel_segs             # set kernel data segments
+    subl    $4, %esp                    # allocate space to store return value
+    push    %esi                        # push esi
+    push    $8                          # push total arg len
+    call    buf_lock                    # lock esi
+    test    %eax, %eax                  # check if lock passes
+    js      get_cursor_pos_esi_fail     # if not, jump
+    pushl   4(%esi)                     # push the col
+    call    int_lock                    # check the col
+    test    %eax, %eax                  # test if check failed
+    js      get_cursor_pos_col_fail     # jump if it failed
+    pushl   (%esi)                      # push the row
+    call    int_lock                    # check the row
+    test    %eax, %eax                  # test if the check failed
+    js      get_cursor_pos_row_fail     # jump if it failed
+    call    get_cursor_pos              # call the function
+    mov     %eax, 16(%esp)              # save the return value
+    call    int_unlock                  # unlock the row
+    mov     16(%esp), %eax              # restore the return value
 get_cursor_pos_row_fail:
-    addl    $4, %esp
-    pushl   %eax
-    call    int_unlock
-    pop     %eax
+    addl    $4, %esp                    # remove the row from the stack
+    mov     %eax, 12(%esp)              # save the return value
+    call    int_unlock                  # unlock the col
+    mov     12(%esp), %eax              # restore the return value
 get_cursor_pos_col_fail:
-    addl    $4, %esp
-    push    %eax
-    call    set_user_segs
-    pop     %eax
-    iret
+    addl    $4, %esp                    # remove the col from the stack
+    mov     %eax, 8(%esp)               # save the return value
+    call    buf_unlock                  # unlock the row
+    mov     8(%esp), %eax               # restore the return value
+get_cursor_pos_esi_fail:
+    addl    $12, %esp                   # remove the esi, arg len, and ret
+    push    %eax                        # save the return value
+    call    set_user_segs               # set user data segments
+    pop     %eax                        # restore the return value
+    iret                                # return from the interrupt
+
 
 /* Miscellaneous */
 
 .globl readfile_int
 readfile_int:
-    call    set_kernel_segs
-    pushl   (%esi)
-    call    str_lock
-    pushl   %eax        # push str len
-    test    %eax, %eax
-    js      readline_filename_fail
-    pushl   4(%esi)
-    pushl   8(%esi)
-    call    buf_lock
-    test    %eax, %eax
-    js      readline_buf_fail
-    pushl   12(%esi)
-    pushl   8(%esi)
-    pushl   4(%esi)
-    pushl   (%esi)
-    call    readfile
-    addl    $16, %esp
-    pushl   %eax
-    call    buf_unlock
-    pop     %eax
-readline_buf_fail:
-    addl    $8, %esp
-    pushl   %eax
-    call    buf_unlock
-    pop     %eax
-readline_filename_fail:
-    addl    $8, %esp
-    push    %eax
-    call    set_user_segs
-    pop     %eax
-    iret
+    call    set_kernel_segs         # set kernel data segments
+    subl    $4, %esp                # allocate space to store return values
+    push    %esi                    # push esi
+    push    $16                     # push the total arg len
+    call    buf_lock                # lock the esi
+    test    %eax, %eax              # check if the lock passes
+    js      readfile_esi_fail       # if not, jump
+    pushl   (%esi)                  # push filename
+    call    str_lock                # check the string
+    test    %eax, %eax              # test if check failed
+    js      readfile_filename_fail  # jump if it failed
+    push    %eax                    # save str len
+    pushl   4(%esi)                 # push buf
+    pushl   8(%esi)                 # push count
+    call    buf_lock                # check the buffer
+    test    %eax, %eax              # test if check failed
+    js      readfile_buf_fail       # jump if it failed
+    pushl   12(%esi)                # push offset
+    pushl   8(%esi)                 # push count
+    pushl   4(%esi)                 # push buf
+    pushl   (%esi)                  # push filename
+    call    readfile_int            # call readfile
+    addl    $16, %esp               # remove the args from the stack
+    mov     %eax, 24(%esp)          # save the return value
+    call    buf_unlock              # unlock buf
+    mov     24(%esp), %eax
+readfile_buf_fail:
+    addl    $8, %esp                # remove args from stack
+    mov     %eax, 16(%esp)          # save the return value
+    call    buf_unlock              # unlock the filename
+    mov     16(%esp), %eax          # restore the return value
+readfile_filename_fail:
+    addl    $8, %esp                # remove the args from the stack
+    mov     %eax, 8(%esp)           # save the return value
+    call    buf_unlock              # unlock esi
+    mov     8(%esp), %eax           # restore the return value
+readfile_esi_fail:
+    addl    $12, %esp               # remove the esi, arg len, and ret
+    push    %eax                    # save the return value
+    call    set_user_segs           # set user data segments
+    pop     %eax                    # restore the return value
+    iret                            # return from the interrupt
 
 .globl halt_int
 halt_int:

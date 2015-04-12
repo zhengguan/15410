@@ -96,7 +96,13 @@ static int get_frame(unsigned *frame)
     return 0;
 }
 
-static void vm_set_phys_pte(unsigned pa) {
+/**
+ * @brief Set PHYS_VA to point to a particular physical frame.
+ *
+ * @param pa The physical frame address.
+ */
+static void vm_set_phys_pte(unsigned pa)
+{
     assert(vm_new_pte(GET_PD(), (void *)PHYS_VA, pa, KERNEL_FLAGS) == 0);
     flush_tlb_entry((void*)PHYS_VA);
 }
@@ -107,7 +113,8 @@ static void vm_set_phys_pte(unsigned pa) {
  *  @param pde The page directory entry.
  *  @return True if empty, false otherwise.
  */
-static bool is_pt_empty(pde_t *pde) {
+static bool is_pt_empty(pde_t *pde)
+{
     pt_t pt = GET_PT(*pde);
 
     int i;
@@ -434,6 +441,15 @@ void vm_super(void *va) {
     *pte &= ~PTE_SU;
 }
 
+/**
+ * @brief Checks the flags of a virtual address.
+ * @details Ensures the flags of the page table entry
+ * are at least the given flags.
+ *
+ * @param va The virtual address of which to check the flags.
+ * @param flags The flags.
+ * @return True if all given flags are set and false otherwise.
+ */
 bool vm_check_flags(void *va, unsigned flags)
 {
     va = (void*)ROUND_DOWN_PAGE(va);
@@ -446,6 +462,16 @@ bool vm_check_flags(void *va, unsigned flags)
     return false;
 }
 
+/**
+ * @brief Checks the flags of a virtual address.
+ * @details Ensures the flags of the page table entry
+ * are at least the given flags.
+ *
+ * @param base The base of the virtual memory of which to check the flags.
+ * @param len The length of memory to check.
+ * @param flags The flags.
+ * @return True if all given flags are set and false otherwise.
+ */
 bool vm_check_flags_len(void *base, int len, unsigned flags)
 {
     unsigned va = (unsigned)base;
@@ -463,19 +489,41 @@ bool vm_check_flags_len(void *base, int len, unsigned flags)
     return true;
 }
 
+/**
+ * @brief Locks an address and checks its flags.
+ * @details Once locked, the page cannot be removed until it is unlocked.
+ * Multiple readers can hold the lock at once.
+ * If the address is not of user privilege level or present
+ * then the page is not locked.
+ *
+ * @param va The virtual address to lock.
+ * @return A boolean indicating whether the address is present and
+ * has user privilege level.
+ */
 bool vm_lock(void *va) {
-    mutex_lock(&getpcb()->locks.remove_pages);
+    rwlock_lock(&getpcb()->locks.remove_pages, RWLOCK_READ);
     bool valid = vm_check_flags(va, USER_FLAGS);
     if (valid) {
         memlock_lock(&getpcb()->locks.memlock, (void *)va, MEMLOCK_ACCESS);
     }
-    mutex_unlock(&getpcb()->locks.remove_pages);
+    rwlock_unlock(&getpcb()->locks.remove_pages);
     return valid;
 }
 
-
+/**
+ * @brief Locks a length of virtual memory and checks its flags.
+ * @details Once locked, no pages can be removed until unlocked.
+ * Multiple readers can hold the lock at once.
+ * If any of the addresses are not present or not of user privilege level,
+ * then no page is locked.
+ *
+ * @param base The lowest virtual address to lock.
+ * @param len The length of memory to lock.
+ * @return A boolean indicating whether the whole memory length is present
+ * and has user privilege level.
+ */
 bool vm_lock_len(void *base, int len) {
-    mutex_lock(&getpcb()->locks.remove_pages);
+    rwlock_lock(&getpcb()->locks.remove_pages, RWLOCK_READ);
     bool valid = vm_check_flags_len(base, len, USER_FLAGS);
     if (valid) {
         unsigned va;
@@ -483,12 +531,23 @@ bool vm_lock_len(void *base, int len) {
             memlock_lock(&getpcb()->locks.memlock, (void *)va, MEMLOCK_ACCESS);
         }
     }
-    mutex_unlock(&getpcb()->locks.remove_pages);
+    rwlock_unlock(&getpcb()->locks.remove_pages);
     return valid;
 }
 
+/**
+ * @brief Locks a string in memory and checks its privilege level and length.
+ * @details Once locked, no pages can be removed until unlocked.
+ * Multiple readers can hold the lock at once.
+ * If any of the addresses are not present or not of user privilege level
+ * before a nul terminator is found, no memory is locked.
+ *
+ * @param str The string to lock.
+ * @return The length of the string or a negative error code if the string
+ * is not present, or not of user privilege level.
+ */
 int vm_lock_str(char *str) {
-    mutex_lock(&getpcb()->locks.remove_pages);
+    rwlock_lock(&getpcb()->locks.remove_pages, RWLOCK_READ);
     int len = str_check(str, USER_FLAGS);
     if (len >= 0) {
         unsigned va;
@@ -496,14 +555,24 @@ int vm_lock_str(char *str) {
             memlock_lock(&getpcb()->locks.memlock, (void *)va, MEMLOCK_ACCESS);
         }
     }
-    mutex_unlock(&getpcb()->locks.remove_pages);
+    rwlock_unlock(&getpcb()->locks.remove_pages);
     return len;
 }
 
+/**
+ * @brief Unlocks a virtual address.
+ *
+ * @param va The virtual address.
+ */
 void vm_unlock(void *va) {
         memlock_unlock(&getpcb()->locks.memlock, (void *)va);
 }
 
+/**
+ * @brief Unlocks a length of virtual addresses.
+ * @param base The start of the virtual addresses.
+ * @param len The length of locked virtual addresses.
+ */
 void vm_unlock_len(void *base, int len) {
     unsigned va;
     for (va = (unsigned)base;  va < (unsigned)base + len - 1; va += PAGE_SIZE) {
@@ -511,14 +580,24 @@ void vm_unlock_len(void *base, int len) {
     }
 }
 
+/**
+ * @brief Reads a physical address.
+ * @param pa The physical address to read.
+ * @return The 4 bytes at the physical address.
+ */
 unsigned vm_phys_read(unsigned pa) {
     vm_set_phys_pte(pa);
-    return *(unsigned *)PHYS_VA;
+    return *(unsigned *)(PHYS_VA + (pa & (~PAGE_MASK)));
 }
 
+/**
+ * @brief Writes to a physical address.
+ * @param pa The physical address.
+ * @param val 4 bytes to write to the address.
+ */
 void vm_phys_write(unsigned pa, unsigned val) {
     vm_set_phys_pte(pa);
-    *(unsigned *)PHYS_VA = val;
+    *(unsigned *)(PHYS_VA + (pa & (~PAGE_MASK))) = val;
 }
 
 /** @brief Allocated memory starting at base and extending for len bytes.
@@ -596,7 +675,7 @@ int remove_pages(void *base)
 
     mutex_unlock(&alloc_pages_mutex);
 
-    mutex_lock(&getpcb()->locks.remove_pages);
+    rwlock_lock(&getpcb()->locks.remove_pages, RWLOCK_WRITE);
 
     unsigned va;
     for (va = (unsigned)base; va < (unsigned)base + len - 1; va += PAGE_SIZE) {
@@ -605,7 +684,7 @@ int remove_pages(void *base)
         memlock_unlock(&getpcb()->locks.memlock, (void *)va);
     }
 
-    mutex_unlock(&getpcb()->locks.remove_pages);
+    rwlock_unlock(&getpcb()->locks.remove_pages);
 
     return 0;
 }

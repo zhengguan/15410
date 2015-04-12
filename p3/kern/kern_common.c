@@ -9,6 +9,7 @@
 #include <kern_common.h>
 #include <vm.h>
 #include <stdlib.h>
+#include <simics.h>
 
 /**
  * @brief Check a null terminated user string array for validity.
@@ -55,7 +56,7 @@ int str_check(char *str, unsigned flags)
     while (vm_check_flags(str + len, flags)) {
         if (str[len] == '\0') {
             return len;
-        }   
+        }
         len++;
     }
 
@@ -75,7 +76,7 @@ int buf_lock(int len, char *buf)
     if ((unsigned)buf < USER_MEM_START) {
         return -1;
     }
-    
+
     if (!vm_lock_len(buf, len)) {
         return -2;
     }

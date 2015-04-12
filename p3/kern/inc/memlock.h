@@ -14,10 +14,8 @@
 #include <cond.h>
 
 typedef struct memlock {
-    hashtable_t count_ht;
-    mutex_t count_mutex;
-    mutex_t destroy_mutex;
-    cond_t destroy_cv;
+    hashtable_t channel_ht;
+    mutex_t channel_lock;
 } memlock_t;
 
 typedef enum {
@@ -27,7 +25,7 @@ typedef enum {
 
 /* Memlock functions */
 int memlock_init(memlock_t *memlock, int size);
-void memlock_lock(memlock_t *memlock, void *ptr, memlock_type type);
+int memlock_lock(memlock_t *memlock, void *ptr, memlock_type type);
 void memlock_unlock(memlock_t *memlock, void *ptr);
 
 #endif /* _SVAR_H */
