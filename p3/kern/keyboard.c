@@ -24,7 +24,6 @@
 
 #define BUFFER_SIZE 512
 
-// TODO what should this be
 #define MAX_READLINE (CONSOLE_HEIGHT * CONSOLE_WIDTH)
 
 static circbuf_t *cb;

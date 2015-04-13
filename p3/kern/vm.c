@@ -252,6 +252,7 @@ int vm_new_pte(pd_t pd, void *va, unsigned pa, unsigned flags)
 
     pte_t *pte = GET_PT(*pde) + GET_PT_IDX(va);
     *pte = ((pa & PAGE_MASK) | PTE_PRESENT | flags);
+
     return 0;
 }
 
@@ -350,11 +351,21 @@ int vm_copy(pd_t *new_pd)
         }
         vm_new_pte(*new_pd, va, frame, GET_FLAGS(pte));
 
+        int old_frame_num = FRAME_NUM(va);
+        int new_frame_num = frame >> PT_SHIFT;
+
         memcpy(buf, va, PAGE_SIZE);
         set_cr3((unsigned)*new_pd);
         memcpy(va, buf, PAGE_SIZE);
         set_cr3((unsigned)old_pd);
 
+        mutex_lock(&alloc_pages_mutex);
+        int len;
+        if (hashtable_get(&alloc_pages, old_frame_num, (void **)&len) == 0) {
+            hashtable_add(&alloc_pages, new_frame_num, (void *)len);
+        }
+        mutex_unlock(&alloc_pages_mutex);
+        
         va += PAGE_SIZE;
     }
 
@@ -371,7 +382,6 @@ int vm_copy(pd_t *new_pd)
  *  @return Void.
  */
 void vm_clear() {
-    lprintf("vm clear for %d", getpid());
     unsigned va = USER_MEM_START;
     while (va >= USER_MEM_START) {
         pde_t pde = GET_PDE(GET_PD(), va);
@@ -749,6 +759,10 @@ int remove_pages(void *base)
     }
 
     rwlock_unlock(&getpcb()->locks.remove_pages);
+
+    // for (va = (unsigned)base; va < (unsigned)base + len - 1; va += PAGE_SIZE) {
+    //     assert(!vm_check_flags((void *)va, PTE_PRESENT));
+    // }
 
     return 0;
 }

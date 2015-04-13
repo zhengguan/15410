@@ -187,7 +187,6 @@ int swexn(void *esp3, swexn_handler_t eip, void *arg, ureg_t *newureg)
     tcb_t *tcb = gettcb();
 
     //if one null, remove handler
-    // TODO does this need to be locked with remove_pages?
     if (esp3 == NULL || eip == NULL) {
         deregister_swexn_handler(tcb);
     } else {

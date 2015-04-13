@@ -268,12 +268,15 @@ void set_status(int status)
 int reap_pcb(pcb_t *pcb, int *status_ptr)
 {
     int pid = pcb->pid;
-    if (status_ptr)
+    if (status_ptr) {
         *status_ptr = pcb->status;
+    }
+    
     assert(pcb->pid != getpid());
     lprintf("reaping pcb: %p", pcb);
-    if (pcb->pd)
+    if (pcb->pd)  {
         vm_destroy(pcb->pd);
+    }
 
     free(pcb);
     return pid;
@@ -467,7 +470,7 @@ void proc_kill_thread(const char *fmt, ...)
 
     printf("\n");
 
-    //TODO: Register Dump
+    // TODO Register Dump
 
     /* Kill thread */
     pcb_t *pcb = getpcb();

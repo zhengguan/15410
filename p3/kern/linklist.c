@@ -10,8 +10,6 @@
 #include <stdlib.h>
 #include <assert.h>
 
-// TODO add get_head and get_tail
-
 /** @brief Initializes a list to be empty.
  *
  *  @param list The list.
