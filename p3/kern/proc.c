@@ -21,6 +21,8 @@
 #include <stdarg.h>
 #include <rwlock.h>
 #include <exception.h>
+#include <malloc_wrappers.h>
+#include <asm_common.h>
 
 #define TCB_HT_SIZE 128
 
@@ -37,11 +39,22 @@ tcb_t *cur_tcb = NULL;
 tcb_t *idle_tcb;
 pcb_t *init_pcb;
 
-bool mt_mode = false;
-
 mutex_t thread_reap_mutex;
 cond_t thread_reap_cv;
 linklist_t tcbs_to_reap;
+
+/**
+ * @brief Tests whether two pointers are the same.
+ *
+ * @param tcb0 The first pointer.
+ * @param tcb1 The second pointer.
+ *
+ * @return True if tcb0 == tcb1. False otherwise.
+ */
+static bool ident(void *tcb0, void *tcb1)
+{
+    return tcb0 == tcb1;
+}
 
 /** @brief Initialize the process mutexes for given process mutex struct.
  *
@@ -52,7 +65,6 @@ static int init_locks(locks_t *locks) {
     // Initialize memlock last to prevent memory leaks from hashtable_init
     if ((mutex_init(&locks->new_pages) < 0) ||
         (rwlock_init(&locks->remove_pages) < 0) ||
-        (mutex_init(&locks->malloc) < 0) ||
         (memlock_init(&locks->memlock, MEMLOCK_SIZE) < 0)) {
         return -1;
     }
@@ -110,7 +122,7 @@ int proc_new_process(pcb_t **pcb_out, tcb_t **tcb_out) {
         return -3;
     }
 
-    if (mutex_init(&pcb->vanished_procs_mutex) < 0) {
+    if (mutex_init(&pcb->proc_mutex) < 0) {
         return -4;
     }
 
@@ -166,6 +178,7 @@ int proc_new_thread(pcb_t *pcb, tcb_t **tcb_out) {
 
     tcb->pcb = pcb;
     tcb->esp0 = (unsigned)esp0;
+    tcb->sleep_flag = 0;
     deregister_swexn_handler(tcb);
 
     pcb->num_threads++;
@@ -252,14 +265,15 @@ void set_status(int status)
  *
  *  @return The PID of the process to reap.
  */
-static int reap_pcb(pcb_t *pcb, int *status_ptr)
+int reap_pcb(pcb_t *pcb, int *status_ptr)
 {
     int pid = pcb->pid;
-    if (status_ptr != NULL) {
+    if (status_ptr)
         *status_ptr = pcb->status;
-    }
-
-    vm_destroy(pcb->pd);
+    assert(pcb->pid != getpid());
+    lprintf("reaping pcb: %p", pcb);
+    if (pcb->pd)
+        vm_destroy(pcb->pd);
 
     free(pcb);
     return pid;
@@ -291,7 +305,7 @@ void thread_reaper()
     mutex_lock(&thread_reap_mutex);
     while (1) {
         tcb_t *tcb;
-        while (linklist_remove_head(&tcbs_to_reap, (void**)&tcb) < 0) {
+        while (linklist_remove_head(&tcbs_to_reap, (void**)&tcb, NULL) < 0) {
             cond_wait(&thread_reap_cv, &thread_reap_mutex);
         }
         reap_tcb(tcb);
@@ -308,10 +322,8 @@ void thread_reaper()
 static void destroy_thread(tcb_t *tcb) NORETURN;
 static void destroy_thread(tcb_t *tcb)
 {
-    mutex_lock(&thread_reap_mutex);
-    linklist_add_tail(&tcbs_to_reap, tcb);
-    mutex_unlock(&thread_reap_mutex);
-
+    listnode_t node;
+    linklist_add_tail(&tcbs_to_reap, tcb, &node);
     cond_signal(&thread_reap_cv);
 
     int flag = 0;
@@ -334,36 +346,62 @@ static void destroy_thread(tcb_t *tcb)
  */
 void vanish()
 {
+    assert(interrupts_enabled());
     tcb_t *tcb = gettcb();
     pcb_t *pcb = getpcb();
+    deregister_swexn_handler(gettcb());
+    if (pcb->num_threads == 1)
+        vm_clear();
 
+    //Tell children their father died :(
+    pcb_t *child;
+    while (linklist_remove_head(&pcb->children, (void**)&child, NULL) == 0) {
+        mutex_lock(&child->proc_mutex);
+        child->parent_pcb = NULL;
+        mutex_unlock(&child->proc_mutex);
+    }
+
+    /* Get the mutexes we need */
+    mutex_lock(&pcb->proc_mutex);
+    if (pcb->num_threads == 1) {
+        if (pcb->parent_pcb)
+            mutex_lock(&pcb->parent_pcb->proc_mutex);
+        mutex_lock(&init_pcb->proc_mutex);
+    }
+    mutex_lock(&thread_reap_mutex);
+    mutex_lock(&malloc_mutex);
+
+    /* Disable interupts and mutexes */
     disable_interrupts();
-    vm_clear();
+
+    /* Unlock the mutexes for when we vanish */
+    mutex_unlock_force(&malloc_mutex);
+    mutex_unlock_force(&thread_reap_mutex);
+    if (pcb->num_threads == 1) {
+        mutex_unlock_force(&init_pcb->proc_mutex);
+        if (pcb->parent_pcb)
+            mutex_unlock_force(&pcb->parent_pcb->proc_mutex);
+    }
+    mutex_unlock_force(&pcb->proc_mutex);
 
     // No need for locking because interrupts are disabled
     if (pcb->num_threads == 1) {
-        deregister_swexn_handler(gettcb());
-
         if (pcb->parent_pcb) {
-            linklist_add_tail(&pcb->parent_pcb->vanished_procs, pcb);
+            linklist_remove(&pcb->parent_pcb->children, pcb, ident, NULL, NULL);
+            linklist_add_tail(&pcb->parent_pcb->vanished_procs, pcb, &pcb->pcb_listnode);
             pcb->parent_pcb->num_children--;
             cond_signal(&pcb->parent_pcb->wait_cv);
         } else {
-            linklist_add_tail(&init_pcb->vanished_procs, pcb);
+            linklist_add_tail(&init_pcb->vanished_procs, pcb, &pcb->pcb_listnode);
             cond_signal(&init_pcb->wait_cv);
         }
 
         //Pass dead children to init
         pcb_t *dead_pcb;
-        while (linklist_remove_head(&pcb->vanished_procs, (void**)&dead_pcb) == 0) {
-            linklist_add_tail(&init_pcb->vanished_procs, dead_pcb);
+        listnode_t *node;
+        while (linklist_remove_head(&pcb->vanished_procs, (void**)&dead_pcb, &node) == 0) {
+            linklist_add_tail(&init_pcb->vanished_procs, dead_pcb, node);
             cond_signal(&init_pcb->wait_cv);
-        }
-
-        //Tell children their father died :(
-        pcb_t *child;
-        while (linklist_remove_head(&pcb->children, (void**)&child) == 0) {
-            child->parent_pcb = NULL;
         }
     }
 
@@ -389,18 +427,19 @@ int wait(int *status_ptr)
 {
     pcb_t *pcb = getpcb();
 
-    mutex_lock(&pcb->vanished_procs_mutex);
+    mutex_lock(&pcb->proc_mutex);
 
     pcb_t *dead_pcb;
-    while (linklist_remove_head(&pcb->vanished_procs, (void*)&dead_pcb) < 0) {
+    while (linklist_remove_head(&pcb->vanished_procs, (void*)&dead_pcb, NULL) < 0) {
         // Would block forever in this case
         if (pcb->num_threads == 1 && pcb->num_children == 0) {
+            mutex_unlock(&pcb->proc_mutex);
             return -1;
         }
-        cond_wait(&pcb->wait_cv, &pcb->vanished_procs_mutex);
+        cond_wait(&pcb->wait_cv, &pcb->proc_mutex);
     }
 
-    mutex_unlock(&pcb->vanished_procs_mutex);
+    mutex_unlock(&pcb->proc_mutex);
 
     return reap_pcb(dead_pcb, status_ptr);
 }

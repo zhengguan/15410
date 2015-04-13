@@ -19,6 +19,10 @@
 #include <asm_common.h>
 #include <proc.h>
 #include <vm.h>
+#include <kern_common.h>
+#include <seg.h>
+#include <assert.h>
+#include <asm_common.h>
 
 typedef struct {
     unsigned ret;
@@ -126,10 +130,11 @@ static int call_user_handler(ureg_t *ureg)
  */
 void exception_handler(ureg_t ureg)
 {
-    lprintf("exception %d in %d", ureg.cause, gettid());
     if ((ureg.cs & 3) == 0) {
         panic("kernel mode exception %u", ureg.cause);
     }
+
+    enable_interrupts();
 
     ureg.zero = 0;
 
@@ -170,6 +175,10 @@ int swexn(void *esp3, swexn_handler_t eip, void *arg, ureg_t *newureg)
     ureg_t newureg_kern;
     if (newureg) {
         if (buf_lock(sizeof(ureg_t), (char*)newureg) < 0)
+            return -3;
+        if (newureg->cs != SEGSEL_USER_CS ||
+            newureg->ss != SEGSEL_USER_DS ||
+            newureg->eflags != USER_FLAGS)
             return -3;
         newureg_kern = *newureg;
         buf_unlock(sizeof(ureg_t), (char*)newureg);

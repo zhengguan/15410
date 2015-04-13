@@ -15,13 +15,17 @@
 #include <waiter.h>
 #include <scheduler.h>
 #include <simics.h>
+#include <proc.h>
+#include <assert.h>
+#include <asm_common.h>
 
 /** @brief Initializes a mutex.
  *
  *  @param mp The mutex.
  *  @return 0 on success, negative error code otherwise.
  */
-int mutex_init(mutex_t *mp) {
+int mutex_init(mutex_t *mp)
+{
     if (mp == NULL) {
         return -1;
     }
@@ -45,16 +49,19 @@ int mutex_init(mutex_t *mp) {
  *  @param mp The mutex.
  *  @return Void.
  */
-void mutex_lock(mutex_t *mp) {
-    if (mp == NULL || mp->tid == gettid()) {
+void mutex_lock(mutex_t *mp)
+{
+
+    if (mp == NULL || mp->tid == gettid() || !interrupts_enabled()) {
         return;
     }
 
     waiter_t waiter = {gettcb(), 0};
+    listnode_t node;
 
     spinlock_lock(&mp->wait_lock);
     if (&mp->count <= 0) {
-        linklist_add_tail(&mp->wait_list, (void*)&waiter);
+        linklist_add_tail(&mp->wait_list, (void*)&waiter, &node);
     } else {
         waiter.reject = 1;
     }
@@ -66,20 +73,15 @@ void mutex_lock(mutex_t *mp) {
     mp->tid = gettid();
 }
 
-/** @brief Unlocks a mutex.
- *
- *  @param mp The mutex.
- *  @return Void.
- */
-void mutex_unlock(mutex_t *mp) {
-    if (mp == NULL || mp->count > 0 || mp->tid != gettid()) {
-        return;
-    }
+
+void mutex_unlock_force(mutex_t *mp)
+{
+    assert(mp != NULL && mp->count <= 0 && mp->tid == gettid());
 
     spinlock_lock(&mp->wait_lock);
     if (mp->count < 0) {
         waiter_t *waiter;
-        linklist_remove_head(&mp->wait_list, (void**)&waiter);
+        linklist_remove_head(&mp->wait_list, (void**)&waiter, NULL);
         waiter->reject = 1;
         make_runnable_kern(waiter->tcb, false);
     } else {
@@ -87,5 +89,19 @@ void mutex_unlock(mutex_t *mp) {
     }
     mp->count++;
     spinlock_unlock(&mp->wait_lock);
+
+}
+/** @brief Unlocks a mutex.
+ *
+ *  @param mp The mutex.
+ *  @return Void.
+ */
+void mutex_unlock(mutex_t *mp)
+{
+    if (mp == NULL || mp->count > 0 || mp->tid != gettid() || !interrupts_enabled()) {
+        return;
+    }
+    mutex_unlock_force(mp);
+
 }
 

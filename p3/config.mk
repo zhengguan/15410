@@ -37,7 +37,12 @@ UPDATE_METHOD = afs
 410TESTS = ck1 knife peon merchant coolness ack actual_wait bistromath \
 cat cho cho2 cho_variant chow deschedule_hang exec_basic exec_basic_helper \
 exec_nonexist fib fork_bomb fork_exit_bomb fork_test1 fork_wait fork_wait_bomb \
-getpid_test1
+getpid_test1 halt_test loader_test1 loader_test2 make_crash make_crash_helper \
+mem_eat_test mem_permissions minclone_mem new_pages print_basic readline_basic \
+register_test remove_pages_test1 remove_pages_test2 slaughter sleep_test1 \
+stack_test1 swexn_basic_test swexn_cookie_monster swexn_dispatch swexn_regs \
+swexn_stands_for_swextensible swexn_uninstall_test wait_getpid wild_test1 \
+work yield_desc_mkrun
 
 ###########################################################################
 # Test programs you have written which you wish to run
@@ -45,9 +50,9 @@ getpid_test1
 # A list of the test programs you want compiled in from the user/progs
 # directory.
 #
-STUDENTTESTS = fork_test swexn_test autostack_swexn_test sleep_test \
-console_test thr_fork_test halt_test readfile_test vanish_wait_test \
-deschedule_test pagefault gpf arg_test readonly_test
+STUDENTTESTS = #fork_test swexn_test autostack_swexn_test sleep_test \
+#console_test thr_fork_test halt_test readfile_test vanish_wait_test \
+#deschedule_test pagefault gpf arg_test readonly_test
 ###########################################################################
 # Data files provided by course staff to build into the RAM disk
 ###########################################################################

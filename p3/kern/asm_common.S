@@ -8,6 +8,7 @@
 
 #include <seg.h>
 #include <kern_common.h>
+#include <eflags.h>
 
 .globl jmp_ureg
 jmp_ureg:
@@ -81,3 +82,16 @@ flush_tlb_entry:
     mov     4(%esp), %eax       # store argument
     invlpg  (%eax)              # invalidate page in tlb
     ret                         # return
+
+.globl interrupts_enabled
+interrupts_enabled:
+    pushf
+    pop     %eax
+    mov     $EFL_IF, %ecx
+    test    %eax, %ecx
+    jz      NOT_ENABLED
+    mov     $1, %eax
+    ret
+NOT_ENABLED:
+    mov     $0, %eax
+    ret

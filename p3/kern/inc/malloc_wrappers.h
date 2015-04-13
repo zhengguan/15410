@@ -3,6 +3,7 @@
 
 #include <mutex.h>
 
-mutex_t malloc_mutex;
+int malloc_init();
+extern mutex_t malloc_mutex;
 
 #endif /* _MALLOC_WRAPPERS_H */

@@ -35,7 +35,6 @@ store_regs:
 
 .globl restore_regs
 restore_regs:
-    call sim_breakpoint
     movl     4(%esp), %ecx      # move regs struct to %ecx
 
     mov     8(%esp), %edx       # mov ebp offset to %edx

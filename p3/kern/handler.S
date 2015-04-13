@@ -10,22 +10,20 @@
 
 .globl timer_handler_int
 timer_handler_int:
+    pusha
     call    set_kernel_segs     # set kernel data segments
     call    timer_handler       # call the timer handler
     call    set_user_segs       # set user data segments
-    mov     $0, %ecx            # zero out caller saved registers
-    mov     $0, %edx
-    mov     $0, %eax
+    popa
     iret
 
 .globl keyboard_int
 keyboard_int:
+    pusha
     call    set_kernel_segs     # set kernel data segments
     call    keyboard_handler    # call the keyboard handler
     call    set_user_segs       # set user data segments
-    mov     $0, %ecx            # zero out caller saved registers
-    mov     $0, %edx
-    mov     $0, %eax
+    popa
     iret
 
 /* Life cycle */

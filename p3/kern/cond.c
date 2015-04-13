@@ -51,9 +51,10 @@ void cond_wait(cond_t *cv, mutex_t *mp)
     }
 
     waiter_t waiter = {gettcb(), 0};
+    listnode_t node;
 
     spinlock_lock(&cv->wait_lock);
-    linklist_add_tail(&cv->wait_list, (void*)&waiter);
+    linklist_add_tail(&cv->wait_list, (void*)&waiter, &node);
     spinlock_unlock(&cv->wait_lock);
 
     deschedule_kern(&waiter.reject, false);
@@ -76,7 +77,7 @@ void cond_signal(cond_t *cv)
 
     spinlock_lock(&cv->wait_lock);
     waiter_t *waiter;
-    if (linklist_remove_head(&cv->wait_list, (void**)&waiter) == 0) {
+    if (linklist_remove_head(&cv->wait_list, (void**)&waiter, NULL) == 0) {
         waiter->reject = 1;
         make_runnable_kern(waiter->tcb, false);
     }
@@ -101,7 +102,7 @@ void cond_broadcast(cond_t *cv)
     spinlock_unlock(&cv->wait_lock);
 
     waiter_t *waiter;
-    while (linklist_remove_head(&cv->wait_list, (void**)&waiter) == 0) {
+    while (linklist_remove_head(&cv->wait_list, (void**)&waiter, NULL) == 0) {
         waiter->reject = 1;
         make_runnable_kern(waiter->tcb, false);
     }

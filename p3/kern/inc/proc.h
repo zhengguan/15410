@@ -24,7 +24,6 @@ typedef struct locks {
     mutex_t new_pages;
     rwlock_t remove_pages;
     memlock_t memlock;
-    mutex_t malloc;
 } locks_t;
 
 /* Register struct for context switching */
@@ -60,8 +59,9 @@ typedef struct pcb {
     locks_t locks;
 
     cond_t wait_cv;
-    mutex_t vanished_procs_mutex;
+    mutex_t proc_mutex;
     linklist_t vanished_procs;
+    listnode_t pcb_listnode;
 } pcb_t;
 
 /* Thread control block */
@@ -71,12 +71,13 @@ typedef struct tcb {
     unsigned esp0;
     regs_t regs;
     handler_t swexn_handler;
+    listnode_t scheduler_listnode;
+    int sleep_flag;
 } tcb_t;
 
 extern tcb_t *cur_tcb;
 extern tcb_t *idle_tcb;
 extern pcb_t* init_pcb;
-extern bool mt_mode;
 
 /* Process and thread functions */
 int proc_init();
@@ -87,6 +88,7 @@ int getpid();
 pcb_t *getpcb();
 tcb_t *lookup_tcb(int tid);
 void proc_kill_thread(const char *fmt, ...) NORETURN;
+int reap_pcb(pcb_t *pcb, int *status_ptr);
 
 void thread_reaper() NORETURN;
 

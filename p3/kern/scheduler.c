@@ -38,7 +38,7 @@ typedef struct sleep_info {
  *
  * @return True if the tcb has the tid. False otherwise.
  */
-bool tcb_is_tid(void *tcb, void *tid)
+static bool tcb_is_tid(void *tcb, void *tid)
 {
     return ((tcb_t *)tcb)->tid == (int)tid;
 }
@@ -51,11 +51,10 @@ bool tcb_is_tid(void *tcb, void *tid)
  *
  * @return True if tcb0 == tcb1. False otherwise.
  */
-bool ident(void *tcb0, void *tcb1)
+static bool ident(void *tcb0, void *tcb1)
 {
     return tcb0 == tcb1;
 }
-
 
 /** @brief Compares the wake times of sleep_info structs.  See linklist.h.
  *
@@ -96,22 +95,24 @@ int scheduler_init()
  */
 void scheduler_tick(unsigned ticks)
 {
+    disable_interrupts();
     // Wake sleeping threads
     sleep_info_t *sleep_info;
     //FIXME: ta's dislike unbounded times in handlers. maybe max to awaken at a time?
     while ((linklist_peek_head(&sleep_queue, (void **)&sleep_info) == 0) &&
                                         sleep_info->wake_ticks <= ticks) {
+        sleep_info->tcb->sleep_flag = 1;
         make_runnable_kern(sleep_info->tcb, false);
-        assert (linklist_remove_head(&sleep_queue, NULL) == 0);
+        assert (linklist_remove_head(&sleep_queue, NULL, NULL) == 0);
     }
 
     tcb_t *tcb;
-    if (linklist_remove_head(&scheduler_queue, (void**)&tcb) < 0) {
+    if (linklist_rotate_head(&scheduler_queue, (void**)&tcb) < 0) {
         assert(gettid() == idle_tcb->tid);
         return;
     }
     assert((unsigned)tcb < USER_MEM_START);
-    linklist_add_tail(&scheduler_queue, (void*)tcb);
+    // //lprintf("scheduler tick got %p", tcb);
     assert(context_switch(tcb) == 0);
 }
 
@@ -134,11 +135,6 @@ int context_switch(tcb_t *new_tcb)
 
     disable_interrupts();
 
-    lprintf("context switching to %p", new_tcb);
-    if (new_tcb->regs.cr2 != 0) {
-        lprintf("malformed");
-        MAGIC_BREAK;
-    }
     if (store_regs(&old_tcb->regs, old_tcb->esp0)) {
         cur_tcb = new_tcb;
         set_esp0(new_tcb->esp0);
@@ -158,19 +154,19 @@ int context_switch(tcb_t *new_tcb)
  */
 int yield(int tid)
 {
-    lprintf("yielding to %d", tid);
+    // //lprintf("yielding to %d", tid);
     tcb_t *tcb;
     if (tid == -1) {
-        if (linklist_remove_head(&scheduler_queue, (void**)&tcb) < 0) {
+        if (linklist_rotate_head(&scheduler_queue, (void**)&tcb) < 0) {
             //no threads so run idle
             assert (context_switch(idle_tcb) == 0);
             return 0;
         }
-    } else if (linklist_remove(&scheduler_queue, (void *)tid, tcb_is_tid, (void**)&tcb) < 0) {
+    } else if (linklist_rotate_val(&scheduler_queue, (void *)tid, tcb_is_tid, (void**)&tcb) < 0) {
         return -1;
     }
+    //lprintf("yielding to %p", tcb);
     assert((unsigned)tcb < USER_MEM_START);
-    linklist_add_tail(&scheduler_queue, (void*)tcb);
     assert (context_switch(tcb) == 0);
 
     //FIXME: not always from timer call
@@ -217,11 +213,15 @@ int deschedule_kern(int *flag, bool user)
 {
     if (flag == NULL)
         return -1;
+
+    disable_interrupts();
+
     if (*flag) {
+        enable_interrupts();
         return 0;
     }
 
-    assert(linklist_remove(&scheduler_queue, (void*)gettid(), tcb_is_tid, NULL) == 0);
+    assert(linklist_remove(&scheduler_queue, (void*)gettcb(), ident, NULL, NULL) == 0);
 
     if (user) {
         hashtable_add(&descheduled_tids, gettid(), NULL);
@@ -231,6 +231,7 @@ int deschedule_kern(int *flag, bool user)
         return -2;
     }
 
+    enable_interrupts();
     return 0;
 }
 
@@ -242,8 +243,6 @@ int deschedule_kern(int *flag, bool user)
  */
 int make_runnable(int tid)
 {
-
-    //TODO: need locks here
     tcb_t *tcb = lookup_tcb(tid);
     if (tcb == NULL)
         return -1;
@@ -261,6 +260,7 @@ int make_runnable(int tid)
  */
 int make_runnable_kern(tcb_t *tcb, bool user)
 {
+    disable_interrupts();
     if (linklist_contains(&scheduler_queue, (void *)tcb, ident)) {
         return -1;
     }
@@ -270,7 +270,9 @@ int make_runnable_kern(tcb_t *tcb, bool user)
     }
     assert((unsigned)tcb < USER_MEM_START);
 
-    linklist_add_head(&scheduler_queue, (void*)tcb);
+    //lprintf("adding1 %p to scheduler", tcb);
+    linklist_add_head(&scheduler_queue, (void*)tcb, &tcb->scheduler_listnode);
+    enable_interrupts();
 
     return 0;
 }
@@ -296,14 +298,19 @@ int sleep(int ticks)
 
     sleep_info_t sleep_info;
     sleep_info.tcb = gettcb();
+    sleep_info.tcb->sleep_flag = 0;
     sleep_info.wake_ticks = get_ticks() + ticks;
 
-    linklist_add_sorted(&sleep_queue, (void *)&sleep_info, sleep_info_cmp);
+    listnode_t node;
 
-    int flag = 0;
-    if (deschedule(&flag) < 0) {
+    disable_interrupts();
+    linklist_add_sorted(&sleep_queue, (void *)&sleep_info, sleep_info_cmp, &node);
+    enable_interrupts();
+
+    if (deschedule_kern(&sleep_info.tcb->sleep_flag, false) < 0) {
         return -2;
     }
+
 
     return 0;
 }

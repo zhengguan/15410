@@ -330,6 +330,7 @@ int exec(char *filename, char *argv[])
     }
 
     free(new_filename);
+
     jmp_user(eip, esp);
 
     return -5;

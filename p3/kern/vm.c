@@ -86,7 +86,6 @@ static int get_frame(unsigned *frame)
     if ( (void*)(*frame = free_page_remove()) == NULL) {
         *frame = next_frame;
         if (*frame > machine_phys_frames() * PAGE_SIZE) {
-            MAGIC_BREAK;
             return -1;
         }
         next_frame += PAGE_SIZE;
@@ -372,6 +371,7 @@ int vm_copy(pd_t *new_pd)
  *  @return Void.
  */
 void vm_clear() {
+    lprintf("vm clear for %d", getpid());
     unsigned va = USER_MEM_START;
     while (va >= USER_MEM_START) {
         pde_t pde = GET_PDE(GET_PD(), va);

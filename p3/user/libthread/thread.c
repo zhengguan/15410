@@ -30,7 +30,7 @@ typedef struct stacktop {
  */
 static void exception_handler(void *esp3, ureg_t *ureg)
 {
-    task_vanish(-ureg->cause);
+    thr_exit((void*)(-2));
 }
 
 /** @brief Wrapper function used in thread creation.
