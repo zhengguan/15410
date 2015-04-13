@@ -26,14 +26,10 @@ store_regs:
     mov     %edx, 20(%ecx)      # save return address as eip
     pushfl                      # push the eflags
     popl    24(%ecx)            # pop the eflags to the struct
-    mov     %cr0, %edx          # mov %cr0 to %edx
-    movl    %edx, 28(%ecx)      # save %cr0
     mov     %cr2, %edx          # mov %cr2 to %edx
-    movl    %edx, 32(%ecx)      # save %cr2
+    movl    %edx, 28(%ecx)      # save %cr2
     mov     %cr3, %edx          # mov %cr3 to %edx
-    movl    %edx, 36(%ecx)      # save %cr4
-    mov     %cr4, %edx          # mov %cr4 to %edx
-    movl    %edx, 40(%ecx)      # save %cr4
+    movl    %edx, 32(%ecx)      # save %cr3
     movl     $1, %eax           # on first return, return 1
     ret                         # return
 
@@ -54,13 +50,9 @@ restore_regs:
     mov     8(%ecx), %edi       # restore %edi
     pushl   24(%ecx)            # push eflags from struct
     popfl                       # pop eflags to reg
-    movl    28(%ecx), %edx      # move cr0 to edx
-    mov     %edx, %cr0          # restore cr0
-    movl    32(%ecx), %edx      # move cr2 to edx
+    movl    28(%ecx), %edx      # move cr2 to edx
     mov     %edx, %cr2          # restore cr2
-    movl    36(%ecx), %edx      # move cr3 to edx
+    movl    32(%ecx), %edx      # move cr3 to edx
     mov     %edx, %cr3          # restore cr3
-    movl    40(%ecx), %edx      # move cr4 to edx
-    mov     %edx, %cr4          # restore cr4
     mov     $0, %eax            # return 0 on second return
     jmp     20(%ecx)            # jump to stored esi

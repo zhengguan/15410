@@ -19,6 +19,7 @@
 
 #define KERNEL_STACK_SIZE (2 * PAGE_SIZE)
 
+/* Process specific locks */
 typedef struct locks {
     mutex_t new_pages;
     rwlock_t remove_pages;
@@ -26,6 +27,7 @@ typedef struct locks {
     mutex_t malloc;
 } locks_t;
 
+/* Register struct for context switching */
 typedef struct regs {
     unsigned ebx;           // 0
     unsigned esi;           // 4
@@ -34,20 +36,18 @@ typedef struct regs {
     unsigned ebp_offset;    // 16
     unsigned eip;           // 20
     unsigned eflags;        // 24
-    unsigned cr0;           // 28
-    unsigned cr2;           // 32
-    unsigned cr3;           // 36
-    unsigned cr4;           // 40
+    unsigned cr2;           // 28
+    unsigned cr3;           // 32
 } regs_t;
 
+/* Swexn handler */
 typedef struct {
     swexn_handler_t eip;
     void *esp3;
     void *arg;
 } handler_t;
 
-
-
+/* Process control block */
 typedef struct pcb {
     int pid;
     int status;
@@ -64,6 +64,7 @@ typedef struct pcb {
     linklist_t vanished_procs;
 } pcb_t;
 
+/* Thread control block */
 typedef struct tcb {
     int tid;
     pcb_t *pcb;
@@ -72,7 +73,6 @@ typedef struct tcb {
     handler_t swexn_handler;
 } tcb_t;
 
-extern hashtable_t tcbs;
 extern tcb_t *cur_tcb;
 extern tcb_t *idle_tcb;
 extern pcb_t* init_pcb;
@@ -86,7 +86,8 @@ tcb_t *gettcb();
 int getpid();
 pcb_t *getpcb();
 tcb_t *lookup_tcb(int tid);
-void thread_reaper() NORETURN;
 void proc_kill_thread(const char *fmt, ...) NORETURN;
+
+void thread_reaper() NORETURN;
 
 #endif /* _PROC_H */

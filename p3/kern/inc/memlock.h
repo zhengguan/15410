@@ -6,8 +6,8 @@
  *  @bug No known bugs.
  */
 
-#ifndef _SVAR_H
-#define _SVAR_H
+#ifndef _MEMLOCK_H
+#define _MEMLOCK_H
 
 #include <hashtable.h>
 #include <mutex.h>
@@ -28,4 +28,4 @@ int memlock_init(memlock_t *memlock, int size);
 int memlock_lock(memlock_t *memlock, void *ptr, memlock_type type);
 void memlock_unlock(memlock_t *memlock, void *ptr);
 
-#endif /* _SVAR_H */
+#endif /* _MEMLOCK_H */

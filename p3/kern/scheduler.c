@@ -1,3 +1,11 @@
+/** @file scheduler.c
+ *  @brief Manages the scheduler and context switching.
+ *
+ *  @author Patrick Koenig (phkoenig)
+ *  @author Jack Sorrell (jsorrell)
+ *  @bug No known bugs.
+ */
+
 #include <stdlib.h>
 #include <context_switch.h>
 #include <proc.h>
@@ -22,11 +30,27 @@ typedef struct sleep_info {
     unsigned wake_ticks;
 } sleep_info_t;
 
+/**
+ * @brief Determines whether a tcb has a tid.
+ *
+ * @param tcb The tcb.
+ * @param tid The tid.
+ *
+ * @return True if the tcb has the tid. False otherwise.
+ */
 bool tcb_is_tid(void *tcb, void *tid)
 {
     return ((tcb_t *)tcb)->tid == (int)tid;
 }
 
+/**
+ * @brief Tests whether two pointers are the same.
+ *
+ * @param tcb0 The first pointer.
+ * @param tcb1 The second pointer.
+ *
+ * @return True if tcb0 == tcb1. False otherwise.
+ */
 bool ident(void *tcb0, void *tcb1)
 {
     return tcb0 == tcb1;

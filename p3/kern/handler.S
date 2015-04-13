@@ -10,20 +10,20 @@
 
 .globl timer_handler_int
 timer_handler_int:
-    call    set_kernel_segs
-    call    timer_handler
-    call    set_user_segs
-    mov     $0, %ecx
+    call    set_kernel_segs     # set kernel data segments
+    call    timer_handler       # call the timer handler
+    call    set_user_segs       # set user data segments
+    mov     $0, %ecx            # zero out caller saved registers
     mov     $0, %edx
     mov     $0, %eax
     iret
 
 .globl keyboard_int
 keyboard_int:
-    call    set_kernel_segs
-    call    keyboard_handler
-    call    set_user_segs
-    mov     $0, %ecx
+    call    set_kernel_segs     # set kernel data segments
+    call    keyboard_handler    # call the keyboard handler
+    call    set_user_segs       # set user data segments
+    mov     $0, %ecx            # zero out caller saved registers
     mov     $0, %edx
     mov     $0, %eax
     iret
@@ -32,68 +32,68 @@ keyboard_int:
 
 .globl fork_int
 fork_int:
-    call    set_kernel_segs
-    call    fork
-    push    %eax
-    call    set_user_segs
-    pop     %eax
-    mov     $0, %ecx
+    call    set_kernel_segs     # set kernel data segments
+    call    fork                # call fork
+    push    %eax                # save the return value
+    call    set_user_segs       # save user data segmens
+    pop     %eax                # restore the return value
+    mov     $0, %ecx            # zero out caller saved registers
     mov     $0, %edx
     iret
 
 .globl thread_fork_int
 thread_fork_int:
-    call    set_kernel_segs
-    call    thread_fork
-    push    %eax
-    call    set_user_segs
-    pop     %eax
-    mov     $0, %ecx
+    call    set_kernel_segs     # set kernel data segments
+    call    thread_fork         # call thread fork
+    push    %eax                # save the return value
+    call    set_user_segs       # set user data segments
+    pop     %eax                # restore the return value
+    mov     $0, %ecx            # zero out caller saved registers
     mov     $0, %edx
     iret
 
 .globl exec_int
 exec_int:
-    call    set_kernel_segs
-    subl    $4, %esp
-    pushl   %esi
-    pushl   $8
-    call    buf_lock
-    test    %eax, %eax
-    js      exec_esi_fail
-    pushl   4(%esi)
-    pushl   (%esi)
-    call    exec
-    addl    $8, %esp
-    mov     %eax, 8(%esp)
-    call    buf_unlock
-    mov     8(%esp), %eax
+    call    set_kernel_segs     # set kernel data segments
+    subl    $4, %esp            # allocate space for return value
+    pushl   %esi                # push esi
+    pushl   $8                  # push total arg length
+    call    buf_lock            # lock esi
+    test    %eax, %eax          # check if lock succeeded
+    js      exec_esi_fail       # jump if failed
+    pushl   4(%esi)             # push the args
+    pushl   (%esi)              # push the filename
+    call    exec                # call exec
+    addl    $8, %esp            # remove args from stack
+    mov     %eax, 8(%esp)       # store return value
+    call    buf_unlock          # unlock esi
+    mov     8(%esp), %eax       # restore return value
 exec_esi_fail:
-    addl    $12, %esp
-    push    %eax
-    call    set_user_segs
-    pop     %eax
-    mov     $0, %ecx
+    addl    $12, %esp           # remove esi, arg len, and ret from stack
+    push    %eax                # save return value
+    call    set_user_segs       # set user data segments
+    pop     %eax                # restore return value
+    mov     $0, %ecx            # zero out caller save registers
     mov     $0, %edx
     iret
 
 .globl set_status_int
 set_status_int:
-    call    set_kernel_segs
-    pushl   %esi
-    call    set_status
-    addl    $4, %esp
-    push    %eax
-    call    set_user_segs
-    pop     %eax
-    mov     $0, %ecx
+    call    set_kernel_segs     # set kernel data segments
+    pushl   %esi                # push the status
+    call    set_status          # set the status
+    addl    $4, %esp            # remove arg from stack
+    push    %eax                # save return value
+    call    set_user_segs       # set user data segments
+    pop     %eax                # restore the return value
+    mov     $0, %ecx            # zero out caller save registers
     mov     $0, %edx
     iret
 
 .globl vanish_int
 vanish_int:
-    call    set_kernel_segs
-    call    vanish
+    call    set_kernel_segs     # set kernel data segments
+    call    vanish              # call vanish
     #shouldn't get here
 
 .globl wait_int
@@ -113,7 +113,7 @@ wait_fail:
     pushl   %eax                # save the return value
     call    set_user_segs       # set user data segments
     pop     %eax                # restore the return value
-    mov     $0, %ecx
+    mov     $0, %ecx            # zero out caller save registers
     mov     $0, %edx
     iret                        # return from the interrupt
 
@@ -121,25 +121,25 @@ wait_fail:
 
 .globl gettid_int
 gettid_int:
-    call    set_kernel_segs
-    call    gettid
-    push    %eax
-    call    set_user_segs
-    pop     %eax
-    mov     $0, %ecx
+    call    set_kernel_segs     # set kernel data segments
+    call    gettid              # call gettid
+    push    %eax                # save the return value
+    call    set_user_segs       # set user data segments
+    pop     %eax                # restore the return value
+    mov     $0, %ecx            # zero out caller save registers
     mov     $0, %edx
     iret
 
 .globl yield_int
 yield_int:
-    call    set_kernel_segs
-    pushl   %esi
-    call    yield
-    addl    $4, %esp
-    push    %eax
-    call    set_user_segs
-    pop     %eax
-    mov     $0, %ecx
+    call    set_kernel_segs     # set kernel data segments
+    pushl   %esi                # push tid
+    call    yield               # call yield
+    addl    $4, %esp            # remove tid from stack
+    push    %eax                # save the return value
+    call    set_user_segs       # set user data segments
+    pop     %eax                # restore the return value
+    mov     $0, %ecx            # zero out caller save registers
     mov     $0, %edx
     iret
 
@@ -160,71 +160,71 @@ deschedule_fail:
     pushl   %eax                # save the return value
     call    set_user_segs       # set user data segments
     pop     %eax                # restore the return value
-    mov     $0, %ecx
+    mov     $0, %ecx            # zero out caller save registers
     mov     $0, %edx
     iret                        # return from the interrupt
 
 .globl make_runnable_int
 make_runnable_int:
-    call    set_kernel_segs
-    pushl   %esi
-    call    make_runnable
-    addl    $4, %esp
-    push    %eax
-    call    set_user_segs
-    pop     %eax
-    mov     $0, %ecx
+    call    set_kernel_segs     # set kernel data segments
+    pushl   %esi                # push tid
+    call    make_runnable       # call make runnable
+    addl    $4, %esp            # remove tid from stack
+    push    %eax                # save return value
+    call    set_user_segs       # set user data segments
+    pop     %eax                # restore the return value
+    mov     $0, %ecx            # zero out caller save registers
     mov     $0, %edx
     iret
 
 .globl get_ticks_int
 get_ticks_int:
-    call    set_kernel_segs
-    call    get_ticks
-    push    %eax
-    call    set_user_segs
-    pop     %eax
-    mov     $0, %ecx
+    call    set_kernel_segs     # set kernel data segments
+    call    get_ticks           # call get_ticks
+    push    %eax                # save the return value
+    call    set_user_segs       # set user data segments
+    pop     %eax                # restore the return value
+    mov     $0, %ecx            # zero out caller save registers
     mov     $0, %edx
     iret
 
 .globl sleep_int
 sleep_int:
-    call    set_kernel_segs
-    pushl   %esi
-    call    sleep
-    addl    $4, %esp
-    push    %eax
-    call    set_user_segs
-    pop     %eax
-    mov     $0, %ecx
+    call    set_kernel_segs     # set kernel data segments
+    pushl   %esi                # push ticks
+    call    sleep               # call sleep
+    addl    $4, %esp            # remove ticks from stack
+    push    %eax                # save return value
+    call    set_user_segs       # set user data segments
+    pop     %eax                # restore the return value
+    mov     $0, %ecx            # zero out caller save registers
     mov     $0, %edx
     iret
 
 .globl swexn_int
 swexn_int:
-    call    set_kernel_segs
-    subl    $4, %esp
-    pushl   %esi
-    pushl   $16
-    call    buf_lock
-    test    %eax, %eax
-    js      swexn_esi_fail
-    pushl   12(%esi)
-    pushl   8(%esi)
-    pushl   4(%esi)
-    pushl   (%esi)
-    call    swexn
-    addl    $16, %esp
-    mov     %eax, 8(%esp)
-    call    buf_unlock
-    mov     8(%esp), %eax
+    call    set_kernel_segs     # set kernel data segments
+    subl    $4, %esp            # allocate space for return value
+    pushl   %esi                # push esi
+    pushl   $16                 # push total arg length
+    call    buf_lock            # lock esi
+    test    %eax, %eax          # test if lock passed
+    js      swexn_esi_fail      # jump if it failed
+    pushl   12(%esi)            # push newureg
+    pushl   8(%esi)             # push arg
+    pushl   4(%esi)             # push eip
+    pushl   (%esi)              # push esp3
+    call    swexn               # call swexn
+    addl    $16, %esp           # remove args from stack
+    mov     %eax, 8(%esp)       # save return value
+    call    buf_unlock          # unlock esi
+    mov     8(%esp), %eax       # restore return value
 swexn_esi_fail:
-    addl    $12, %esp
-    push    %eax
-    call    set_user_segs
-    pop     %eax
-    mov     $0, %ecx
+    addl    $12, %esp           # remove esi, arg len, and ret from stack
+    push    %eax                # save return value
+    call    set_user_segs       # set user data segments
+    pop     %eax                # restore return value
+    mov     $0, %ecx            # zero out caller save registers
     mov     $0, %edx
     iret
 
@@ -232,39 +232,39 @@ swexn_esi_fail:
 
 .globl new_pages_int
 new_pages_int:
-    call    set_kernel_segs
-    subl    $4, %esp
-    push    %esi
-    push    $8
-    call    buf_lock
-    test %eax, %eax
-    js      new_pages_esi_fail
-    pushl   4(%esi)
-    pushl   (%esi)
-    call    new_pages
-    addl    $8, %esp
-    mov     %eax, 8(%esp)
-    call    buf_unlock
-    mov     8(%esp), %eax
+    call    set_kernel_segs     # set kernel data segments
+    subl    $4, %esp            # allocate space for ret
+    push    %esi                # push esi
+    push    $8                  # push total arg len
+    call    buf_lock            # lock esi
+    test %eax, %eax             # check if the lock succeeded
+    js      new_pages_esi_fail  # jump if it failed
+    pushl   4(%esi)             # push len
+    pushl   (%esi)              # push base
+    call    new_pages           # call new pages
+    addl    $8, %esp            # remove args from stack
+    mov     %eax, 8(%esp)       # save return value
+    call    buf_unlock          # unlock esi
+    mov     8(%esp), %eax       # restore the return value
 new_pages_esi_fail:
-    addl    $12, %esp
-    push    %eax
-    call    set_user_segs
-    pop     %eax
-    mov     $0, %ecx
+    addl    $12, %esp           # remove esi, arg len, and ret from stack
+    push    %eax                # save return value
+    call    set_user_segs       # set user data segments
+    pop     %eax                # restore return value
+    mov     $0, %ecx            # zero out caller save registers
     mov     $0, %edx
     iret
 
 .globl remove_pages_int
 remove_pages_int:
-    call    set_kernel_segs
-    pushl   %esi
-    call    remove_pages
-    addl    $4, %esp
-    push    %eax
-    call    set_user_segs
-    pop     %eax
-    mov     $0, %ecx
+    call    set_kernel_segs     # set kernel data segments
+    pushl   %esi                # push base
+    call    remove_pages        # call remove pages
+    addl    $4, %esp            # remove base from stack
+    push    %eax                # save return value
+    call    set_user_segs       # set user data segments
+    pop     %eax                # restore return value
+    mov     $0, %ecx            # zero out caller save registers
     mov     $0, %edx
     iret
 
@@ -299,7 +299,7 @@ readline_esi_fail:
     push    %eax                # save the return value
     call    set_user_segs       # set user data segments
     pop     %eax                # restore the return value
-    mov     $0, %ecx
+    mov     $0, %ecx            # zero out caller save registers
     mov     $0, %edx
     iret                        # return from the interrupt
 
@@ -331,45 +331,45 @@ print_esi_fail:
     push    %eax                # save the return value
     call    set_user_segs       # set user data segments
     pop     %eax                # restore the return value
-    mov     $0, %ecx
+    mov     $0, %ecx            # zero out caller save registers
     mov     $0, %edx
     iret                        # return from the interrupt
 
 .globl set_term_color_int
 set_term_color_int:
-    call    set_kernel_segs
-    pushl   %esi
-    call    set_term_color
-    addl    $4, %esp
-    push    %eax
-    call    set_user_segs
-    pop     %eax
-    mov     $0, %ecx
+    call    set_kernel_segs     # set kernel data segments
+    pushl   %esi                # push term color
+    call    set_term_color      # call set_term_color
+    addl    $4, %esp            # remove data segments from stack
+    push    %eax                # save return value
+    call    set_user_segs       # set user data segments
+    pop     %eax                # restore return value
+    mov     $0, %ecx            # zero out caller save registers
     mov     $0, %edx
     iret
 
 .globl set_cursor_pos_int
 set_cursor_pos_int:
-    call    set_kernel_segs
-    subl    $4, %esp
-    push    %esi
-    push    $8
-    call    buf_lock
-    test    %eax, %eax
-    js      set_cursor_pos_esi_fail
-    pushl   4(%esi)
-    pushl   (%esi)
-    call    set_cursor_pos
-    addl    $8, %esp
-    mov     %eax, 8(%esp)
-    call    buf_unlock
-    mov     8(%esp), %eax
+    call    set_kernel_segs         # set kernel data segments
+    subl    $4, %esp                # allocate space for return value
+    push    %esi                    # push esi
+    push    $8                      # push total arg len
+    call    buf_lock                # lock esi
+    test    %eax, %eax              # test whether the lock succeeded
+    js      set_cursor_pos_esi_fail # if not, jump
+    pushl   4(%esi)                 # push col
+    pushl   (%esi)                  # push row
+    call    set_cursor_pos          # set cursor pos
+    addl    $8, %esp                # remove args from stack
+    mov     %eax, 8(%esp)           # store return value
+    call    buf_unlock              # unlock esi
+    mov     8(%esp), %eax           # restore return value
 set_cursor_pos_esi_fail:
-    addl    $12, %esp
-    push    %eax
-    call    set_user_segs
-    pop     %eax
-    mov     $0, %ecx
+    addl    $12, %esp               # remove esi, arg len, and ret from stack
+    push    %eax                    # save return value
+    call    set_user_segs           # set user data segments
+    pop     %eax                    # restore return value
+    mov     $0, %ecx                # zero out caller save registers
     mov     $0, %edx
     iret
 
@@ -409,7 +409,7 @@ get_cursor_pos_esi_fail:
     push    %eax                        # save the return value
     call    set_user_segs               # set user data segments
     pop     %eax                        # restore the return value
-    mov     $0, %ecx
+    mov     $0, %ecx                    # zero out caller save registers
     mov     $0, %edx
     iret                                # return from the interrupt
 
@@ -459,15 +459,15 @@ readfile_esi_fail:
     push    %eax                    # save the return value
     call    set_user_segs           # set user data segments
     pop     %eax                    # restore the return value
-    mov     $0, %ecx
+    mov     $0, %ecx                # zero out caller save registers
     mov     $0, %edx
     iret                            # return from the interrupt
 
 .globl halt_int
 halt_int:
-    call sim_halt
-    hlt
-    mov     $0, %ecx
+    call    sim_halt        # halt with simics
+    hlt                     # halt with the hardware
+    mov     $0, %ecx        # zero out caller save registers
     mov     $0, %edx
     mov     $0, %eax
     iret
@@ -476,4 +476,4 @@ halt_int:
 
 .globl misbehave_int
 misbehave_int:
-    iret
+    iret                    # misbehave doesn't do anything

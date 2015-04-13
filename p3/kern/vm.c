@@ -507,11 +507,33 @@ static bool vm_lock_flags(void *va, unsigned flags) {
     return valid;
 }
 
+/**
+ * @brief Locks an address and checks its flags.
+ * @details Once locked, the page cannot be removed until it is unlocked.
+ * Multiple readers can hold the lock at once.
+ * If the address is not of user privilege level or present
+ * then the page is not locked.
+ *
+ * @param va The virtual address to lock.
+ * @return A boolean indicating whether the address is present and
+ * has user privilege level.
+ */
 bool vm_lock(void *base)
 {
     return vm_lock_flags(base, USER_FLAGS);
 }
 
+/**
+ * @brief Locks an address and checks its flags.
+ * @details Once locked, the page cannot be removed until it is unlocked.
+ * Multiple readers can hold the lock at once.
+ * If the address is not of user read-write privilege level or present
+ * then the page is not locked.
+ *
+ * @param va The virtual address to lock.
+ * @return A boolean indicating whether the address is present and
+ * has user privilege level.
+ */
 bool vm_lock_rw(void *base)
 {
     return vm_lock_flags(base, USER_FLAGS | PTE_RW);
@@ -542,11 +564,35 @@ static bool vm_lock_len_flags(void *base, int len, unsigned flags) {
     return valid;
 }
 
+/**
+ * @brief Locks a length of virtual memory and checks its flags.
+ * @details Once locked, no pages can be removed until unlocked.
+ * Multiple readers can hold the lock at once.
+ * If any of the addresses are not present or not of user privilege level,
+ * then no page is locked.
+ *
+ * @param base The lowest virtual address to lock.
+ * @param len The length of memory to lock.
+ * @return A boolean indicating whether the whole memory length is present
+ * and has user privilege level.
+ */
 bool vm_lock_len(void *base, int len)
 {
     return vm_lock_len_flags(base, len, USER_FLAGS);
 }
 
+/**
+ * @brief Locks a length of virtual memory and checks its flags.
+ * @details Once locked, no pages can be removed until unlocked.
+ * Multiple readers can hold the lock at once.
+ * If any of the addresses are not present or not of user rw privilege level,
+ * then no page is locked.
+ *
+ * @param base The lowest virtual address to lock.
+ * @param len The length of memory to lock.
+ * @return A boolean indicating whether the whole memory length is present
+ * and has user privilege level.
+ */
 bool vm_lock_len_rw(void *base, int len)
 {
     return vm_lock_len_flags(base, len, USER_FLAGS | PTE_RW);

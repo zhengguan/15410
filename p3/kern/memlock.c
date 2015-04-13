@@ -1,9 +1,9 @@
 /** @file memlock.c
  *  @brief This file implements the interface for memory locks.
  *
- *  Memlocks are similar to reader writer locks but for virtual memory pages. 
+ *  Memlocks are similar to reader writer locks but for virtual memory pages.
  *  When locking, callers must specify a virtual address they wish to lock and
- *  the type of access they need.  Lcking or unlocking a page in memory does
+ *  the type of access they need.  Locking or unlocking a page in memory does
  *  not affect locking or unlocking for any other pages
  *
  *  @author Patrick Koenig (phkoenig)

@@ -22,7 +22,6 @@
 #include <rwlock.h>
 #include <exception.h>
 
-#define PCB_HT_SIZE 128
 #define TCB_HT_SIZE 128
 
 #define MEMLOCK_SIZE 128

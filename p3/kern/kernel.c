@@ -115,10 +115,8 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
     //Artificially define saved regs
     idle_tcb->regs.eip = (unsigned)iret_user; //wrapper for idle
     idle_tcb->regs.esp_offset = sizeof(iret_args_t);
-    idle_tcb->regs.cr0 = KERNEL_CR0;
     idle_tcb->regs.cr2 = 0;
     idle_tcb->regs.cr3 = (unsigned)idle_pcb->pd;
-    idle_tcb->regs.cr4 = get_cr4();
     idle_tcb->regs.ebp_offset = -idle_tcb->esp0;
     idle_tcb->regs.eflags = USER_EFLAGS;
 
@@ -146,10 +144,8 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
     //Artificially define saved regs
     tr_tcb->regs.eip = (unsigned)thread_reaper;
     tr_tcb->regs.esp_offset = 0;
-    tr_tcb->regs.cr0 = KERNEL_CR0;
     tr_tcb->regs.cr2 = 0;
     tr_tcb->regs.cr3 = (unsigned)tr_pcb->pd;
-    tr_tcb->regs.cr4 = get_cr4();
     tr_tcb->regs.ebp_offset = -tr_tcb->esp0;
     tr_tcb->regs.eflags = USER_EFLAGS;
 

@@ -98,7 +98,7 @@ int buf_lock(int len, char *buf)
 }
 
 /** @brief Checks a user buffer for validity and locks the
- *  virtual memory region.
+ *  virtual memory region for read-write access.
  *
  *  @param len The length.
  *  @param buf The buffer.
@@ -137,7 +137,7 @@ int int_lock(int *n)
 }
 
 /** @brief Checks a user integer pointer for validity and locks the
- *  virtual memory address.
+ *  virtual memory address for read-write access.
  *
  *  @param n The interger pointer.
  *  @return 0 on success, negative error code if invalid.

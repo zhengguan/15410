@@ -1,14 +1,13 @@
-/** @file linklist.c
- *  @brief An implementation of linked lists.
+/** @file free_page_linklist.c
+ *  @brief An implementation of linked lists in unallocated memory
+ *  to store free pages without using kernel memory.
  *
  *  @author Patrick Koenig (phkoenig)
  *  @author Jack Sorrell (jsorrell)
  *  @bug No known bugs.
  */
 
-#include <stdlib.h>
 #include <vm.h>
-#include <simics.h>
 
 static unsigned ll_head = 0;
 
