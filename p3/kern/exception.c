@@ -96,8 +96,8 @@ static int call_user_handler(ureg_t *ureg)
     }
 
     unsigned esp = (unsigned)handler->esp3 - sizeof(handler_args_t);
-    // TODO how to handle locking this address when we have a jmp?
-    if (!vm_check_flags_len((void*)esp, sizeof(handler_args_t), USER_FLAGS)) {
+
+    if (buf_lock_rw(sizeof(handler_args_t), (char*)esp) < 0) {
         return -3;
     }
 
@@ -105,8 +105,8 @@ static int call_user_handler(ureg_t *ureg)
     ((handler_args_t *)esp)->arg = handler->arg;
     ((handler_args_t *)esp)->ureg_ptr = &(((handler_args_t *)esp)->ureg);
     ((handler_args_t *)esp)->ureg = *ureg;
-    //VM LOCK END
 
+    buf_unlock(sizeof(handler_args_t), (char*)esp);
 
     unsigned eip = (unsigned)handler->eip;
 
@@ -169,10 +169,10 @@ int swexn(void *esp3, swexn_handler_t eip, void *arg, ureg_t *newureg)
 
     ureg_t newureg_kern;
     if (newureg) {
-        if ((unsigned)newureg < USER_MEM_START || !vm_check_flags_len(newureg, sizeof(ureg_t), USER_FLAGS)) {
+        if (buf_lock(sizeof(ureg_t), (char*)newureg) < 0)
             return -3;
-        }
         newureg_kern = *newureg;
+        buf_unlock(sizeof(ureg_t), (char*)newureg);
     }
 
     tcb_t *tcb = gettcb();

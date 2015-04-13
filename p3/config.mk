@@ -1,27 +1,4 @@
 ###########################################################################
-#
-#    #####          #######         #######         ######            ###
-#   #     #            #            #     #         #     #           ###
-#   #                  #            #     #         #     #           ###
-#    #####             #            #     #         ######             #
-#         #            #            #     #         #
-#   #     #            #            #     #         #                 ###
-#    #####             #            #######         #                 ###
-#
-#
-# Please read the directions in README and in this config.mk carefully.
-# Do -N-O-T- just dump things randomly in here until your kernel builds.
-# If you do that, you run an excellent chance of turning in something
-# which can't be graded.  If you think the build infrastructure is
-# somehow restricting you from doing something you need to do, contact
-# the course staff--don't just hit it with a hammer and move on.
-#
-# [Once you've read this message, please edit it out of your config.mk]
-# [Once you've read this message, please edit it out of your config.mk]
-# [Once you've read this message, please edit it out of your config.mk]
-###########################################################################
-
-###########################################################################
 # This is the include file for the make file.
 # You should have to edit only this file to get things to build.
 ###########################################################################
@@ -57,7 +34,10 @@ UPDATE_METHOD = afs
 # A list of the test programs you want compiled in from the 410user/progs
 # directory.
 #
-410TESTS = ck1 knife peon merchant coolness
+410TESTS = ck1 knife peon merchant coolness ack actual_wait bistromath \
+cat cho cho2 cho_variant chow deschedule_hang exec_basic exec_basic_helper \
+exec_nonexist fib fork_bomb fork_exit_bomb fork_test1 fork_wait fork_wait_bomb \
+getpid_test1
 
 ###########################################################################
 # Test programs you have written which you wish to run

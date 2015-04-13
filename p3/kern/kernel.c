@@ -80,9 +80,6 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
 
     pd_t init_pd = (pd_t)get_cr3();
 
-
-    lprintf("begin setup idle");
-
     /* Setup idle */
     pcb_t *idle_pcb;
     if (proc_new_process(&idle_pcb, &idle_tcb) < 0) {
@@ -90,17 +87,12 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
     }
     cur_tcb = idle_tcb;
 
-    lprintf("idle proc setup completed");
-
     //Create a new page directory
     if (vm_new_pd(&idle_pcb->pd) < 0) {
         panic("vm_new_pd failed");
     }
 
     set_cr3((unsigned)idle_pcb->pd);
-
-
-    lprintf("begin load idle");
 
     //Load idle into memory
     unsigned idle_eip, idle_esp;
@@ -118,7 +110,7 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
     idle_tcb->regs.cr2 = 0;
     idle_tcb->regs.cr3 = (unsigned)idle_pcb->pd;
     idle_tcb->regs.ebp_offset = -idle_tcb->esp0;
-    idle_tcb->regs.eflags = USER_EFLAGS;
+    idle_tcb->regs.eflags = USER_EFLAGS & (~EFL_IF);
 
     //setup arguments for wrapper
     idle_wrap_esp->eip = idle_eip;
@@ -147,7 +139,7 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
     tr_tcb->regs.cr2 = 0;
     tr_tcb->regs.cr3 = (unsigned)tr_pcb->pd;
     tr_tcb->regs.ebp_offset = -tr_tcb->esp0;
-    tr_tcb->regs.eflags = USER_EFLAGS;
+    tr_tcb->regs.eflags = USER_EFLAGS & (~EFL_IF);
 
     linklist_add_head(&scheduler_queue, (void*)tr_tcb);
 

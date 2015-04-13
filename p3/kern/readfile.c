@@ -14,9 +14,6 @@
 
 int readfile(char *filename, char *buf, int count, int offset)
 {
-    if (str_check(filename, USER_FLAGS) < 0) {
-        return -1;
-    }
-
+    lprintf("readfile: %s", filename);
     return getbytes(filename, offset, count, buf);
 }

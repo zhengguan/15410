@@ -93,7 +93,7 @@ set_status_int:
 .globl vanish_int
 vanish_int:
     call    set_kernel_segs     # set kernel data segments
-    call    vanish              # call vanish
+    jmp     vanish              # call vanish
     #shouldn't get here
 
 .globl wait_int
@@ -237,7 +237,7 @@ new_pages_int:
     push    %esi                # push esi
     push    $8                  # push total arg len
     call    buf_lock            # lock esi
-    test %eax, %eax             # check if the lock succeeded
+    test    %eax, %eax          # check if the lock succeeded
     js      new_pages_esi_fail  # jump if it failed
     pushl   4(%esi)             # push len
     pushl   (%esi)              # push base
@@ -439,11 +439,11 @@ readfile_int:
     pushl   8(%esi)                 # push count
     pushl   4(%esi)                 # push buf
     pushl   (%esi)                  # push filename
-    call    readfile_int            # call readfile
+    call    readfile                # call readfile
     addl    $16, %esp               # remove the args from the stack
     mov     %eax, 24(%esp)          # save the return value
     call    buf_unlock              # unlock buf
-    mov     24(%esp), %eax
+    mov     24(%esp), %eax          # restore the return value
 readfile_buf_fail:
     addl    $8, %esp                # remove args from stack
     mov     %eax, 16(%esp)          # save the return value

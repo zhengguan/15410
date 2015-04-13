@@ -70,6 +70,7 @@ int str_check(char *str, unsigned flags)
  *  invalid.
  */
 int str_lock(char *str) {
+
     if ((unsigned)str < USER_MEM_START) {
         return -1;
     }
@@ -106,6 +107,7 @@ int buf_lock(int len, char *buf)
  */
 int buf_lock_rw(int len, char *buf)
 {
+
     if ((unsigned)buf < USER_MEM_START) {
         return -1;
     }
@@ -125,6 +127,7 @@ int buf_lock_rw(int len, char *buf)
  */
 int int_lock(int *n)
 {
+
     if ((unsigned)n < USER_MEM_START) {
         return -1;
     }
@@ -144,6 +147,7 @@ int int_lock(int *n)
  */
 int int_lock_rw(int *n)
 {
+
     if ((unsigned)n < USER_MEM_START) {
         return -1;
     }
@@ -162,7 +166,9 @@ int int_lock_rw(int *n)
  *  @param buf The buffer.
  *  @return Void.
  */
-void buf_unlock(int len, char *buf) {
+void buf_unlock(int len, char *buf)
+{
+
     vm_unlock_len(buf, len);
 }
 
@@ -171,6 +177,8 @@ void buf_unlock(int len, char *buf) {
  *  @param n The interger pointer.
  *  @return Void.
  */
-void int_unlock(int *n) {
+void int_unlock(int *n)
+{
+
     vm_unlock(n);
 }

@@ -714,7 +714,7 @@ int new_pages(void *base, int len)
     }
 
     mutex_lock(&alloc_pages_mutex);
-    lprintf("Add %p - (%p, %p)", &alloc_pages, base, (void *)len);
+    //lprintf("Add %p - (%p, %p)", &alloc_pages, base, (void *)len);
     hashtable_add(&alloc_pages, FRAME_NUM(base), (void *)len);
     mutex_unlock(&alloc_pages_mutex);
 

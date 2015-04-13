@@ -133,6 +133,11 @@ int context_switch(tcb_t *new_tcb)
 
     disable_interrupts();
 
+    lprintf("context switching to %p", new_tcb);
+    if (new_tcb->regs.cr2 != 0) {
+        lprintf("malformed");
+        MAGIC_BREAK;
+    }
     if (store_regs(&old_tcb->regs, old_tcb->esp0)) {
         cur_tcb = new_tcb;
         set_esp0(new_tcb->esp0);
@@ -152,6 +157,7 @@ int context_switch(tcb_t *new_tcb)
  */
 int yield(int tid)
 {
+    lprintf("yielding to %d", tid);
     tcb_t *tcb;
     if (tid == -1) {
         if (linklist_remove_head(&scheduler_queue, (void**)&tcb) < 0) {
@@ -162,6 +168,7 @@ int yield(int tid)
     } else if (linklist_remove(&scheduler_queue, (void *)tid, tcb_is_tid) < 0) {
         return -1;
     }
+    assert((unsigned)tcb < USER_MEM_START);
     linklist_add_tail(&scheduler_queue, (void*)tcb);
     assert (context_switch(tcb) == 0);
 

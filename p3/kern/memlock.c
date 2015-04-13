@@ -93,7 +93,6 @@ int memlock_lock(memlock_t *memlock, void *ptr, memlock_type type)
             break;
         }
     }
-    lprintf("%d got lock on %p", gettid(), ptr);
     return 0;
 }
 
@@ -111,7 +110,6 @@ void memlock_unlock(memlock_t *memlock, void *ptr)
     }
 
     ptr = (void *)ROUND_DOWN_PAGE(ptr);
-    lprintf("%d memunlocking %p", gettid(), ptr);
     mutex_lock(&memlock->channel_lock);
     memlock_channel_t *channel;
     if (hashtable_get(&memlock->channel_ht, (int)ptr, (void **)&channel) < 0) {

@@ -95,7 +95,7 @@ void hashtable_add(hashtable_t *table, int key, void *data)
         node->next = addnode;
     }
 
-    lprintf("Add (%d) %p[%d]: %p - %d", mt_mode ? getpid() : 0, table, idx, addnode, addnode->key);
+    // lprintf("Add (%d) %p[%d]: %p - %d", mt_mode ? getpid() : 0, table, idx, addnode, addnode->key);
 }
 
 /** @brief Gets data from a hash table.
