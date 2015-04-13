@@ -96,25 +96,25 @@ int idt_init() {
     idt_add_desc(READFILE_INT, readfile_int, IDT_TRAP, IDT_DPL_USER);
     idt_add_desc(SWEXN_INT, swexn_int, IDT_TRAP, IDT_DPL_USER);
 
-    idt_add_desc(IDT_DE, exn_divide_wrapper, IDT_INT, IDT_DPL_KERNEL);
-    idt_add_desc(IDT_DB, exn_debug_wrapper, IDT_INT, IDT_DPL_KERNEL);
-    idt_add_desc(IDT_BP, exn_breakpoint_wrapper, IDT_INT, IDT_DPL_KERNEL);
-    idt_add_desc(IDT_OF, exn_overflow_wrapper, IDT_INT, IDT_DPL_KERNEL);
-    idt_add_desc(IDT_BR, exn_boundcheck_wrapper, IDT_INT, IDT_DPL_KERNEL);
-    idt_add_desc(IDT_UD, exn_opcode_wrapper, IDT_INT, IDT_DPL_KERNEL);
-    idt_add_desc(IDT_NM, exn_nofpu_wrapper, IDT_INT, IDT_DPL_KERNEL);
-    idt_add_desc(IDT_NP, exn_segfault_wrapper, IDT_INT, IDT_DPL_KERNEL);
-    idt_add_desc(IDT_SS, exn_stackfault_wrapper, IDT_INT, IDT_DPL_KERNEL);
-    idt_add_desc(IDT_GP, exn_protfault_wrapper, IDT_INT, IDT_DPL_KERNEL);
-    idt_add_desc(IDT_PF, exn_pagefault_wrapper, IDT_INT, IDT_DPL_KERNEL);
-    idt_add_desc(IDT_MF, exn_fpufault_wrapper, IDT_INT, IDT_DPL_KERNEL);
-    idt_add_desc(IDT_AC, exn_alignfault_wrapper, IDT_INT, IDT_DPL_KERNEL);
-    idt_add_desc(IDT_XF, exn_simdfault_wrapper, IDT_INT, IDT_DPL_KERNEL);
+    idt_add_desc(IDT_DE, exn_divide_wrapper, IDT_INT, IDT_DPL_USER);
+    idt_add_desc(IDT_DB, exn_debug_wrapper, IDT_INT, IDT_DPL_USER);
+    idt_add_desc(IDT_BP, exn_breakpoint_wrapper, IDT_INT, IDT_DPL_USER);
+    idt_add_desc(IDT_OF, exn_overflow_wrapper, IDT_INT, IDT_DPL_USER);
+    idt_add_desc(IDT_BR, exn_boundcheck_wrapper, IDT_INT, IDT_DPL_USER);
+    idt_add_desc(IDT_UD, exn_opcode_wrapper, IDT_INT, IDT_DPL_USER);
+    idt_add_desc(IDT_NM, exn_nofpu_wrapper, IDT_INT, IDT_DPL_USER);
+    idt_add_desc(IDT_NP, exn_segfault_wrapper, IDT_INT, IDT_DPL_USER);
+    idt_add_desc(IDT_SS, exn_stackfault_wrapper, IDT_INT, IDT_DPL_USER);
+    idt_add_desc(IDT_GP, exn_protfault_wrapper, IDT_INT, IDT_DPL_USER);
+    idt_add_desc(IDT_PF, exn_pagefault_wrapper, IDT_INT, IDT_DPL_USER);
+    idt_add_desc(IDT_MF, exn_fpufault_wrapper, IDT_INT, IDT_DPL_USER);
+    idt_add_desc(IDT_AC, exn_alignfault_wrapper, IDT_INT, IDT_DPL_USER);
+    idt_add_desc(IDT_XF, exn_simdfault_wrapper, IDT_INT, IDT_DPL_USER);
 
-    idt_add_desc(IDT_NMI, exn_nmi_wrapper, IDT_INT, IDT_DPL_KERNEL);
-    idt_add_desc(IDT_CSO, exn_cso_wrapper, IDT_INT, IDT_DPL_KERNEL);
-    idt_add_desc(IDT_MC, exn_mc_wrapper, IDT_INT, IDT_DPL_KERNEL);
-    idt_add_desc(IDT_TS, exn_ts_wrapper, IDT_INT, IDT_DPL_KERNEL);
+    idt_add_desc(IDT_NMI, exn_nmi_wrapper, IDT_INT, IDT_DPL_USER);
+    idt_add_desc(IDT_CSO, exn_cso_wrapper, IDT_INT, IDT_DPL_USER);
+    idt_add_desc(IDT_MC, exn_mc_wrapper, IDT_INT, IDT_DPL_USER);
+    idt_add_desc(IDT_TS, exn_ts_wrapper, IDT_INT, IDT_DPL_USER);
 
     return 0;
 }
