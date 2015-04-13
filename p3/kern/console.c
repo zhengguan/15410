@@ -322,8 +322,6 @@ void scroll_up()
 
 int print(int len, char *buf)
 {
-    // TODO add saftey checks
-
     putbytes(buf, len);
 
     return 0;

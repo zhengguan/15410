@@ -6,8 +6,6 @@
  *  @bug No known bugs.
  */
 
-// TODO add comments to all locking mechanisms
-
 #include <mutex.h>
 #include <stdlib.h>
 #include <syscall.h>

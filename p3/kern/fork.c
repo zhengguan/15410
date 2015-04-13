@@ -55,7 +55,6 @@ int fork()
     old_tcb->esp0 = new_tcb->esp0;
     new_tcb->esp0 = cur_esp0;
 
-
     //give the old thread back his stack that the new one stole
     memcpy((void *)(old_tcb->esp0 - KERNEL_STACK_SIZE),
            (void *)(new_tcb->esp0 - KERNEL_STACK_SIZE), KERNEL_STACK_SIZE);
