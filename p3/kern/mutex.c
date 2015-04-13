@@ -60,7 +60,8 @@ void mutex_lock(mutex_t *mp)
     listnode_t node;
 
     spinlock_lock(&mp->wait_lock);
-    if (&mp->count <= 0) {
+    if (mp->count <= 0) {
+        assert((unsigned)waiter.tcb < USER_MEM_START);
         linklist_add_tail(&mp->wait_list, (void*)&waiter, &node);
     } else {
         waiter.reject = 1;
