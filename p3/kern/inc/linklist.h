@@ -32,7 +32,7 @@ void linklist_add_sorted(linklist_t *list, void *data, data_cmp_t cmp);
 int linklist_peek_head(linklist_t *list, void **data);
 int linklist_remove_head(linklist_t *list, void **data);
 int linklist_remove_all(linklist_t *list);
-int linklist_remove(linklist_t *list, void *data, bool (*eq)(void*, void*));
+int linklist_remove(linklist_t *list, void *datakey, bool (*eq)(void*, void*), void **data);
 bool linklist_contains(linklist_t *list, void *data, bool (*eq)(void*, void*));
 int linklist_move(linklist_t *oldlist, linklist_t* newlist);
 int linklist_empty(linklist_t *list);

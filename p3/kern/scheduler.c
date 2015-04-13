@@ -110,6 +110,7 @@ void scheduler_tick(unsigned ticks)
         assert(gettid() == idle_tcb->tid);
         return;
     }
+    assert((unsigned)tcb < USER_MEM_START);
     linklist_add_tail(&scheduler_queue, (void*)tcb);
     assert(context_switch(tcb) == 0);
 }
@@ -165,7 +166,7 @@ int yield(int tid)
             assert (context_switch(idle_tcb) == 0);
             return 0;
         }
-    } else if (linklist_remove(&scheduler_queue, (void *)tid, tcb_is_tid) < 0) {
+    } else if (linklist_remove(&scheduler_queue, (void *)tid, tcb_is_tid, (void**)&tcb) < 0) {
         return -1;
     }
     assert((unsigned)tcb < USER_MEM_START);
@@ -220,7 +221,7 @@ int deschedule_kern(int *flag, bool user)
         return 0;
     }
 
-    assert(linklist_remove(&scheduler_queue, (void*)gettid(), tcb_is_tid) == 0);
+    assert(linklist_remove(&scheduler_queue, (void*)gettid(), tcb_is_tid, NULL) == 0);
 
     if (user) {
         hashtable_add(&descheduled_tids, gettid(), NULL);
@@ -267,6 +268,7 @@ int make_runnable_kern(tcb_t *tcb, bool user)
     if (user && hashtable_remove(&descheduled_tids, tcb->tid, NULL) < 0) {
         return -2;
     }
+    assert((unsigned)tcb < USER_MEM_START);
 
     linklist_add_head(&scheduler_queue, (void*)tcb);
 

@@ -57,10 +57,12 @@ int getbytes(const char *filename, int offset, int size, char *buf)
     int i;
     if (size < 0)
         return -3;
+    if (offset < 0)
+        return -4;
     for (i = 0; i < exec2obj_userapp_count; i++) {
         const exec2obj_userapp_TOC_entry *entry = &exec2obj_userapp_TOC[i];
         if (!strncmp(entry->execname, filename, MAX_EXECNAME_LEN)) {
-            if (offset >= entry->execlen) {
+            if (offset > entry->execlen) {
                 return -1;
             }
             int len = MIN(entry->execlen - offset, size);
@@ -123,7 +125,7 @@ static int alloc_pages(unsigned start, unsigned len, bool readonly)
                 vm_read_only((void*)base);
             }
         }
-        
+
     }
     return 0;
 }

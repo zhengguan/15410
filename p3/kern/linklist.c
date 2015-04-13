@@ -182,19 +182,21 @@ int linklist_peek_head(linklist_t *list, void **data) {
  *  @param Equality test. Passed data is the second argument.
  *  @return 0 on success, negative error code otherwise.
  */
-int linklist_remove(linklist_t *list, void *data, bool (*eq)(void*, void*)) {
+int linklist_remove(linklist_t *list, void *datakey, bool (*eq)(void*, void*), void **data) {
     if (list == NULL || list->head == NULL) {
         return -1;
     }
 
     listnode_t *node = list->head;
-    if (eq(node->data, data)) {
-        linklist_remove_head(list, NULL);
+    if (eq(node->data, datakey)) {
+        linklist_remove_head(list, data);
         return 0;
     }
 
     while (node->next != NULL) {
-        if (eq(node->next->data, data)) {
+        if (eq(node->next->data, datakey)) {
+            if (data)
+                *data = node->next->data;
             listnode_t *tmp = node->next;
             node->next = tmp->next;
             if (tmp == list->tail) {
