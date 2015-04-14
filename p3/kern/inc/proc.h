@@ -73,6 +73,7 @@ typedef struct tcb {
     handler_t swexn_handler;
     listnode_t scheduler_listnode;
     int sleep_flag;
+    bool user_descheduled;
 } tcb_t;
 
 extern tcb_t *cur_tcb;

@@ -43,6 +43,8 @@ int int_lock_rw(int *n);
 void buf_unlock(int len, char *buf);
 void int_unlock(int *n);
 
+unsigned control_eflags(unsigned efl);
+
 #endif /* ASSEMBLER */
 
 #endif /* _KERN_COMMON_H */

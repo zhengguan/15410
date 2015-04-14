@@ -18,12 +18,10 @@
 #include <common_kern.h>
 #include <vm.h>
 #include <assert.h>
+#include <asm_common.h>
 
 linklist_t scheduler_queue;
 linklist_t sleep_queue;
-
-#define DESCHEDULED_HT_SIZE 100
-hashtable_t descheduled_tids;
 
 typedef struct sleep_info {
     tcb_t *tcb;
@@ -81,10 +79,6 @@ int scheduler_init()
     if (linklist_init(&sleep_queue) < 0) {
         return -2;
     }
-    if (hashtable_init(&descheduled_tids, DESCHEDULED_HT_SIZE) < 0) {
-        return -3;
-    }
-
     return 0;
 }
 
@@ -154,24 +148,24 @@ int context_switch(tcb_t *new_tcb)
  */
 int yield(int tid)
 {
-    // //lprintf("yielding to %d", tid);
+    disable_interrupts();
     tcb_t *tcb;
     if (tid == -1) {
         if (linklist_rotate_head(&scheduler_queue, (void**)&tcb) < 0) {
             //no threads so run idle
             assert (context_switch(idle_tcb) == 0);
+            enable_interrupts();
             return 0;
         }
     } else if (linklist_rotate_val(&scheduler_queue, (void *)tid, tcb_is_tid, (void**)&tcb) < 0) {
+        enable_interrupts();
         return -1;
     }
-    //lprintf("yielding to %p", tcb);
+
     assert((unsigned)tcb < USER_MEM_START);
     assert (context_switch(tcb) == 0);
 
-    //FIXME: not always from timer call
     pic_acknowledge_any_master();
-
     return 0;
 }
 
@@ -223,9 +217,7 @@ int deschedule_kern(int *flag, bool user)
 
     assert(linklist_remove(&scheduler_queue, (void*)gettcb(), ident, NULL, NULL) == 0);
 
-    if (user) {
-        hashtable_add(&descheduled_tids, gettid(), NULL);
-    }
+    gettcb()->user_descheduled = user;
 
     if (yield(-1) < 0) {
         return -2;
@@ -260,19 +252,22 @@ int make_runnable(int tid)
  */
 int make_runnable_kern(tcb_t *tcb, bool user)
 {
+    bool in = interrupts_enabled();
     disable_interrupts();
     if (linklist_contains(&scheduler_queue, (void *)tcb, ident)) {
+        enable_interrupts();
         return -1;
     }
 
-    if (user && hashtable_remove(&descheduled_tids, tcb->tid, NULL) < 0) {
+    if (user && !tcb->user_descheduled) {
+        enable_interrupts();
         return -2;
     }
     assert((unsigned)tcb < USER_MEM_START);
 
-    //lprintf("adding1 %p to scheduler", tcb);
     linklist_add_head(&scheduler_queue, (void*)tcb, &tcb->scheduler_listnode);
-    enable_interrupts();
+    if (in)
+        enable_interrupts();
 
     return 0;
 }
