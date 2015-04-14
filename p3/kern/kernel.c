@@ -36,6 +36,9 @@
 #include <seg.h>
 #include <exception.h>
 #include <malloc_wrappers.h>
+#include <kern_common.h>
+
+bool kernel_init = true;
 
 #define INIT_NAME "init"
 #define INIT_ARG {NULL}
@@ -167,6 +170,9 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
     linklist_add_head(&scheduler_queue, (void*)init_tcb, &init_tcb->scheduler_listnode);
 
     set_cr0(KERNEL_CR0);
+
+    kernel_init = false;
+
     jmp_user(init_eip, init_esp);
 
     return -1;

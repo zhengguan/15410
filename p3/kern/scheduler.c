@@ -127,8 +127,12 @@ int context_switch(tcb_t *new_tcb)
         return 0;
     }
 
-    disable_interrupts();
+    if (new_tcb->regs.eip == 0x28d2e8) {
+        MAGIC_BREAK;
+    }
 
+    disable_interrupts();
+    lprintf("New(%d): %p  Old(%d): %p", new_tcb->tid, (void *)new_tcb->regs.cr3, old_tcb->tid, (void *)old_tcb->regs.cr3);
     if (store_regs(&old_tcb->regs, old_tcb->esp0)) {
         cur_tcb = new_tcb;
         set_esp0(new_tcb->esp0);
@@ -154,6 +158,7 @@ int yield(int tid)
         if (linklist_rotate_head(&scheduler_queue, (void**)&tcb) < 0) {
             //no threads so run idle
             assert (context_switch(idle_tcb) == 0);
+            pic_acknowledge_any_master();
             enable_interrupts();
             return 0;
         }

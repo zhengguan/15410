@@ -377,14 +377,14 @@ void vanish()
     disable_interrupts();
 
     /* Unlock the mutexes for when we vanish */
-    mutex_unlock_force(&malloc_mutex);
-    mutex_unlock_force(&thread_reap_mutex);
+    mutex_unlock(&malloc_mutex);
+    mutex_unlock(&thread_reap_mutex);
     if (pcb->num_threads == 1) {
-        mutex_unlock_force(&init_pcb->proc_mutex);
+        mutex_unlock(&init_pcb->proc_mutex);
         if (pcb->parent_pcb)
-            mutex_unlock_force(&pcb->parent_pcb->proc_mutex);
+            mutex_unlock(&pcb->parent_pcb->proc_mutex);
     }
-    mutex_unlock_force(&pcb->proc_mutex);
+    mutex_unlock(&pcb->proc_mutex);
 
     // No need for locking because interrupts are disabled
     if (pcb->num_threads == 1) {

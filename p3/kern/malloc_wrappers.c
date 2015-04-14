@@ -32,7 +32,7 @@ void *calloc(size_t nelt, size_t eltsize)
 {
     mutex_lock(&malloc_mutex);
     void *mem = _calloc(nelt, eltsize);
-    mutex_lock(&malloc_mutex);
+    mutex_unlock(&malloc_mutex);
     return mem;
 }
 

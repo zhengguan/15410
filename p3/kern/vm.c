@@ -86,6 +86,7 @@ static int get_frame(unsigned *frame)
     if ( (void*)(*frame = free_page_remove()) == NULL) {
         *frame = next_frame;
         if (*frame > machine_phys_frames() * PAGE_SIZE) {
+            mutex_unlock(&free_frames_mutex);
             return -1;
         }
         next_frame += PAGE_SIZE;
@@ -102,7 +103,7 @@ static int get_frame(unsigned *frame)
  */
 static void vm_set_phys_pte(unsigned pa)
 {
-    assert(vm_new_pte(GET_PD(), (void *)PHYS_VA, pa, KERNEL_FLAGS) == 0);
+    assert(vm_new_pte(GET_PD(), (void *)PHYS_VA, pa, PTE_PRESENT | PTE_RW) == 0);
     flush_tlb_entry((void*)PHYS_VA);
 }
 
@@ -200,7 +201,7 @@ int vm_new_pd(pd_t *new_pd)
  */
 int vm_new_pde(pde_t *pde, pt_t pt, unsigned flags)
 {
-    *pde = (GET_PA(pt) | PTE_PRESENT | flags);
+    *pde = (GET_PA(pt) | PTE_PRESENT | flags | PTE_SU);
 
     return 0;
 }
@@ -245,7 +246,7 @@ int vm_new_pte(pd_t pd, void *va, unsigned pa, unsigned flags)
 {
     pde_t *pde = pd + GET_PD_IDX(va);
     if (!GET_PRESENT(*pde)) {
-        if (vm_new_pt(pde, flags | PTE_RW) < 0) {
+        if (vm_new_pt(pde, flags) < 0) {
             return -1;
         }
     }
@@ -453,6 +454,18 @@ void vm_super(void *va) {
     pte_t *pte = GET_PT(pde) + GET_PT_IDX(va);
     *pte &= ~PTE_SU;
 }
+
+/** @brief Sets a virtual address to be user.
+ *
+ *  @param va The virtual address.
+ *  @return Void.
+ */
+void vm_user(void *va) {
+    pde_t pde = GET_PDE(GET_PD(), va);
+    pte_t *pte = GET_PT(pde) + GET_PT_IDX(va);
+    *pte |= PTE_SU;
+}
+
 /** @brief Checks if flags are set for a virtual memory address.
  *
  * @param va The virtual address of which to check the flags.
@@ -509,7 +522,7 @@ bool vm_check_flags_len(void *base, int len, unsigned flags)
  * @return A boolean indicating whether the address is present and
  * has user privilege level.
  */
-static bool vm_lock_flags(void *va, unsigned flags) {
+bool vm_lock(void *va, unsigned flags) {
     rwlock_lock(&getpcb()->locks.remove_pages, RWLOCK_READ);
     bool valid = vm_check_flags(va, flags);
     if (valid) {
@@ -517,38 +530,6 @@ static bool vm_lock_flags(void *va, unsigned flags) {
     }
     rwlock_unlock(&getpcb()->locks.remove_pages);
     return valid;
-}
-
-/**
- * @brief Locks an address and checks its flags.
- * @details Once locked, the page cannot be removed until it is unlocked.
- * Multiple readers can hold the lock at once.
- * If the address is not of user privilege level or present
- * then the page is not locked.
- *
- * @param va The virtual address to lock.
- * @return A boolean indicating whether the address is present and
- * has user privilege level.
- */
-bool vm_lock(void *base)
-{
-    return vm_lock_flags(base, USER_FLAGS);
-}
-
-/**
- * @brief Locks an address and checks its flags.
- * @details Once locked, the page cannot be removed until it is unlocked.
- * Multiple readers can hold the lock at once.
- * If the address is not of user read-write privilege level or present
- * then the page is not locked.
- *
- * @param va The virtual address to lock.
- * @return A boolean indicating whether the address is present and
- * has user privilege level.
- */
-bool vm_lock_rw(void *base)
-{
-    return vm_lock_flags(base, USER_FLAGS | PTE_RW);
 }
 
 /**
@@ -563,7 +544,7 @@ bool vm_lock_rw(void *base)
  * @return A boolean indicating whether the whole memory length is present
  * and has user privilege level.
  */
-static bool vm_lock_len_flags(void *base, int len, unsigned flags) {
+ bool vm_lock_len(void *base, int len, unsigned flags) {
     rwlock_lock(&getpcb()->locks.remove_pages, RWLOCK_READ);
     bool valid = vm_check_flags_len(base, len, flags);
     if (valid) {
@@ -577,40 +558,6 @@ static bool vm_lock_len_flags(void *base, int len, unsigned flags) {
 }
 
 /**
- * @brief Locks a length of virtual memory and checks its flags.
- * @details Once locked, no pages can be removed until unlocked.
- * Multiple readers can hold the lock at once.
- * If any of the addresses are not present or not of user privilege level,
- * then no page is locked.
- *
- * @param base The lowest virtual address to lock.
- * @param len The length of memory to lock.
- * @return A boolean indicating whether the whole memory length is present
- * and has user privilege level.
- */
-bool vm_lock_len(void *base, int len)
-{
-    return vm_lock_len_flags(base, len, USER_FLAGS);
-}
-
-/**
- * @brief Locks a length of virtual memory and checks its flags.
- * @details Once locked, no pages can be removed until unlocked.
- * Multiple readers can hold the lock at once.
- * If any of the addresses are not present or not of user rw privilege level,
- * then no page is locked.
- *
- * @param base The lowest virtual address to lock.
- * @param len The length of memory to lock.
- * @return A boolean indicating whether the whole memory length is present
- * and has user privilege level.
- */
-bool vm_lock_len_rw(void *base, int len)
-{
-    return vm_lock_len_flags(base, len, USER_FLAGS | PTE_RW);
-}
-
-/**
  * @brief Locks a string in memory and checks its privilege level and length.
  * @details Once locked, no pages can be removed until unlocked.
  * Multiple readers can hold the lock at once.
@@ -621,9 +568,9 @@ bool vm_lock_len_rw(void *base, int len)
  * @return The length of the string or a negative error code if the string
  * is not present, or not of user privilege level.
  */
-int vm_lock_str(char *str) {
+int vm_lock_str(char *str, unsigned flags) {
     rwlock_lock(&getpcb()->locks.remove_pages, RWLOCK_READ);
-    int len = str_check(str, USER_FLAGS);
+    int len = str_check(str, flags);
     if (len >= 0) {
         unsigned va;
         for (va = (unsigned)str;  va < (unsigned)str + len - 1; va += PAGE_SIZE) {
@@ -720,13 +667,12 @@ int new_pages(void *base, int len)
             }
             return -6;
         }
-        vm_new_pte(GET_PD(), (void *)va, frame, USER_FLAGS);
+        vm_new_pte(GET_PD(), (void *)va, frame, USER_FLAGS_RW & ~PTE_SU);
         memset((void*)va, 0, PAGE_SIZE);
-        vm_read_write((void*)va);
+        vm_user((void*)va);
     }
 
     mutex_lock(&alloc_pages_mutex);
-    //lprintf("Add %p - (%p, %p)", &alloc_pages, base, (void *)len);
     hashtable_add(&alloc_pages, FRAME_NUM(base), (void *)len);
     mutex_unlock(&alloc_pages_mutex);
 
@@ -747,6 +693,7 @@ int remove_pages(void *base)
     mutex_lock(&alloc_pages_mutex);
     int len;
     if (hashtable_remove(&alloc_pages, FRAME_NUM(base), (void**)&len) < 0) {
+        mutex_unlock(&alloc_pages_mutex);
         return -2;
     }
     mutex_unlock(&alloc_pages_mutex);

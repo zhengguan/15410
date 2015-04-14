@@ -11,6 +11,7 @@
 #include <atom_xchg.h>
 #include <stdlib.h>
 #include <syscall.h>
+#include <assert.h>
 
 /** @brief Initializes a spinlock.
  *
@@ -53,9 +54,7 @@ void spinlock_lock(spinlock_t *sl)
  */
 void spinlock_unlock(spinlock_t *sl)
 {    
-    if (sl == NULL || !sl->lock || sl->tid != gettid()) {
-        return;
-    }
+    assert(sl != NULL && sl->lock && sl->tid == gettid());
     
     sl->tid = -1;
     sl->lock = 0;

@@ -312,9 +312,9 @@ int exec(char *filename, char *argv[])
     }
 
     int len;
-    if ( (len = str_check(filename, USER_FLAGS)) < 0)
+    if ( (len = str_check(filename, USER_FLAGS_RO)) < 0)
         return -2;
-    if (str_arr_check(argv, USER_FLAGS) < 0)
+    if (str_arr_check(argv, USER_FLAGS_RO) < 0)
         return -3;
 
     char *new_filename;

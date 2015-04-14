@@ -49,8 +49,7 @@ int mutex_init(mutex_t *mp)
  */
 void mutex_lock(mutex_t *mp)
 {
-
-    if (mp == NULL || mp->tid == gettid() || !interrupts_enabled()) {
+    if (kernel_init) {
         return;
     }
 
@@ -58,8 +57,11 @@ void mutex_lock(mutex_t *mp)
     listnode_t node;
 
     spinlock_lock(&mp->wait_lock);
+    assert(mp != NULL);
+    if (mp->tid == gettid()) {
+        MAGIC_BREAK;
+    }
     if (mp->count <= 0) {
-        assert((unsigned)waiter.tcb < USER_MEM_START);
         linklist_add_tail(&mp->wait_list, (void*)&waiter, &node);
     } else {
         waiter.reject = 1;
@@ -72,24 +74,6 @@ void mutex_lock(mutex_t *mp)
     mp->tid = gettid();
 }
 
-
-void mutex_unlock_force(mutex_t *mp)
-{
-    assert(mp != NULL && mp->count <= 0 && mp->tid == gettid());
-
-    spinlock_lock(&mp->wait_lock);
-    if (mp->count < 0) {
-        waiter_t *waiter;
-        linklist_remove_head(&mp->wait_list, (void**)&waiter, NULL);
-        waiter->reject = 1;
-        make_runnable_kern(waiter->tcb, false);
-    } else {
-        mp->tid = -1;
-    }
-    mp->count++;
-    spinlock_unlock(&mp->wait_lock);
-
-}
 /** @brief Unlocks a mutex.
  *
  *  @param mp The mutex.
@@ -97,10 +81,24 @@ void mutex_unlock_force(mutex_t *mp)
  */
 void mutex_unlock(mutex_t *mp)
 {
-    if (mp == NULL || mp->count > 0 || mp->tid != gettid() || !interrupts_enabled()) {
+    if (kernel_init) {
         return;
     }
-    mutex_unlock_force(mp);
 
+    spinlock_lock(&mp->wait_lock);
+    assert(mp != NULL);
+    if (mp->count > 0)
+        MAGIC_BREAK;
+    if (mp->tid != gettid())
+        MAGIC_BREAK;
+    if (mp->count < 0) {
+        waiter_t *waiter;
+        linklist_remove_head(&mp->wait_list, (void**)&waiter, NULL);
+        waiter->reject = 1;
+        make_runnable_kern(waiter->tcb, false);
+    }
+    mp->tid = -1;
+    mp->count++;
+    spinlock_unlock(&mp->wait_lock);
 }
 

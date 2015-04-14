@@ -18,7 +18,8 @@
 #define PTE_GLOBAL 0x100
 
 #define KERNEL_FLAGS (PTE_PRESENT | PTE_RW | PTE_GLOBAL)
-#define USER_FLAGS (PTE_PRESENT | PTE_SU)
+#define USER_FLAGS_RO (PTE_PRESENT | PTE_SU)
+#define USER_FLAGS_RW (PTE_PRESENT | PTE_RW | PTE_SU)
 
 typedef unsigned pde_t;
 typedef unsigned pte_t;
@@ -35,14 +36,13 @@ void vm_clear();
 void vm_destroy();
 void vm_read_only();
 void vm_read_write(void *va);
-void vm_super();
+void vm_super(void *va);
+void vm_user(void *va);
 bool vm_check_flags(void *va, unsigned flags);
 bool vm_check_flags_len(void *base, int len, unsigned flags);
-bool vm_lock(void *va);
-bool vm_lock_len(void *base, int len);
-bool vm_lock_rw(void *va);
-bool vm_lock_len_rw(void *base, int len);
-int vm_lock_str(char *str);
+bool vm_lock(void *va, unsigned flags);
+bool vm_lock_len(void *base, int len, unsigned flags);
+int vm_lock_str(char *str, unsigned flags);
 void vm_unlock(void *va);
 void vm_unlock_len(void *base, int len);
 void vm_phys_write(unsigned pa, unsigned val);

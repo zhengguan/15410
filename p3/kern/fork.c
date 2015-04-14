@@ -55,16 +55,14 @@ int fork()
     old_tcb->esp0 = new_tcb->esp0;
     new_tcb->esp0 = cur_esp0;
 
-    //give the old thread back his stack that the new one stole
-    memcpy((void *)(old_tcb->esp0 - KERNEL_STACK_SIZE),
-           (void *)(new_tcb->esp0 - KERNEL_STACK_SIZE), KERNEL_STACK_SIZE);
-
-
     disable_interrupts();
     if (store_regs(&old_tcb->regs, cur_esp0)) { //new thread
+        //give the old thread back his stack that the new one stole
+        memcpy((void *)(old_tcb->esp0 - KERNEL_STACK_SIZE),
+               (void *)(new_tcb->esp0 - KERNEL_STACK_SIZE), KERNEL_STACK_SIZE);
         cur_tcb = new_tcb;
         set_cr3((unsigned)new_pcb->pd);
-        linklist_add_head(&scheduler_queue, (void *)new_tcb, &new_tcb->scheduler_listnode);
+        linklist_add_tail(&scheduler_queue, (void *)new_tcb, &new_tcb->scheduler_listnode);
         enable_interrupts();
         return 0;
     } else { //old thread
@@ -92,16 +90,17 @@ int thread_fork()
     old_tcb->esp0 = new_tcb->esp0;
     new_tcb->esp0 = cur_esp0;
 
-    //give the old thread back his stack that the new one stole
-    memcpy((void *)(old_tcb->esp0 - KERNEL_STACK_SIZE),
-           (void *)(new_tcb->esp0 - KERNEL_STACK_SIZE), KERNEL_STACK_SIZE);
-
     disable_interrupts();
     if (store_regs(&old_tcb->regs, cur_esp0)) { //new_thread
+        //give the old thread back his stack that the new one stole
+        memcpy((void *)(old_tcb->esp0 - KERNEL_STACK_SIZE),
+           (void *)(new_tcb->esp0 - KERNEL_STACK_SIZE), KERNEL_STACK_SIZE);
         cur_tcb = new_tcb;
 
-        linklist_add_head(&scheduler_queue, (void *)new_tcb, &new_tcb->scheduler_listnode);
+        linklist_add_tail(&scheduler_queue, (void *)new_tcb, &new_tcb->scheduler_listnode);
+
         enable_interrupts();
+
         return 0;
     } else { //old_thread
         pic_acknowledge_any_master();

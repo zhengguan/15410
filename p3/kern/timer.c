@@ -39,10 +39,12 @@ int timer_init()
  */
 void timer_handler()
 {
+	lprintf("Timer interrupt");
 	ticks++;
 	
 	scheduler_tick(ticks);
 	
+	lprintf("Acknowledge");
 	pic_acknowledge_any_master();
 }
 

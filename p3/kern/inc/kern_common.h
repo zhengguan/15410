@@ -32,6 +32,8 @@ typedef enum {
     true
 } bool;
 
+extern bool kernel_init;
+
 int str_arr_check(char *arr[], unsigned flags);
 int str_check(char *str, unsigned flags);
 int buf_check(char *buf);

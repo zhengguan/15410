@@ -97,6 +97,7 @@ void linklist_add_sorted(linklist_t *list, void *data, data_cmp_t cmp, listnode_
             node->next = new_node;
             return;
         }
+        node = node->next;
     }
     linklist_add_tail(list, data, new_node);
 }

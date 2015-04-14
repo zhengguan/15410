@@ -122,8 +122,9 @@ void memlock_unlock(memlock_t *memlock, void *ptr)
     mutex_lock(&channel->waiters_lock);
     if (--channel->waiters == 0) {
         hashtable_remove(&memlock->channel_ht, (int)ptr, NULL);
-        mutex_unlock(&channel->waiters_lock);
         free(channel);
+    } else {
+        mutex_unlock(&channel->waiters_lock);
     }
     mutex_unlock(&memlock->channel_lock);
 

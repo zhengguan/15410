@@ -75,7 +75,7 @@ int str_lock(char *str) {
         return -1;
     }
 
-    return vm_lock_str(str);
+    return vm_lock_str(str, USER_FLAGS_RO);
 }
 
 /** @brief Checks a user buffer for validity and locks the
@@ -91,7 +91,7 @@ int buf_lock(int len, char *buf)
         return -1;
     }
 
-    if (!vm_lock_len(buf, len)) {
+    if (!vm_lock_len(buf, len, USER_FLAGS_RO)) {
         return -2;
     }
 
@@ -112,7 +112,7 @@ int buf_lock_rw(int len, char *buf)
         return -1;
     }
 
-    if (!vm_lock_len_rw(buf, len)) {
+    if (!vm_lock_len(buf, len, USER_FLAGS_RW)) {
         return -2;
     }
 
@@ -132,7 +132,7 @@ int int_lock(int *n)
         return -1;
     }
 
-    if (!vm_lock(n)) {
+    if (!vm_lock(n, USER_FLAGS_RO)) {
         return -2;
     }
 
@@ -152,7 +152,7 @@ int int_lock_rw(int *n)
         return -1;
     }
 
-    if (!vm_lock_rw(n)) {
+    if (!vm_lock(n, USER_FLAGS_RW)) {
         return -2;
     }
 
