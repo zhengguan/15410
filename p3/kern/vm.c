@@ -306,6 +306,8 @@ void vm_remove_pte(pd_t pd, void *va) {
         mutex_unlock(&free_frames_mutex);
     }
 
+    flush_tlb_entry(va);
+
     if (is_pt_empty(pde)) {
         vm_remove_pt(pde);
     }
@@ -759,10 +761,6 @@ int remove_pages(void *base)
     }
 
     rwlock_unlock(&getpcb()->locks.remove_pages);
-
-    // for (va = (unsigned)base; va < (unsigned)base + len - 1; va += PAGE_SIZE) {
-    //     assert(!vm_check_flags((void *)va, PTE_PRESENT));
-    // }
 
     return 0;
 }
