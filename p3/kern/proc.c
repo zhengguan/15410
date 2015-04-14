@@ -271,9 +271,8 @@ int reap_pcb(pcb_t *pcb, int *status_ptr)
     if (status_ptr) {
         *status_ptr = pcb->status;
     }
-    
+
     assert(pcb->pid != getpid());
-    lprintf("reaping pcb: %p", pcb);
     if (pcb->pd)  {
         vm_destroy(pcb->pd);
     }

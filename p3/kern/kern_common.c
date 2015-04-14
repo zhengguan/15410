@@ -182,3 +182,19 @@ void int_unlock(int *n)
 
     vm_unlock(n);
 }
+
+
+unsigned control_eflags(unsigned efl)
+{
+    return efl & (
+      EFL_RESV1            /**< Reserved, Maintain 1 */
+    | EFL_RESV2            /**< Reserved, Maintain 0 */
+    | EFL_RESV3            /**< Reserved, Maintain 0 */
+    | EFL_TF               /**< Trap Flag (single step) */
+    | EFL_IF               /**< Interrupt Flag */
+    | EFL_DF               /**< Direction Flag */
+    | EFL_IOPL_RING3       /**< IO for all and sundry */
+    | EFL_NT               /**< Nested Task */
+    | EFL_RESV4            /**< Reserved, Maintain 0 */);
+
+}

@@ -170,16 +170,15 @@ void exception_handler(ureg_t ureg)
 
 int swexn(void *esp3, swexn_handler_t eip, void *arg, ureg_t *newureg)
 {
-    //check return ureg
-
     ureg_t newureg_kern;
     if (newureg) {
         if (buf_lock(sizeof(ureg_t), (char*)newureg) < 0)
             return -3;
+
         if (newureg->cs != SEGSEL_USER_CS ||
             newureg->ss != SEGSEL_USER_DS ||
-            newureg->eflags != USER_FLAGS)
-            return -3;
+            control_eflags(newureg->eflags) != USER_EFLAGS)
+            return -4;
         newureg_kern = *newureg;
         buf_unlock(sizeof(ureg_t), (char*)newureg);
     }
