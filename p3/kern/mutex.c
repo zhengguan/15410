@@ -58,9 +58,7 @@ void mutex_lock(mutex_t *mp)
 
     spinlock_lock(&mp->wait_lock);
     assert(mp != NULL);
-    if (mp->tid == gettid()) {
-        MAGIC_BREAK;
-    }
+    assert(mp->tid != gettid());
     if (mp->count <= 0) {
         linklist_add_tail(&mp->wait_list, (void*)&waiter, &node);
     } else {
@@ -87,10 +85,8 @@ void mutex_unlock(mutex_t *mp)
 
     spinlock_lock(&mp->wait_lock);
     assert(mp != NULL);
-    if (mp->count > 0)
-        MAGIC_BREAK;
-    if (mp->tid != gettid())
-        MAGIC_BREAK;
+    assert(mp->count <= 0);
+    assert(mp->tid == gettid());
     if (mp->count < 0) {
         waiter_t *waiter;
         linklist_remove_head(&mp->wait_list, (void**)&waiter, NULL);
