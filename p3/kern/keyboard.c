@@ -20,7 +20,6 @@
 #include <cond.h>
 #include <console.h>
 #include <vm.h>
-#include <simics.h>
 
 #define BUFFER_SIZE 512
 
@@ -115,11 +114,14 @@ int readline(int len, char *buf)
         while((c = readchar()) < 0) {
             cond_wait(&readchar_cond, NULL);
         }
-        putbyte(c);
 
         if (c == '\b') {
-            read_len--;
+            if (read_len > 0) {
+                putbyte(c);
+                read_len--;
+            }
         } else {
+            putbyte(c);
             tmp_buf[read_len] = c;
             read_len++;
             if (c == '\n') {

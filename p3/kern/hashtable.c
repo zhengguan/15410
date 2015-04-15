@@ -12,7 +12,6 @@
 #include <hashtable.h>
 #include <stdlib.h>
 #include <string.h>
-#include <simics.h>
 #include <proc.h>
 #include <assert.h>
 

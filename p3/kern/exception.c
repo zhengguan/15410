@@ -8,7 +8,6 @@
  */
 
 #include <exception.h>
-#include <simics.h>
 #include <vm.h>
 #include <common_kern.h>
 #include <stdlib.h>
@@ -118,7 +117,7 @@ static int call_user_handler(ureg_t *ureg)
 
     jmp_user(eip, esp);
 
-    panic("returned from user handler");
+    panic("Returned from swexn handler");
     return -4;
 }
 
@@ -131,7 +130,7 @@ static int call_user_handler(ureg_t *ureg)
 void exception_handler(ureg_t ureg)
 {
     if ((ureg.cs & 3) == 0) {
-        panic("kernel mode exception %u", ureg.cause);
+        panic("Kernel mode exception %u", ureg.cause);
     }
 
     enable_interrupts();

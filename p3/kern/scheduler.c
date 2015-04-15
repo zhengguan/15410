@@ -10,7 +10,6 @@
 #include <context_switch.h>
 #include <proc.h>
 #include <syscall.h>
-#include <simics.h>
 #include <scheduler.h>
 #include <asm.h>
 #include <cr.h>
@@ -19,6 +18,8 @@
 #include <vm.h>
 #include <assert.h>
 #include <asm_common.h>
+
+#define MAX_NUM_WOKEN 10
 
 linklist_t scheduler_queue;
 linklist_t sleep_queue;
@@ -90,14 +91,17 @@ int scheduler_init()
 void scheduler_tick(unsigned ticks)
 {
     disable_interrupts();
+
     // Wake sleeping threads
     sleep_info_t *sleep_info;
-    //FIXME: ta's dislike unbounded times in handlers. maybe max to awaken at a time?
-    while ((linklist_peek_head(&sleep_queue, (void **)&sleep_info) == 0) &&
-                                        sleep_info->wake_ticks <= ticks) {
+    int num_woken = 0;
+    while ((num_woken < MAX_NUM_WOKEN &&
+           linklist_peek_head(&sleep_queue, (void **)&sleep_info) == 0) &&
+           sleep_info->wake_ticks <= ticks) {
         sleep_info->tcb->sleep_flag = 1;
         make_runnable_kern(sleep_info->tcb, false);
         assert (linklist_remove_head(&sleep_queue, NULL, NULL) == 0);
+        num_woken++;
     }
 
     tcb_t *tcb;
@@ -119,7 +123,6 @@ void scheduler_tick(unsigned ticks)
 int context_switch(tcb_t *new_tcb)
 {
     if (new_tcb == NULL) {
-        MAGIC_BREAK;
         return -1;
     }
 
@@ -169,9 +172,6 @@ int yield(int tid)
     pic_acknowledge_any_master();
     return 0;
 }
-
-// TODO Add atomicity with make runnable, use either a spinlock or disable interrupts
-
 
 /** @brief Deschedules the calling thread.
  *
@@ -263,11 +263,6 @@ int make_runnable_kern(tcb_t *tcb, bool user)
     if (user && !tcb->user_descheduled) {
         enable_interrupts();
         return -2;
-    }
-
-    if ((unsigned)tcb >= USER_MEM_START) {
-        lprintf("%p", tcb);
-        MAGIC_BREAK;
     }
 
     linklist_add_head(&scheduler_queue, (void*)tcb, &tcb->scheduler_listnode);

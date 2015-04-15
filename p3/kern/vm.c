@@ -18,7 +18,6 @@
 #include <syscall.h>
 #include <common_kern.h>
 #include <hashtable.h>
-#include <simics.h>
 #include <string.h>
 #include <kern_common.h>
 #include <mutex.h>
@@ -99,8 +98,6 @@ static int get_frame(unsigned *frame)
  */
 static void vm_set_phys_pte(unsigned pa)
 {
-    if (pa == 0xC0000000)
-        MAGIC_BREAK;
     assert(vm_new_pte(GET_PD(), (void *)PHYS_VA, pa, PTE_PRESENT | PTE_RW) == 0);
     flush_tlb_entry((void*)PHYS_VA);
 }

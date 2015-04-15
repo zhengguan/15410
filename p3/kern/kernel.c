@@ -31,7 +31,6 @@
 #include <scheduler.h>
 
 #include <loader.h>
-#include <simics.h>
 #include <asm_common.h>
 #include <seg.h>
 #include <exception.h>
@@ -63,24 +62,24 @@ typedef struct {
 int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
 {
     if (malloc_init() < 0) {
-        panic("failed to init malloc");
+        panic("Failed to init malloc");
     }
 
     if (scheduler_init() < 0) {
-        panic("failed to init scheduler");
+        panic("Failed to init scheduler");
     }
 
     if (idt_init() < 0) {
-        panic("failed to init idt");
+        panic("Failed to init idt");
     }
 
     if (vm_init() < 0) {
-        panic("failed to init vm");
+        panic("Failed to init vm");
     }
     set_cr0(KERNEL_CR0);
 
     if (proc_init() < 0) {
-        panic("failed to init proc");
+        panic("Failed to init proc");
     }
 
     clear_console();
@@ -90,13 +89,13 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
     /* Setup idle */
     pcb_t *idle_pcb;
     if (proc_new_process(&idle_pcb, &idle_tcb) < 0) {
-        panic("failed to create idle");
+        panic("Failed to create idle");
     }
     cur_tcb = idle_tcb;
 
     //Create a new page directory
     if (vm_new_pd(&idle_pcb->pd) < 0) {
-        panic("vm_new_pd failed");
+        panic("Failed to create page directory");
     }
 
     set_cr3((unsigned)idle_pcb->pd);
@@ -105,7 +104,7 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
     unsigned idle_eip, idle_esp;
     char *idle_arg[] = IDLE_ARG;
     if (load(IDLE_NAME, idle_arg, &idle_eip, &idle_esp) < 0) {
-        panic("idle load fails");
+        panic("Failed to load idle");
     }
 
     iret_args_t *idle_wrap_esp = (iret_args_t*)(idle_tcb->esp0 -
@@ -130,12 +129,12 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
     tcb_t *tr_tcb;
     pcb_t *tr_pcb;
     if (proc_new_process(&tr_pcb, &tr_tcb) < 0) {
-        panic("failed to create thread reaper");
+        panic("Failed to create thread reaper");
     }
 
     //Create a new page directory
     if (vm_new_pd(&tr_pcb->pd) < 0) {
-        panic("vm_new_pd failed");
+        panic("Failed to create page directory");
     }
 
     set_cr3((unsigned)tr_pcb->pd);
@@ -153,7 +152,7 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
     /* Setup init */
     tcb_t *init_tcb;
     if (proc_new_process(&init_pcb, &init_tcb) < 0) {
-        panic("failed to create init");
+        panic("Failed to create init");
     }
     init_pcb->pd = init_pd;
     set_cr3((unsigned)init_pd);
@@ -161,7 +160,7 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
     unsigned init_eip, init_esp;
     char *init_arg[] = INIT_ARG;
     if (load(INIT_NAME, init_arg, &init_eip, &init_esp) < 0) {
-        panic("init load fails");
+        panic("Failed to load init");
     }
 
     set_esp0(init_tcb->esp0);

@@ -7,8 +7,6 @@
  */
 #include <scheduler.h>
 #include <proc.h>
-#include <simics.h>
-#include <proc.h>
 #include <syscall.h>
 #include <context_switch.h>
 #include <asm.h>

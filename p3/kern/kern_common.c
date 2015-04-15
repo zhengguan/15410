@@ -9,7 +9,6 @@
 #include <kern_common.h>
 #include <vm.h>
 #include <stdlib.h>
-#include <simics.h>
 #include <memlock.h>
 #include <proc.h>
 

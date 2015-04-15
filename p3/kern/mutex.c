@@ -12,7 +12,6 @@
 #include <linklist.h>
 #include <waiter.h>
 #include <scheduler.h>
-#include <simics.h>
 #include <proc.h>
 #include <assert.h>
 #include <asm_common.h>
@@ -61,8 +60,6 @@ void mutex_lock(mutex_t *mp)
     assert(mp != NULL);
     assert(mp->tid != gettid());
     if (mp->count <= 0) {
-        if ((unsigned)waiter.tcb > USER_MEM_START)
-            MAGIC_BREAK;
         linklist_add_tail(&mp->wait_list, (void*)&waiter, &node);
     } else {
         /* Immedietly got lock */
@@ -100,10 +97,6 @@ void mutex_unlock(mutex_t *mp)
         waiter_t *waiter;
         linklist_remove_head(&mp->wait_list, (void**)&waiter, NULL);
         waiter->reject = 1;
-        if ((unsigned)waiter->tcb > USER_MEM_START) {
-            lprintf("mutex %p", mp);
-            MAGIC_BREAK;
-        }
         make_runnable_kern(waiter->tcb, false);
     }
     mp->tid = -1;
