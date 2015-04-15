@@ -18,6 +18,7 @@
 #include <scheduler.h>
 #include <kern_common.h>
 #include <simics.h>
+#include <assert.h>
 
 typedef struct {
     rwlock_t lock;
@@ -88,7 +89,7 @@ int memlock_lock(memlock_t *memlock, void *ptr, memlock_type type)
             break;
         }
 
-        case MEMLOCK_DESTROY: {
+        case MEMLOCK_MODIFY: {
             rwlock_lock(&channel->lock, RWLOCK_WRITE);
             break;
         }
@@ -128,4 +129,15 @@ void memlock_unlock(memlock_t *memlock, void *ptr)
     }
     mutex_unlock(&memlock->channel_lock);
 
+}
+
+/**
+ * @brief Destroys a memlock.
+ * @details The memlock must not be waited on when destroyed.
+ *
+ * @param memlock The memlock.
+ */
+void memlock_destroy(memlock_t *memlock) {
+    assert(memlock->channel_ht.nodes != NULL);
+    hashtable_destroy(&memlock->channel_ht);
 }

@@ -24,9 +24,10 @@
 #include <malloc_wrappers.h>
 #include <asm_common.h>
 
-#define TCB_HT_SIZE 128
 
+#define TCB_HT_SIZE 128
 #define MEMLOCK_SIZE 128
+#define ALLOC_PAGES_HASHTABLE_SIZE 128
 
 #define FIRST_TID 1
 
@@ -63,8 +64,8 @@ static bool ident(void *tcb0, void *tcb1)
  */
 static int init_locks(locks_t *locks) {
     // Initialize memlock last to prevent memory leaks from hashtable_init
-    if ((mutex_init(&locks->new_pages) < 0) ||
-        (rwlock_init(&locks->remove_pages) < 0) ||
+    if ((mutex_init(&locks->vm_lock) < 0) ||
+        (mutex_init(&locks->alloc_pages_lock) < 0) ||
         (memlock_init(&locks->memlock, MEMLOCK_SIZE) < 0)) {
         return -1;
     }
@@ -130,6 +131,10 @@ int proc_new_process(pcb_t **pcb_out, tcb_t **tcb_out) {
         return -5;
     }
 
+    if (hashtable_init(&pcb->alloc_pages, ALLOC_PAGES_HASHTABLE_SIZE) < 0) {
+        return -5;
+    }
+
     if (init_locks(&pcb->locks) < 0) {
         return -6;
     }
@@ -138,6 +143,7 @@ int proc_new_process(pcb_t **pcb_out, tcb_t **tcb_out) {
     pcb->status = 0;
     pcb->num_threads = 0;
     pcb->num_children = 0;
+    pcb->pd = NULL;
 
     int tid = proc_new_thread(pcb, tcb_out);
     if (tid < 0) {
@@ -188,8 +194,14 @@ int proc_new_thread(pcb_t *pcb, tcb_t **tcb_out) {
     }
 
     rwlock_lock(&tcbs_lock, RWLOCK_WRITE);
-    hashtable_add(&tcbs, tcb->tid, (void*)tcb);
+    int hashadd = hashtable_add(&tcbs, tcb->tid, (void*)tcb);
     rwlock_unlock(&tcbs_lock);
+
+    if (hashadd < 0) {
+        free(tcb);
+        free(esp0);
+        return -3;
+    }
 
     return tcb->tid;
 }
@@ -267,16 +279,18 @@ void set_status(int status)
  */
 int reap_pcb(pcb_t *pcb, int *status_ptr)
 {
+    assert(pcb->pid != getpid());
     int pid = pcb->pid;
     if (status_ptr) {
         *status_ptr = pcb->status;
     }
 
-    assert(pcb->pid != getpid());
-    if (pcb->pd)  {
+    if (pcb->pd) {
         vm_destroy(pcb->pd);
     }
 
+    hashtable_destroy(&pcb->alloc_pages);
+    memlock_destroy(&pcb->locks.memlock);
     free(pcb);
     return pid;
 }
@@ -286,7 +300,7 @@ int reap_pcb(pcb_t *pcb, int *status_ptr)
  *  @param tcb The TCB of the thread to reap.
  *  @return Void.
  */
-static void reap_tcb(tcb_t *tcb)
+void reap_tcb(tcb_t *tcb)
 {
     rwlock_lock(&tcbs_lock, RWLOCK_WRITE);
     hashtable_remove(&tcbs, tcb->tid, NULL);
@@ -352,8 +366,9 @@ void vanish()
     tcb_t *tcb = gettcb();
     pcb_t *pcb = getpcb();
     deregister_swexn_handler(gettcb());
-    if (pcb->num_threads == 1)
+    if (pcb->num_threads == 1) {
         vm_clear();
+    }
 
     //Tell children their father died :(
     pcb_t *child;
@@ -442,7 +457,6 @@ int wait(int *status_ptr)
     }
 
     mutex_unlock(&pcb->proc_mutex);
-
     return reap_pcb(dead_pcb, status_ptr);
 }
 

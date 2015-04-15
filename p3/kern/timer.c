@@ -29,7 +29,7 @@ int timer_init()
 	outb(TIMER_MODE_IO_PORT, TIMER_SQUARE_WAVE);
 	outb(TIMER_PERIOD_IO_PORT, CYCLES_BTW_INTER & 0xFF);
 	outb(TIMER_PERIOD_IO_PORT, (CYCLES_BTW_INTER >> 8) & 0xFF);
-	
+
 	return 0;
 }
 
@@ -39,12 +39,10 @@ int timer_init()
  */
 void timer_handler()
 {
-	lprintf("Timer interrupt");
 	ticks++;
-	
+
 	scheduler_tick(ticks);
-	
-	lprintf("Acknowledge");
+
 	pic_acknowledge_any_master();
 }
 

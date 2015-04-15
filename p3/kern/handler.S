@@ -53,21 +53,21 @@ thread_fork_int:
 .globl exec_int
 exec_int:
     call    set_kernel_segs     # set kernel data segments
-    subl    $4, %esp            # allocate space for return value
+    subl    $12, %esp           # allocate space for return value and args
     pushl   %esi                # push esi
     pushl   $8                  # push total arg length
     call    buf_lock            # lock esi
     test    %eax, %eax          # check if lock succeeded
     js      exec_esi_fail       # jump if failed
-    pushl   4(%esi)             # push the args
-    pushl   (%esi)              # push the filename
-    call    exec                # call exec
-    addl    $8, %esp            # remove args from stack
-    mov     %eax, 8(%esp)       # store return value
+    mov     4(%esi), %eax       # push the args
+    mov     %eax, 12(%esp)
+    mov     (%esi), %eax        # push the filename
+    mov     %eax, 8(%esp)
     call    buf_unlock          # unlock esi
-    mov     8(%esp), %eax       # restore return value
+    addl    $8, %esp            # remove args from stack
+    call    exec                # call exec
 exec_esi_fail:
-    addl    $12, %esp           # remove esi, arg len, and ret from stack
+    addl    $12, %esp           # remove args, filename, and ret from stack
     push    %eax                # save return value
     call    set_user_segs       # set user data segments
     pop     %eax                # restore return value

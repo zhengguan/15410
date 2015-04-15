@@ -190,12 +190,12 @@ int swexn(void *esp3, swexn_handler_t eip, void *arg, ureg_t *newureg)
         deregister_swexn_handler(tcb);
     } else {
         //Check vm present for user's sake. No locks needed.
-        if ((unsigned)eip < USER_MEM_START || !vm_check_flags(eip, USER_FLAGS_RO)) {
+        if ((unsigned)eip < USER_MEM_START || !vm_check_flags(getpcb()->pd, eip, USER_FLAGS_RO, 0)) {
             return -1;
         }
         if ((unsigned)esp3 < USER_MEM_START ||
-            !vm_check_flags_len((void*)((unsigned)esp3-sizeof(handler_args_t)),
-                                                      sizeof(handler_args_t), USER_FLAGS_RW)) {
+            !vm_check_flags_len(getpcb()->pd, (void*)((unsigned)esp3-sizeof(handler_args_t)),
+                                                      sizeof(handler_args_t), USER_FLAGS_RW, 0)) {
             return -2;
         }
 

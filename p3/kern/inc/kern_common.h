@@ -34,8 +34,8 @@ typedef enum {
 
 extern bool kernel_init;
 
-int str_arr_check(char *arr[], unsigned flags);
-int str_check(char *str, unsigned flags);
+int str_arr_check(char *arr[], unsigned reqflags, unsigned badflags);
+int str_check(char *str, unsigned reqflags, unsigned badflags);
 int buf_check(char *buf);
 int str_lock(char *str);
 int buf_lock(int len, char *buf);

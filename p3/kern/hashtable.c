@@ -14,6 +14,7 @@
 #include <string.h>
 #include <simics.h>
 #include <proc.h>
+#include <assert.h>
 
 struct hashnode {
     int key;
@@ -68,15 +69,15 @@ int hashtable_init(hashtable_t *table, int size)
  *  @param data The data.
  *  @return Void.
  */
-void hashtable_add(hashtable_t *table, int key, void *data)
+int hashtable_add(hashtable_t *table, int key, void *data)
 {
     if (table == NULL) {
-        return;
+        return -1;
     }
 
     hashnode_t *addnode = (hashnode_t *)malloc(sizeof(hashnode_t));
     if (addnode == NULL) {
-        lprintf("Malloc fail");
+        return -2;
     }
     addnode->key = key;
     addnode->data = data;
@@ -95,7 +96,7 @@ void hashtable_add(hashtable_t *table, int key, void *data)
         node->next = addnode;
     }
 
-    // lprintf("Add (%d) %p[%d]: %p - %d", mt_mode ? getpid() : 0, table, idx, addnode, addnode->key);
+    return 0;
 }
 
 /** @brief Gets data from a hash table.
@@ -170,4 +171,70 @@ int hashtable_remove(hashtable_t *table, int key, void **data)
     }
 
     return -2;
+}
+
+/**
+ * @brief Destroys a hashtable.
+ * Everything currently in the hashtable is lost.
+ *
+ * @param ht The table to destroy.
+ */
+void hashtable_destroy(hashtable_t *ht)
+{
+    int i;
+    for (i = 0; i < ht->size; i++) {
+        hashnode_t *node = ht->nodes[i];
+        while (node != NULL) {
+            hashnode_t *next = node->next;
+            free(node);
+            node = next;
+        }
+    }
+    free(ht->nodes);
+    ht->nodes = NULL;
+    ht->size = 0;
+}
+
+/**
+ * @brief Copies all elements in the hashtable.
+ * @param oldht The hashtable to copy from.
+ * @param newht The hashtable to copy to.
+ *
+ * @return Zero on success or a negative error code on failure.
+ */
+int hashtable_copy(hashtable_t *oldht, hashtable_t *newht)
+{
+    assert(oldht != NULL && newht != NULL);
+    assert(oldht != newht);
+    assert(newht->size == oldht->size);
+    int i;
+    for (i = 0; i < oldht->size; i++) {
+        hashnode_t *oldnode = oldht->nodes[i];
+        if (oldnode == NULL)
+            continue;
+        else {
+            hashnode_t *newnode = malloc(sizeof(hashnode_t));
+            if (newnode == NULL) {
+                hashtable_destroy(newht);
+                return -1;
+            }
+            newnode->key = oldht->nodes[i]->key;
+            newnode->data = oldht->nodes[i]->data;
+            newht->nodes[i] = newnode;
+
+            while (oldnode->next != NULL) {
+                newnode->next = malloc(sizeof(hashnode_t));
+                if (newnode->next == NULL) {
+                    hashtable_destroy(newht);
+                    return -1;
+                }
+                newnode = newnode->next;
+                oldnode = oldnode->next;
+                newnode->key = oldnode->key;
+                newnode->data = oldnode->data;
+            }
+            newnode->next = NULL;
+        }
+    }
+    return 0;
 }

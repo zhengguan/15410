@@ -20,12 +20,13 @@ typedef struct memlock {
 
 typedef enum {
 	MEMLOCK_ACCESS,
-	MEMLOCK_DESTROY
+	MEMLOCK_MODIFY
 } memlock_type;
 
 /* Memlock functions */
 int memlock_init(memlock_t *memlock, int size);
 int memlock_lock(memlock_t *memlock, void *ptr, memlock_type type);
 void memlock_unlock(memlock_t *memlock, void *ptr);
+void memlock_destroy(memlock_t *memlock);
 
 #endif /* _MEMLOCK_H */

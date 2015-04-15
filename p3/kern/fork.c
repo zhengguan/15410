@@ -27,20 +27,22 @@ int fork()
     if (old_pcb->num_threads > 1) //reject if multithreaded
         return -1;
 
-    //copy the vm
-    pd_t new_pd;
-    if (vm_copy(&new_pd) < 0) {
-        return -2;
-    }
-
     //make new pcbs and tcbs
     tcb_t *new_tcb;
     pcb_t *new_pcb;
     int new_tid;
     if ( (new_tid = proc_new_process(&new_pcb, &new_tcb)) < 0) {
-        vm_destroy(new_pd);
         return -3;
     }
+
+    //copy the vm
+    pd_t new_pd;
+    if (vm_copy(&new_pd, &new_pcb->alloc_pages) < 0) {
+        reap_pcb(new_pcb, NULL);
+        reap_tcb(new_tcb);
+        return -2;
+    }
+
 
     old_pcb->num_children++;
     linklist_add_head(&old_pcb->children, new_pcb, &new_pcb->pcb_listnode);

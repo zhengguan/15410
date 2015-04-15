@@ -106,7 +106,6 @@ void scheduler_tick(unsigned ticks)
         return;
     }
     assert((unsigned)tcb < USER_MEM_START);
-    // //lprintf("scheduler tick got %p", tcb);
     assert(context_switch(tcb) == 0);
 }
 
@@ -119,20 +118,17 @@ void scheduler_tick(unsigned ticks)
  */
 int context_switch(tcb_t *new_tcb)
 {
-    if (new_tcb == NULL)
+    if (new_tcb == NULL) {
+        MAGIC_BREAK;
         return -1;
+    }
 
     tcb_t *old_tcb = gettcb();
     if (new_tcb->tid == old_tcb->tid) {
         return 0;
     }
 
-    if (new_tcb->regs.eip == 0x28d2e8) {
-        MAGIC_BREAK;
-    }
-
     disable_interrupts();
-    lprintf("New(%d): %p  Old(%d): %p", new_tcb->tid, (void *)new_tcb->regs.cr3, old_tcb->tid, (void *)old_tcb->regs.cr3);
     if (store_regs(&old_tcb->regs, old_tcb->esp0)) {
         cur_tcb = new_tcb;
         set_esp0(new_tcb->esp0);
@@ -268,7 +264,11 @@ int make_runnable_kern(tcb_t *tcb, bool user)
         enable_interrupts();
         return -2;
     }
-    assert((unsigned)tcb < USER_MEM_START);
+
+    if ((unsigned)tcb >= USER_MEM_START) {
+        lprintf("%p", tcb);
+        MAGIC_BREAK;
+    }
 
     linklist_add_head(&scheduler_queue, (void*)tcb, &tcb->scheduler_listnode);
     if (in)

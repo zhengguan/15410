@@ -117,7 +117,7 @@ static int alloc_pages(unsigned start, unsigned len, bool readonly)
 {
     unsigned base;
     for (base = ROUND_DOWN_PAGE(start); base < start + len; base += PAGE_SIZE) {
-        if (!vm_check_flags((void *)base, PTE_PRESENT)) {
+        if (!vm_check_flags((void*)get_cr3(), (void *)base, PTE_PRESENT, 0)) {
             if (new_pages((void *)base, PAGE_SIZE) < 0) {
                 return -1;
             }
@@ -312,9 +312,9 @@ int exec(char *filename, char *argv[])
     }
 
     int len;
-    if ( (len = str_check(filename, USER_FLAGS_RO)) < 0)
+    if ( (len = str_check(filename, USER_FLAGS_RO, 0)) < 0)
         return -2;
-    if (str_arr_check(argv, USER_FLAGS_RO) < 0)
+    if (str_arr_check(argv, USER_FLAGS_RO, 0) < 0)
         return -3;
 
     char *new_filename;

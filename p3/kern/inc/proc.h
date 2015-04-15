@@ -21,9 +21,9 @@
 
 /* Process specific locks */
 typedef struct locks {
-    mutex_t new_pages;
-    rwlock_t remove_pages;
+    mutex_t vm_lock;
     memlock_t memlock;
+    mutex_t alloc_pages_lock;
 } locks_t;
 
 /* Register struct for context switching */
@@ -62,6 +62,7 @@ typedef struct pcb {
     mutex_t proc_mutex;
     linklist_t vanished_procs;
     listnode_t pcb_listnode;
+    hashtable_t alloc_pages;
 } pcb_t;
 
 /* Thread control block */
@@ -90,6 +91,8 @@ pcb_t *getpcb();
 tcb_t *lookup_tcb(int tid);
 void proc_kill_thread(const char *fmt, ...) NORETURN;
 int reap_pcb(pcb_t *pcb, int *status_ptr);
+void reap_tcb(tcb_t *tcb);
+
 
 void thread_reaper() NORETURN;
 

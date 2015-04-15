@@ -10,6 +10,8 @@
 #include <vm.h>
 #include <stdlib.h>
 #include <simics.h>
+#include <memlock.h>
+#include <proc.h>
 
 /**
  * @brief Check a null terminated user string array for validity.
@@ -18,18 +20,18 @@
  * @return The number of elements in the array if valid,
  * a negative error code if invalid.
  */
-int str_arr_check(char *arr[], unsigned flags)
+int str_arr_check(char *arr[], unsigned reqflags, unsigned badflags)
 {
     if ((unsigned)arr < USER_MEM_START) {
         return -1;
     }
 
     int len = 0;
-    while (vm_check_flags_len(arr + len, sizeof(char *), flags)) {
+    while (vm_check_flags_len(getpcb()->pd, arr + len, sizeof(char *), reqflags, badflags)) {
         if (arr[len] == NULL) {
             return len;
         }
-        if (str_check(arr[len], flags) < 0) {
+        if (str_check(arr[len], reqflags, badflags) < 0) {
             return -2;
         }
         len++;
@@ -45,14 +47,15 @@ int str_arr_check(char *arr[], unsigned flags)
  * @return The length of the string if valid, negative error code if
  * invalid.
  */
-int str_check(char *str, unsigned flags)
+int str_check(char *str, unsigned reqflags, unsigned badflags)
 {
     if ((unsigned)str < USER_MEM_START) {
         return -1;
     }
 
+    //FIXME: overflowing over top of mem
     int len = 0;
-    while (vm_check_flags(str + len, flags)) {
+    while (vm_check_flags(getpcb()->pd, str + len, reqflags, badflags)) {
         if (str[len] == '\0') {
             return len;
         }
@@ -75,7 +78,7 @@ int str_lock(char *str) {
         return -1;
     }
 
-    return vm_lock_str(str, USER_FLAGS_RO);
+    return vm_lock_str(str, USER_FLAGS_RO, 0, MEMLOCK_ACCESS);
 }
 
 /** @brief Checks a user buffer for validity and locks the
@@ -91,7 +94,7 @@ int buf_lock(int len, char *buf)
         return -1;
     }
 
-    if (!vm_lock_len(buf, len, USER_FLAGS_RO)) {
+    if (!vm_lock_len(buf, len, USER_FLAGS_RO, 0, MEMLOCK_ACCESS)) {
         return -2;
     }
 
@@ -112,7 +115,7 @@ int buf_lock_rw(int len, char *buf)
         return -1;
     }
 
-    if (!vm_lock_len(buf, len, USER_FLAGS_RW)) {
+    if (!vm_lock_len(buf, len, USER_FLAGS_RW, 0, MEMLOCK_ACCESS)) {
         return -2;
     }
 
@@ -132,7 +135,7 @@ int int_lock(int *n)
         return -1;
     }
 
-    if (!vm_lock(n, USER_FLAGS_RO)) {
+    if (!vm_lock_len(n, sizeof(int), USER_FLAGS_RO, 0, MEMLOCK_ACCESS)) {
         return -2;
     }
 
@@ -142,7 +145,7 @@ int int_lock(int *n)
 /** @brief Checks a user integer pointer for validity and locks the
  *  virtual memory address for read-write access.
  *
- *  @param n The interger pointer.
+ *  @param n The integer pointer.
  *  @return 0 on success, negative error code if invalid.
  */
 int int_lock_rw(int *n)
@@ -152,10 +155,9 @@ int int_lock_rw(int *n)
         return -1;
     }
 
-    if (!vm_lock(n, USER_FLAGS_RW)) {
+    if (!vm_lock_len(n, sizeof(int), USER_FLAGS_RW, 0, MEMLOCK_ACCESS)) {
         return -2;
     }
-
     return 0;
 }
 
@@ -180,7 +182,7 @@ void buf_unlock(int len, char *buf)
 void int_unlock(int *n)
 {
 
-    vm_unlock(n);
+    vm_unlock_len(n, sizeof(int));
 }
 
 
