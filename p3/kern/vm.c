@@ -98,7 +98,7 @@ static int get_frame(unsigned *frame)
  */
 static void vm_set_phys_pte(unsigned pa)
 {
-    assert(vm_new_pte(GET_PD(), (void *)PHYS_VA, pa, PTE_PRESENT | PTE_RW) == 0);
+    assert(vm_new_pte(GET_PD(),(void *)PHYS_VA, pa, PTE_PRESENT | PTE_RW) == 0);
     flush_tlb_entry((void*)PHYS_VA);
 }
 
@@ -281,6 +281,7 @@ void vm_remove_pt(pde_t *pde) {
  *  the list of free frames, and removes the page table and page directory
  *  entry if necessary.
  *
+ *  @param pd The page directory to remove the pd from.
  *  @param va The virtual address.
  *  @return Void.
  */
@@ -313,6 +314,10 @@ void vm_remove_pte(pd_t pd, void *va) {
  *
  *  Create a new page directory and iterate over the address space and copy all
  *  present page table entries into the new page directory.
+ *
+ *  @param new_pd A pointer to memory to store the new pd.
+ *  @param new_alloc_pages A pointer to the hashtable that stores the new
+ *  alloc pages lengths.
  *
  *  @return 0 on success, negative error code otherwise.
  */
@@ -400,6 +405,8 @@ void vm_clear() {
  *
  *  Removes a page directory. Must call vm_clear() before this call.
  *
+ *  @param pd The page table to remove.
+ *
  *  @return Void.
  */
 void vm_destroy(pd_t pd) {
@@ -459,8 +466,10 @@ void vm_user(void *va) {
 /** @brief Checks if flags are set for a virtual memory address.
  *
  * @param va The virtual address of which to check the flags.
- * @param flags The flags.
- * @return True if all given flags are set and false otherwise.
+ * @param reqflags The required flags.
+ * @param badflags The bad flags
+ * @return True if all given reqflags are set and none of the badflags
+ * and false otherwise.
  */
 bool vm_check_flags(pd_t pd, void *va, unsigned reqflags, unsigned badflags)
 {
@@ -477,14 +486,16 @@ bool vm_check_flags(pd_t pd, void *va, unsigned reqflags, unsigned badflags)
 /**
  * @brief Checks the flags of a virtual address.
  * @details Ensures the flags of the page table entry
- * are at least the given flags.
+ * are at least the given reqflags and none of the badflags.
  *
  * @param base The base of the virtual memory of which to check the flags.
  * @param len The length of memory to check.
- * @param flags The flags.
- * @return True if all given flags are set and false otherwise.
+ * @param reqflags The required flags
+ * @param badflags The bad flags.
+ * @return True if flags are correct and false otherwise.
  */
-bool vm_check_flags_len(pd_t pd, void *base, int len, unsigned reqflags, unsigned badflags)
+bool vm_check_flags_len(pd_t pd, void *base, int len, unsigned reqflags,
+    unsigned badflags)
 {
     unsigned va = (unsigned)base;
 
@@ -503,14 +514,16 @@ bool vm_check_flags_len(pd_t pd, void *base, int len, unsigned reqflags, unsigne
 
 /**
  * @brief Locks an address and checks its flags.
- * @details Once locked, the page cannot be removed until it is unlocked.
- * Multiple readers can hold the lock at once.
- * If the address is not of user privilege level or present
- * then the page is not locked.
+ * @details Once locked, the page cannot be modified until it is unlocked.
+ * Multiple readers with access MEMLOCK_ACCESS can hold the lock at once.
+ * Only one with access MEMLOCK_MODIFY can hold the lock.
+ * If the flags are not correct the page is not locked.
  *
  * @param va The virtual address to lock.
- * @return A boolean indicating whether the address is present and
- * has user privilege level.
+ * @param reqflags The required flags.
+ * @param badflags The bad flags.
+ * @param access The access level.
+ * @return A boolean indicating whether the flags are correct.
  */
 bool vm_lock(void *va, unsigned reqflags, unsigned badflags, unsigned access) {
     va = (void*)ROUND_DOWN_PAGE((unsigned)va);
@@ -525,24 +538,28 @@ bool vm_lock(void *va, unsigned reqflags, unsigned badflags, unsigned access) {
 }
 
 /**
- * @brief Locks a length of virtual memory and checks its flags.
- * @details Once locked, no pages can be removed until unlocked.
- * Multiple readers can hold the lock at once.
- * If any of the addresses are not present or not of user privilege level,
- * then no page is locked.
+ * @brief Locks a length of memory and checks its flags.
+ * @details Once locked, the page cannot be modified until it is unlocked.
+ * Multiple readers with access MEMLOCK_ACCESS can hold the lock at once.
+ * Only one with access MEMLOCK_MODIFY can hold the lock.
+ * If the flags are not correct the mem is not locked.
  *
- * @param base The lowest virtual address to lock.
- * @param len The length of memory to lock.
- * @return A boolean indicating whether the whole memory length is present
- * and has user privilege level.
+ * @param base The base of the addresses to lock.
+ * @param len The length to lock.
+ * @param reqflags The required flags.
+ * @param badflags The bad flags.
+ * @param access The access level.
+ * @return A boolean indicating whether the flags are correct.
  */
- bool vm_lock_len(void *base, int len, unsigned reqflags, unsigned badflags, unsigned access) {
+ bool vm_lock_len(void *base, int len, unsigned reqflags,
+    unsigned badflags, unsigned access) {
     mutex_lock(&getpcb()->locks.vm_lock);
 
     bool valid = vm_check_flags_len(GET_PD(), base, len, reqflags, badflags);
     if (valid) {
         unsigned va;
-        for (va = ROUND_DOWN_PAGE((unsigned)base);  va < (unsigned)base + len - 1; va += PAGE_SIZE) {
+        for (va = ROUND_DOWN_PAGE((unsigned)base);
+                va < (unsigned)base + len - 1; va += PAGE_SIZE) {
             memlock_lock(&getpcb()->locks.memlock, (void *)va, access);
         }
     }
@@ -552,22 +569,27 @@ bool vm_lock(void *va, unsigned reqflags, unsigned badflags, unsigned access) {
 }
 
 /**
- * @brief Locks a string in memory and checks its privilege level and length.
- * @details Once locked, no pages can be removed until unlocked.
- * Multiple readers can hold the lock at once.
- * If any of the addresses are not present or not of user privilege level
- * before a nul terminator is found, no memory is locked.
+ * @brief Locks a string and checks its flags.
+ * @details Once locked, the string's pages cannot be modified
+ * until it is unlocked.
+ * Multiple readers with access MEMLOCK_ACCESS can hold the lock at once.
+ * Only one with access MEMLOCK_MODIFY can hold the lock.
+ * If the flags are not correct the string is not locked.
  *
- * @param str The string to lock.
- * @return The length of the string or a negative error code if the string
- * is not present, or not of user privilege level.
+ * @param va The string to lock.
+ * @param reqflags The required flags.
+ * @param badflags The bad flags.
+ * @param access The access level.
+ * @return The length of the string on success or 0 on failure.
  */
-int vm_lock_str(char *str, unsigned reqflags, unsigned badflags, unsigned access) {
+int vm_lock_str(char *str, unsigned reqflags, unsigned badflags,
+    unsigned access) {
     mutex_lock(&getpcb()->locks.vm_lock);
     int len = str_check(str, reqflags, badflags);
     if (len >= 0) {
         unsigned va;
-        for (va = (unsigned)str;  va < (unsigned)str + len - 1; va += PAGE_SIZE) {
+        for (va = (unsigned)str;  va < (unsigned)str + len - 1;
+            va += PAGE_SIZE) {
             memlock_lock(&getpcb()->locks.memlock, (void *)va, access);
         }
     }
@@ -647,7 +669,6 @@ int new_pages(void *base, int len)
         return -5;
 
 
-    //TODO: maybe fix. Locks even if gigantic number and we don't have
     //that much space.
     if (!vm_lock_len(base, len, 0, PTE_PRESENT, MEMLOCK_MODIFY)) {
         return -5;

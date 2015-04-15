@@ -147,7 +147,8 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
     tr_tcb->regs.ebp_offset = -tr_tcb->esp0;
     tr_tcb->regs.eflags = USER_EFLAGS & (~EFL_IF);
 
-    linklist_add_head(&scheduler_queue, (void*)tr_tcb, &tr_tcb->scheduler_listnode);
+    linklist_add_head(&scheduler_queue, (void*)tr_tcb,
+        &tr_tcb->scheduler_listnode);
 
     /* Setup init */
     tcb_t *init_tcb;
@@ -166,7 +167,8 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
     set_esp0(init_tcb->esp0);
     cur_tcb = init_tcb;
 
-    linklist_add_head(&scheduler_queue, (void*)init_tcb, &init_tcb->scheduler_listnode);
+    linklist_add_head(&scheduler_queue, (void*)init_tcb,
+        &init_tcb->scheduler_listnode);
 
     set_cr0(KERNEL_CR0);
 

@@ -31,12 +31,15 @@ typedef int (*data_cmp_t)(void *data1, void *data2);
 int linklist_init(linklist_t *list);
 void linklist_add_head(linklist_t *list, void *data, listnode_t *node);
 void linklist_add_tail(linklist_t *list, void *data, listnode_t *node);
-void linklist_add_sorted(linklist_t *list, void *data, data_cmp_t cmp, listnode_t *node);
+void linklist_add_sorted(linklist_t *list, void *data, data_cmp_t cmp,
+  listnode_t *node);
 int linklist_peek_head(linklist_t *list, void **data);
 int linklist_remove_head(linklist_t *list, void **data, listnode_t **node);
-int linklist_remove(linklist_t *list, void *datakey, bool (*eq)(void*, void*), void **data, listnode_t **node);
+int linklist_remove(linklist_t *list, void *datakey, bool (*eq)(void*, void*),
+  void **data, listnode_t **node);
 int linklist_rotate_head(linklist_t *list, void **data);
-int linklist_rotate_val(linklist_t *list, void *datakey, bool (*eq)(void*, void*), void **data);
+int linklist_rotate_val(linklist_t *list, void *datakey,
+  bool (*eq)(void*, void*), void **data);
 bool linklist_contains(linklist_t *list, void *data, bool (*eq)(void*, void*));
 int linklist_move(linklist_t *oldlist, linklist_t* newlist);
 bool linklist_empty(linklist_t *list);

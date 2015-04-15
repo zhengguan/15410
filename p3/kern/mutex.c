@@ -62,7 +62,7 @@ void mutex_lock(mutex_t *mp)
     if (mp->count <= 0) {
         linklist_add_tail(&mp->wait_list, (void*)&waiter, &node);
     } else {
-        /* Immedietly got lock */
+        /* Immediately got lock */
         waiter.reject = 1;
     }
     mp->count--;

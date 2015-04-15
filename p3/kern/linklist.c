@@ -30,6 +30,7 @@ int linklist_init(linklist_t *list) {
  *
  *  @param list The list.
  *  @param data The data.
+ *  @param node A pointer to memory to store the new listnode.
  *  @return Void.
  */
 void linklist_add_head(linklist_t *list, void *data, listnode_t *node) {
@@ -48,6 +49,7 @@ void linklist_add_head(linklist_t *list, void *data, listnode_t *node) {
  *
  *  @param list The list.
  *  @param data Data.
+ *  @param node A pointer to memory to store the new listnode.
  *  @return Void.
  */
 void linklist_add_tail(linklist_t *list, void *data, listnode_t *node) {
@@ -69,9 +71,11 @@ void linklist_add_tail(linklist_t *list, void *data, listnode_t *node) {
  *  @param list The list.
  *  @param data Data.
  *  @param cmp Comparison function.
+ *  @param new_node A pointer to memory to store the new listnode.
  *  @return Void.
  */
-void linklist_add_sorted(linklist_t *list, void *data, data_cmp_t cmp, listnode_t *new_node) {
+void linklist_add_sorted(linklist_t *list, void *data, data_cmp_t cmp,
+    listnode_t *new_node) {
     assert(list != NULL && new_node != NULL);
 
     listnode_t *node = list->head;
@@ -96,6 +100,7 @@ void linklist_add_sorted(linklist_t *list, void *data, data_cmp_t cmp, listnode_
  *
  *  @param list The list.
  *  @param data A location in memory to store the removed data.
+ *  @param outnode The removed listnode.
  *  @return 0 on success, negative error code otherwise.
  */
 int linklist_remove_head(linklist_t *list, void **data, listnode_t **outnode)
@@ -152,11 +157,14 @@ int linklist_peek_head(linklist_t *list, void **data) {
 /** @brief Removes the first instance of data in the list.
  *
  *  @param list The list.
+ *  @param datakey The passed value to compare with.
+ *  @param eq Equality test. Passed data is the second argument.
  *  @param data The data of the item to remove.
- *  @param Equality test. Passed data is the second argument.
+ *  @param outnode The removed listnode.
  *  @return 0 on success, negative error code otherwise.
  */
-int linklist_remove(linklist_t *list, void *datakey, bool (*eq)(void*, void*), void **data, listnode_t **outnode)
+int linklist_remove(linklist_t *list, void *datakey, bool (*eq)(void*, void*),
+    void **data, listnode_t **outnode)
 {
     if (list == NULL || list->head == NULL) {
         return -1;
@@ -188,11 +196,10 @@ int linklist_remove(linklist_t *list, void *datakey, bool (*eq)(void*, void*), v
     return -2;
 }
 
-/** @brief Removes the first instance of data in the list.
+/** @brief Moves the first element of the list to the end
  *
  *  @param list The list.
  *  @param data The data of the item to remove.
- *  @param Equality test. Passed data is the second argument.
  *  @return 0 on success, negative error code otherwise.
  */
 int linklist_rotate_head(linklist_t *list, void **data) {
@@ -214,7 +221,17 @@ int linklist_rotate_head(linklist_t *list, void **data) {
     return 0;
 }
 
-int linklist_rotate_val(linklist_t *list, void *datakey, bool (*eq)(void*, void*), void **data) {
+/**
+ * @brief Moves an element of the list to the end.
+ *
+ * @param list The list.
+ * @param datakey The value to compare the element with.
+ * @param eq Equality test. Passed data is the second argument.
+ * @param data Memory to store the rotated value.
+ * @return 0 on success. A negative error code otherwise.
+ */
+int linklist_rotate_val(linklist_t *list, void *datakey,
+    bool (*eq)(void*, void*), void **data) {
     if (list == NULL || list->head == NULL) {
         return -1;
     }

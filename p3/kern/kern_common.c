@@ -16,6 +16,8 @@
  * @brief Check a null terminated user string array for validity.
  *
  * @param arr The array.
+ * @param reqflags The required flags.
+ * @param badflags The bad flags.
  * @return The number of elements in the array if valid,
  * a negative error code if invalid.
  */
@@ -26,7 +28,8 @@ int str_arr_check(char *arr[], unsigned reqflags, unsigned badflags)
     }
 
     int len = 0;
-    while (vm_check_flags_len(getpcb()->pd, arr + len, sizeof(char *), reqflags, badflags)) {
+    while (vm_check_flags_len(getpcb()->pd, arr + len, sizeof(char *),
+        reqflags, badflags)) {
         if (arr[len] == NULL) {
             return len;
         }
@@ -43,6 +46,8 @@ int str_arr_check(char *arr[], unsigned reqflags, unsigned badflags)
  * @brief Check a nil terminated user string for validity.
  *
  * @param str The string.
+ * @param reqflags The required flags.
+ * @param badflags The bad flags.
  * @return The length of the string if valid, negative error code if
  * invalid.
  */
@@ -52,7 +57,6 @@ int str_check(char *str, unsigned reqflags, unsigned badflags)
         return -1;
     }
 
-    //FIXME: overflowing over top of mem
     int len = 0;
     while (vm_check_flags(getpcb()->pd, str + len, reqflags, badflags)) {
         if (str[len] == '\0') {
@@ -185,6 +189,13 @@ void int_unlock(int *n)
 }
 
 
+/**
+ * @brief Returns the control eflags given eflags.
+ * Ignores user-flags.
+ *
+ * @param efl The raw eflags.
+ * @return The control eflags.
+ */
 unsigned control_eflags(unsigned efl)
 {
     return efl & (

@@ -1,6 +1,8 @@
 /** @file exception.c
  *
- *  This file implements the handling of exceptions in
+ *  This file implements the handling of exceptions.
+ *  When a user exception handler is registered, this handler is called.
+ *  Otherwise, the user thread is killed.
  *
  *  @author Patrick Koenig (phkoenig)
  *  @author Jack Sorrell (jsorrell)
@@ -63,7 +65,8 @@ void deregister_swexn_handler(tcb_t *tcb)
  * @param esp3 The bottom of the handler stack.
  * @param arg The argument to pass the handler function.
  */
-void register_swexn_handler(tcb_t *tcb, swexn_handler_t eip, void *esp3, void *arg)
+void register_swexn_handler(tcb_t *tcb, swexn_handler_t eip,
+    void *esp3, void *arg)
 {
     handler_t *handler = get_swexn_handler(tcb);
     handler->esp3 = esp3;
@@ -189,12 +192,16 @@ int swexn(void *esp3, swexn_handler_t eip, void *arg, ureg_t *newureg)
         deregister_swexn_handler(tcb);
     } else {
         //Check vm present for user's sake. No locks needed.
-        if ((unsigned)eip < USER_MEM_START || !vm_check_flags(getpcb()->pd, eip, USER_FLAGS_RO, 0)) {
+        //ensure eip is ures readable
+        if ((unsigned)eip < USER_MEM_START ||
+            !vm_check_flags(getpcb()->pd, eip, USER_FLAGS_RO, 0)) {
             return -1;
         }
+        //ensure esp is user writable
         if ((unsigned)esp3 < USER_MEM_START ||
-            !vm_check_flags_len(getpcb()->pd, (void*)((unsigned)esp3-sizeof(handler_args_t)),
-                                                      sizeof(handler_args_t), USER_FLAGS_RW, 0)) {
+            !vm_check_flags_len(getpcb()->pd,
+                (void*)((unsigned)esp3-sizeof(handler_args_t)),
+                sizeof(handler_args_t), USER_FLAGS_RW, 0)) {
             return -2;
         }
 

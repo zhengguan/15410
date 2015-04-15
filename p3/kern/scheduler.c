@@ -161,7 +161,8 @@ int yield(int tid)
             enable_interrupts();
             return 0;
         }
-    } else if (linklist_rotate_val(&scheduler_queue, (void *)tid, tcb_is_tid, (void**)&tcb) < 0) {
+    } else if (linklist_rotate_val(&scheduler_queue, (void *)tid,
+     tcb_is_tid, (void**)&tcb) < 0) {
         enable_interrupts();
         return -1;
     }
@@ -216,7 +217,8 @@ int deschedule_kern(int *flag, bool user)
         return 0;
     }
 
-    assert(linklist_remove(&scheduler_queue, (void*)gettcb(), ident, NULL, NULL) == 0);
+    assert(linklist_remove(&scheduler_queue,
+        (void*)gettcb(), ident, NULL, NULL) == 0);
 
     gettcb()->user_descheduled = user;
 
@@ -299,7 +301,8 @@ int sleep(int ticks)
     listnode_t node;
 
     disable_interrupts();
-    linklist_add_sorted(&sleep_queue, (void *)&sleep_info, sleep_info_cmp, &node);
+    linklist_add_sorted(&sleep_queue, (void *)&sleep_info,
+        sleep_info_cmp, &node);
     enable_interrupts();
 
     if (deschedule_kern(&sleep_info.tcb->sleep_flag, false) < 0) {

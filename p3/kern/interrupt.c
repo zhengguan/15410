@@ -45,7 +45,7 @@ typedef struct idt_desc {
  *  @param gate_type The descriptor gate type.
  *  @return Void.
  */
-void idt_add_desc(int idt_entry, void *handler, unsigned gate_type, unsigned dpl)
+void idt_add_desc(int idt_entry, void *handler,unsigned gate_type, unsigned dpl)
 {
     idt_desc_t *idt_desc = (idt_desc_t *)((uint64_t *)idt_base() + idt_entry);
     idt_desc->offset_l = (uint16_t)(int)(handler);
@@ -84,9 +84,9 @@ int idt_init() {
     idt_add_desc(SLEEP_INT, sleep_int, IDT_TRAP, IDT_DPL_USER);
     idt_add_desc(READLINE_INT, readline_int, IDT_TRAP, IDT_DPL_USER);
     idt_add_desc(PRINT_INT, print_int, IDT_TRAP, IDT_DPL_USER);
-    idt_add_desc(SET_TERM_COLOR_INT, set_term_color_int, IDT_TRAP, IDT_DPL_USER);
-    idt_add_desc(SET_CURSOR_POS_INT, set_cursor_pos_int, IDT_TRAP, IDT_DPL_USER);
-    idt_add_desc(GET_CURSOR_POS_INT, get_cursor_pos_int, IDT_TRAP, IDT_DPL_USER);
+    idt_add_desc(SET_TERM_COLOR_INT, set_term_color_int,IDT_TRAP, IDT_DPL_USER);
+    idt_add_desc(SET_CURSOR_POS_INT, set_cursor_pos_int,IDT_TRAP, IDT_DPL_USER);
+    idt_add_desc(GET_CURSOR_POS_INT, get_cursor_pos_int,IDT_TRAP, IDT_DPL_USER);
     idt_add_desc(THREAD_FORK_INT, thread_fork_int, IDT_TRAP, IDT_DPL_USER);
     idt_add_desc(GET_TICKS_INT, get_ticks_int, IDT_TRAP, IDT_DPL_USER);
     idt_add_desc(MISBEHAVE_INT, misbehave_int, IDT_TRAP, IDT_DPL_USER);

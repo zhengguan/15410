@@ -38,11 +38,15 @@ void vm_read_only();
 void vm_read_write(void *va);
 void vm_super(void *va);
 void vm_user(void *va);
-bool vm_check_flags(pd_t pd, void *va, unsigned reqflags, unsigned badflags);
-bool vm_check_flags_len(pd_t pd, void *base, int len, unsigned reqflags, unsigned badflags);
+bool vm_check_flags(pd_t pd, void *va, unsigned reqflags,
+  unsigned badflags);
+bool vm_check_flags_len(pd_t pd, void *base, int len, unsigned reqflags,
+  unsigned badflags);
 bool vm_lock(void *va, unsigned reqflags, unsigned badflags, unsigned access);
-bool vm_lock_len(void *base, int len, unsigned reqflags, unsigned badflags, unsigned access);
-int vm_lock_str(char *str, unsigned reqflags, unsigned badflags, unsigned access);
+bool vm_lock_len(void *base, int len, unsigned reqflags, unsigned badflags,
+  unsigned access);
+int vm_lock_str(char *str, unsigned reqflags, unsigned badflags,
+  unsigned access);
 void vm_unlock(void *va);
 void vm_unlock_len(void *base, int len);
 void vm_phys_write(unsigned pa, unsigned val);

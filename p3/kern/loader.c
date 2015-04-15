@@ -1,15 +1,16 @@
-/**
- * The 15-410 kernel project.
- * @name loader.c
+/** @file loader.c
+ *  @brief Manages loading programs.
  *
- * Functions for the loading
- * of user programs from binary
- * files should be written in
- * this file. The function
- * elf_load_helper() is provided
- * for your use.
+ *  Delays making permanent changes to memory until it is sure to complete
+ *  successfully.
+ *
+ *  This file implements exec.
+ *
+ *  @author Patrick Koenig (phkoenig)
+ *  @author Jack Sorrell (jsorrell)
+ *  @bug No known bugs.
  */
-/*@{*/
+
 
 /* --- Includes --- */
 #include <string.h>
@@ -109,7 +110,8 @@ static bool elf_valid(const simple_elf_t *se_hdr)
  *  allocated
  *
  *  @param start The start of the memory region to allocate.
- *  @param len The length of the memory region to allocate.
+ *  @param len The length of the memory region to allocate
+ *  @param readonly Whether to allocate the pages as readonly or readwrite.
  *  @return 0 on success, negative error code otherwise.
  */
 static int alloc_pages(unsigned start, unsigned len, bool readonly)
@@ -310,6 +312,9 @@ int exec(char *filename, char *argv[])
         return -1;
     }
 
+    if (getpcb()->num_threads > 1)
+        return -2;
+
     int len;
     if ( (len = str_check(filename, USER_FLAGS_RO, 0)) < 0)
         return -2;
@@ -334,5 +339,3 @@ int exec(char *filename, char *argv[])
 
     return -5;
 }
-
-/*@}*/

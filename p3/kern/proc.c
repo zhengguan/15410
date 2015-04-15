@@ -403,19 +403,23 @@ void vanish()
     // No need for locking because interrupts are disabled
     if (pcb->num_threads == 1) {
         if (pcb->parent_pcb) {
-            linklist_remove(&pcb->parent_pcb->children, pcb, ident, NULL, NULL);
-            linklist_add_tail(&pcb->parent_pcb->vanished_procs, pcb, &pcb->pcb_listnode);
+            linklist_remove(&pcb->parent_pcb->children,
+                pcb, ident, NULL, NULL);
+            linklist_add_tail(&pcb->parent_pcb->vanished_procs,
+                pcb, &pcb->pcb_listnode);
             pcb->parent_pcb->num_children--;
             cond_signal(&pcb->parent_pcb->wait_cv);
         } else {
-            linklist_add_tail(&init_pcb->vanished_procs, pcb, &pcb->pcb_listnode);
+            linklist_add_tail(&init_pcb->vanished_procs,
+                pcb, &pcb->pcb_listnode);
             cond_signal(&init_pcb->wait_cv);
         }
 
         //Pass dead children to init
         pcb_t *dead_pcb;
         listnode_t *node;
-        while (linklist_remove_head(&pcb->vanished_procs, (void**)&dead_pcb, &node) == 0) {
+        while (linklist_remove_head(&pcb->vanished_procs,
+                                (void**)&dead_pcb, &node) == 0) {
             linklist_add_tail(&init_pcb->vanished_procs, dead_pcb, node);
             cond_signal(&init_pcb->wait_cv);
         }
@@ -446,7 +450,8 @@ int wait(int *status_ptr)
     mutex_lock(&pcb->proc_mutex);
 
     pcb_t *dead_pcb;
-    while (linklist_remove_head(&pcb->vanished_procs, (void*)&dead_pcb, NULL) < 0) {
+    while (linklist_remove_head(&pcb->vanished_procs,
+        (void*)&dead_pcb, NULL) < 0) {
         // Would block forever in this case
         if (pcb->num_threads == 1 && pcb->num_children == 0) {
             mutex_unlock(&pcb->proc_mutex);

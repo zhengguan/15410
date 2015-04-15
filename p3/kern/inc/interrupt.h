@@ -18,6 +18,7 @@
 
 /* IDT functions */
 int idt_init();
-void idt_add_desc(int idt_entry, void *handler, unsigned gate_type, unsigned dpl);
+void idt_add_desc(int idt_entry, void *handler, unsigned gate_type,
+  unsigned dpl);
 
 #endif /* _INTERRUPT_H */

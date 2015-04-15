@@ -62,7 +62,8 @@ int fork()
                (void *)(new_tcb->esp0 - KERNEL_STACK_SIZE), KERNEL_STACK_SIZE);
         cur_tcb = new_tcb;
         set_cr3((unsigned)new_pcb->pd);
-        linklist_add_tail(&scheduler_queue, (void *)new_tcb, &new_tcb->scheduler_listnode);
+        linklist_add_tail(&scheduler_queue,
+            (void *)new_tcb, &new_tcb->scheduler_listnode);
         enable_interrupts();
         return 0;
     } else { //old thread
@@ -97,7 +98,8 @@ int thread_fork()
            (void *)(new_tcb->esp0 - KERNEL_STACK_SIZE), KERNEL_STACK_SIZE);
         cur_tcb = new_tcb;
 
-        linklist_add_tail(&scheduler_queue, (void *)new_tcb, &new_tcb->scheduler_listnode);
+        linklist_add_tail(&scheduler_queue,
+            (void *)new_tcb, &new_tcb->scheduler_listnode);
 
         enable_interrupts();
 
