@@ -13,7 +13,6 @@
 #include <x86/video_defines.h>
 #include <console.h>
 #include <syscall.h>
-#include <simics.h>
 
 static int term_color = DEFAULT_TERM_COLOR;
 static int cursor_visible = DEFAULT_CURSOR_VISIBLE;
@@ -21,7 +20,7 @@ static int cursor_row = 0;
 static int cursor_col = 0;
 
 /** @brief Prints character ch at the current location
- *         of the cursor.
+ *         of the cursor
  *
  *  If the character is a newline ('\n'), the cursor is
  *  be moved to the beginning of the next line (scrolling if necessary).  If

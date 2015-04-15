@@ -33,13 +33,7 @@ int linklist_init(linklist_t *list) {
  *  @return Void.
  */
 void linklist_add_head(linklist_t *list, void *data, listnode_t *node) {
-    if (list == NULL) {
-        return;
-    }
-
-    if (node == NULL) {
-        return;
-    }
+    assert(list != NULL && node != NULL);
 
     node->data = data;
     node->next = list->head;
@@ -57,9 +51,7 @@ void linklist_add_head(linklist_t *list, void *data, listnode_t *node) {
  *  @return Void.
  */
 void linklist_add_tail(linklist_t *list, void *data, listnode_t *node) {
-    if (list == NULL || node == NULL) {
-        panic("Linklist passed bad values");
-    }
+    assert(list != NULL && node != NULL);
 
     node->data = data;
     node->next = NULL;
@@ -80,9 +72,7 @@ void linklist_add_tail(linklist_t *list, void *data, listnode_t *node) {
  *  @return Void.
  */
 void linklist_add_sorted(linklist_t *list, void *data, data_cmp_t cmp, listnode_t *new_node) {
-    if (list == NULL || new_node == NULL) {
-        panic("Linklist passed bad values");
-    }
+    assert(list != NULL && new_node != NULL);
 
     listnode_t *node = list->head;
     if (node == NULL || cmp(data, node->data) <= 0) {

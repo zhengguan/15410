@@ -13,7 +13,6 @@
 #include <x86/pic.h>
 #include <scheduler.h>
 #include <syscall.h>
-#include <simics.h>
 
 #define TICKS_PER_SECOND 100
 #define CYCLES_BTW_INTER ((unsigned)(TIMER_RATE / TICKS_PER_SECOND))

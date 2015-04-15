@@ -26,7 +26,6 @@
 #include <kern_common.h>
 #include <cr.h>
 #include <vm.h>
-#include <simics.h>
 #include <hashtable.h>
 #include <assert.h>
 #include <exception.h>

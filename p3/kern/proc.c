@@ -13,7 +13,6 @@
 #include <linklist.h>
 #include <hashtable.h>
 #include <scheduler.h>
-#include <simics.h>
 #include <asm.h>
 #include <vm.h>
 #include <assert.h>
@@ -475,7 +474,6 @@ void proc_kill_thread(const char *fmt, ...)
     va_start(vl, fmt);
     vsnprintf(buf, sizeof (buf), fmt, vl);
     va_end(vl);
-    lprintf(buf);
 
     va_start(vl, fmt);
     vprintf(fmt, vl);

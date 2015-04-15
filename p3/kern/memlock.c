@@ -17,8 +17,7 @@
 #include <waiter.h>
 #include <scheduler.h>
 #include <kern_common.h>
-#include <simics.h>
-#include <assert.h>
+#include <assert.h>g
 
 typedef struct {
     rwlock_t lock;
