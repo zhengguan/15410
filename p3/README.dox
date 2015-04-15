@@ -2,9 +2,77 @@
 
 @mainpage 15-410 Project 3
 
-@author Name1 (id1)
-@author Name2 (id2)
+@author Patrick Koenig (phkoenig)
+@author Jack Sorrell (jsorrell)
 
-Same drill as last time.
+
+In this project we implemented a simple kernel to run on a uniprocessor machine.
+Key implementation ideas are highlighted below.
+
+
+1. Virtual memory
+
+Our kernel uses a two-level page table for managing virtual memory.  Each process
+keeps a hashtable of calls new_pages() with the allocated lengths.  This ensures
+that memory removed by remove_pages() was allocated with new_pages().  This is
+copied to new process when fork() is called.  Each process also has a lock for
+new_pages() and a lock for remove_pages() to prevent race conditions when
+allocating memory and modifying the page tables.
+
+To keep track of free frames we use a linked list contained in the free frames.
+There is a global variable containing the physical address of the first
+available free frame.  The physcial address of the next available free frame is
+stored at the physical address of the previous free frame.  We use a
+predetermined virtual address to temporary load these physical frames allowing
+us to update this linked list.  The supervisor bit for this address is cleared,
+preventing the user from reading or writing to unallocated physical frames.
+
+When entering system calls we use a locking mechanism (memlocks) to prevent
+remove_pages from being called on addresses currently in use by the kernel.
+This mechanism locks virtual memory regions and acts as a reader-writer lock on
+specified addresses.  This still allows multiple reading system calls to use the
+same virtual address while preventing remove_pages() from freeing those same
+virtual addresses.
+
+
+2. PCBs & TCBs
+
+Our PCB and TCB data structures contain information about currently running and
+terminated processes and threads.  Our PCBs contain information about the parent
+process and the child processes, necessary for wait() and vanish().  In
+addition, the PCBs contain a number of process-specific locks used throughout
+the kernel, providing more fined grained locking which allows multiple processes
+to run concurrently anytime they are not modifying global data.  In addition,
+our PCBs contain a node to be used in any linked list where the list items are
+processes.  The avoids having to call malloc() to insert items into such linked
+lists.
+
+Our TCBs contain information about the state of a thread, including the values
+of the registers, the exception stack pointer, and a pointer to the swexn
+handler (if one is registered).  Our TCBs also include information about
+how a thread is descheduled, preventing users from making kernel descheduled
+threads runnable.  Like the PCBs, out TCBS contain a node to be used in any 
+linked list where the list items are processes which avoids many malloc() calls.
+
+
+3. Scheduler and Context Switching
+
+Our scheduler is implemented as a simple queue of runnable threads.  When a
+timer interrupt occurs, we first check on any sleeping threads and wake them up
+if necessary.  The amount of threads that can be woken is bounded to prevent our
+timer interrupt handler from running for an unbounded amount of time.  We then
+remove the thread at the front of the scheduler queue, move it to the end, and
+context switch to that thread.
+
+Context switching is implementated as a pair of assembly functions, store_regs()
+and restore_regs().  store_regs() is responsible for saving all the registers in
+the TCB of the thread from which we are context switching.  Likewise,
+restore_regs() is responsible for loaing all the saved registers from the TCB of
+the thread to which we are context switching.  store_regs() stores the return
+address as the %eip instruction pointer and the last instrcution in
+restore_regs() is a jump to that address.  As a results, store_regs() returns
+twice; once after storing the registers of the thread when we are context
+switching away again after context switching back to that thread from another
+thread.
 
 */
