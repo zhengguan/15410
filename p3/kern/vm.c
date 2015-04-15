@@ -645,6 +645,11 @@ int new_pages(void *base, int len)
         return -4;
     }
 
+    if ((unsigned)len/PAGE_SIZE >
+        machine_phys_frames() - USER_MEM_START/PAGE_SIZE)
+        return -5;
+
+
     //TODO: maybe fix. Locks even if gigantic number and we don't have
     //that much space.
     if (!vm_lock_len(base, len, 0, PTE_PRESENT, MEMLOCK_MODIFY)) {

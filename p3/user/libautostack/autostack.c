@@ -15,7 +15,7 @@
 #include <stdio.h>
 
 #define MAIN_EXCEPTION_STACK_SIZE PAGE_SIZE
-#define MAX_STACK_SIZE (2<<20) //1 Megabyte
+#define MAX_STACK_SIZE ((unsigned)(1<<20)) //1 Megabyte
 
 stackinfo_t g_stackinfo;
 void *main_exception_stack;
@@ -62,14 +62,12 @@ static void exception_handler(void *arg, ureg_t *ureg) {
     void *fault_addr = (void *)ureg->cr2;
 
     void *base = (void *)((unsigned int)fault_addr & PAGE_MASK);
-    if (base > g_stackinfo.stack_high ||
-        g_stackinfo.stack_high - base > MAX_STACK_SIZE) {
-        printf("Killing thread %d due to page fault.\n", gettid());
+    if ((unsigned)base > (unsigned)g_stackinfo.stack_high ||
+        ((unsigned)g_stackinfo.stack_high - (unsigned)base > MAX_STACK_SIZE)) {
         exit(-2);
     }
 
     int len = (int)(g_stackinfo.stack_low - base);
-
 
     if (new_pages(base, len) < 0) {
         exit(-2);
