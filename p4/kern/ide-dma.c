@@ -13,17 +13,17 @@
 #include <ide-config.h>
 #include <simics.h>
 
-int dma_init(void) {
+int dma_init() {
     return -1;
 }
 
-void ide_block(void) {
+void ide_block() {
 }
 
-void ide_unblock(void) {
+void ide_unblock() {
 }
 
-void ide_interrupt_handler(void)
+void ide_interrupt_handler()
 {
     pic_acknowledge(IDE_IRQ);
 }

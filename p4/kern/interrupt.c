@@ -17,6 +17,7 @@
 #include <exception_asm.h>
 #include <timer.h>
 #include <keyboard.h>
+#include <ide.h>
 
 extern int new_pages(void *base, int len);
 extern int remove_pages(void *base);
@@ -45,7 +46,7 @@ typedef struct idt_desc {
  *  @param gate_type The descriptor gate type.
  *  @return Void.
  */
-void idt_add_desc(int idt_entry, void *handler,unsigned gate_type, unsigned dpl)
+void idt_add_desc(int idt_entry, void *handler, unsigned gate_type, unsigned dpl)
 {
     idt_desc_t *idt_desc = (idt_desc_t *)((uint64_t *)idt_base() + idt_entry);
     idt_desc->offset_l = (uint16_t)(int)(handler);
@@ -68,8 +69,12 @@ int idt_init() {
     if (keyboard_init() < 0)
         return -2;
 
+    if (ide_init() < 0)
+        return -3;
+
     idt_add_desc(TIMER_IDT_ENTRY, timer_handler_int, IDT_INT, IDT_DPL_KERNEL);
     idt_add_desc(KEY_IDT_ENTRY, keyboard_int, IDT_INT, IDT_DPL_KERNEL);
+    idt_add_desc(IDE_IDT_ENTRY, ide_interrupt_handler, IDT_INT, IDT_DPL_KERNEL);
 
     /* Add system call trap gate descriptors */
     idt_add_desc(FORK_INT, fork_int, IDT_TRAP, IDT_DPL_USER);
