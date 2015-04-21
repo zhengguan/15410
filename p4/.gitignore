@@ -1,0 +1,12 @@
+*.dep
+*.o
+*.a
+*.img
+*.gz
+*.md5s
+kernel
+kernel.log
+kernel.strip
+temp/
+410user/exec2obj
+410user/progs/

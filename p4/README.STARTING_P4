@@ -1,0 +1,24 @@
+To get started with P4:
+
+1. Make a copy of your P3 directory--or a new branch!  If you
+   are using git, you could do "git checkout -b p4".
+
+2. Move the update.sh from this directory so it replaces the update.sh
+   present in your new P4 directory.
+
+3. Move kern/inc/ide-config.h into your new P4 kern/inc.  BE SURE TO
+   FOLLOW THE DIRECTIONS THAT APPEAR IN ide-config.h!
+
+4. Move kern/ide-dma.c into your new P4 kern and edit your config.mk
+   so that it is built into your kernel.
+
+5. In your new P4 directory, run "make update".  You should see the
+   following updates:
+   (a) 410kern/ide
+   (b) 410user/libopen
+   (c) test file(s) appear in 410user/progs
+
+See http://www.cs.cmu.edu/~410/p4/ for what you are supposed to do.
+
+Don't forget that your README.dox for P4 should document your P4,
+not your P3!

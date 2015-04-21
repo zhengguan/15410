@@ -1,0 +1,11 @@
+The files pci.h and pci.c are derived from parts of the Plan 9
+operating system, e.g.,
+
+http://plan9.bell-labs.com/sources/plan9/sys/src/9/pc/io.h
+http://plan9.bell-labs.com/sources/plan9/sys/src/9/pc/pci.c
+
+Those files are covered by the Lucent Public License, version 1.02
+(http://plan9.bell-labs.com/plan9/license.html), and are being
+provided to you pursuant to your participation as a 15-410/605
+student:  you are expected not to distribute course materials,
+or your solutions to course-provided problems, to others.

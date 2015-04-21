@@ -1,0 +1,7 @@
+410U_OPEN_OBJS := open.o
+410U_OPEN_OBJS := $(410U_OPEN_OBJS:%=$(410UDIR)/libopen/%)
+
+ALL_410UOBJS += $(410U_OPEN_OBJS)
+410UCLEANS += $(410UDIR)/libopen.a
+
+$(410UDIR)/libopen.a: $(410U_OPEN_OBJS)
