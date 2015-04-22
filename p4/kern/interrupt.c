@@ -74,7 +74,7 @@ int idt_init() {
 
     idt_add_desc(TIMER_IDT_ENTRY, timer_handler_int, IDT_INT, IDT_DPL_KERNEL);
     idt_add_desc(KEY_IDT_ENTRY, keyboard_int, IDT_INT, IDT_DPL_KERNEL);
-    idt_add_desc(IDE_IDT_ENTRY, ide_interrupt_handler, IDT_INT, IDT_DPL_KERNEL);
+    idt_add_desc(IDE_IDT_ENTRY, ide_int, IDT_INT, IDT_DPL_KERNEL);
 
     /* Add system call trap gate descriptors */
     idt_add_desc(FORK_INT, fork_int, IDT_TRAP, IDT_DPL_USER);

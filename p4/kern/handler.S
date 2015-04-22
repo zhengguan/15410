@@ -26,6 +26,15 @@ keyboard_int:
     popa
     iret
 
+.globl ide_int
+ide_int:
+    pusha
+    call    set_kernel_segs         # set kernel data segments
+    call    ide_interrupt_handler   # call the ide interrupt handler
+    call    set_user_segs           # set user data segments
+    popa
+    iret
+
 /* Life cycle */
 
 .globl fork_int

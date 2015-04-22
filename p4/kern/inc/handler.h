@@ -15,6 +15,7 @@
 /* Drivers */
 void timer_handler_int();
 void keyboard_int();
+void ide_int();
 
 /* Life cycle */
 int fork_int();
