@@ -43,6 +43,7 @@ static int _wait_drq(void);
 static int _read_sector(unsigned short *buf, int words);
 static int _write_sector(unsigned short *buf, int words);
 static void _swizzle(unsigned char *buf, int words);
+static int _lba_setup(uint64_t addr, int count, int lba48);
 static int _lba_read(unsigned long addr, void *buf, int count, int lba48);
 static int _lba_write(unsigned long addr, void *buf, int count, int lba48);
 static void _iopause();
@@ -316,6 +317,16 @@ int ide_write(unsigned long addr, void *buf, int count)
     return rv;
 }
 
+/** @brief Wrapper for _lba_setup
+ *
+ *  Behaves identically to _lba_setup, except addr is relative to the start
+ *  of the Pebbles partition rather than the beginning of the drive.
+ */
+int lba_setup(uint64_t addr, int count, int lba48)
+{
+    return _lba_setup(addr + ide_pebpartition_start, count, lba48);
+}
+
 /** @brief Prepare a drive for reading.
  *
  *  This prepares the drive to receive a read or write command and sends addr
@@ -324,17 +335,17 @@ int ide_write(unsigned long addr, void *buf, int count)
  *
  *  @return Negative if addr or count are out of range for the specified mode.
  */
-int lba_setup(uint64_t addr, int count, int lba48)
+static int _lba_setup(uint64_t addr, int count, int lba48)
 {
     if ((count > (lba48 ? (1<<16) : (1<<8))) || (count < 1))
     {
-        _IDE_DEBUG("lba_setup: count out of range");
+        _IDE_DEBUG("_lba_setup: count out of range");
         return -1;
     }
 
     if (addr > (lba48 ? (1LL<<48) : (1LL<<28)))
     {
-        _IDE_DEBUG("lba_setup: address out of range");
+        _IDE_DEBUG("_lba_setup: address out of range");
         return -1;
     }
 
@@ -343,7 +354,7 @@ int lba_setup(uint64_t addr, int count, int lba48)
 
     if (_wait_busy() < 0)
     {
-        _IDE_DEBUG("lba_setup: drive busy wait failed");
+        _IDE_DEBUG("_lba_setup: drive busy wait failed");
         return -1;
     }
 
@@ -383,7 +394,7 @@ static int _lba_read(unsigned long addr, void *buf, int count, int lba48)
 {
     int i;
 
-    if (lba_setup(addr, count, lba48) < 0)
+    if (_lba_setup(addr, count, lba48) < 0)
         return -1;
 
     outb(IDE_COMMAND, lba48 ? IDE_COMMAND_READ48
@@ -403,7 +414,7 @@ static int _lba_write(unsigned long addr, void *buf, int count, int lba48)
 {
     int i;
 
-    if (lba_setup(addr, count, lba48) < 0)
+    if (_lba_setup(addr, count, lba48) < 0)
         return -1;
 
     outb(IDE_COMMAND, lba48 ? IDE_COMMAND_WRITE48

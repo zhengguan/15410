@@ -10,14 +10,16 @@
 #include <syscall.h>
 #include <exec2obj.h>
 #include <ide.h>
+#include <fs.h>
 // TODO remove this
 #include <loader.h>
+#include <assert.h>
 #include <simics.h>
 
 #define SUPERBLOCK_ADDR 0
 
 typedef struct superblock {
-    int constant;
+    uint32_t constant;
     int file_node;
     int free_node;
     char padding[IDE_SECTOR_SIZE - 3*sizeof(int)];
@@ -47,7 +49,10 @@ typedef struct data_node {
 } data_node_t;
 
 static int read_superblock(superblock_t *superblock) {
-    return dma_read(SUPERBLOCK_ADDR, (void *)superblock, 1);
+    int rv = dma_read(SUPERBLOCK_ADDR, (void *)superblock, 1);
+    if (!rv)
+        assert(superblock->constant == FS_MAGIC_CONSTANT);
+    return rv;
 }
 
 // static int read_free_node(unsigned long addr, free_node_t *free_node) {
@@ -64,13 +69,14 @@ static int read_data_node(unsigned long addr, data_node_t *data_node) {
 
 static int get_file_node(char *filename, file_node_t *file_node) {
     superblock_t superblock;
-    if (read_superblock(&superblock) < 0) 
+    if (read_superblock(&superblock) < 0)
         return -1;
 
     int addr = superblock.file_node;
     while (addr != 0) {
         if (read_file_node(addr, file_node) < 0)
             return -2;
+        lprintf("Filename: %s", file_node->filename);
         if (!strncmp(file_node->filename, filename, MAX_EXECNAME_LEN))
             return 0;
         addr = file_node->next;
@@ -83,13 +89,15 @@ int readfile(char *filename, char *buf, int count, int offset)
 {
     char *kernel_buf[count];
 
-    lprintf("Attempting to read '%s' at %p for %d", filename, kernel_buf, count);
+    lprintf("Attempting to read '%s' at %p(%p) for %d", filename, buf, kernel_buf,count);
 
     file_node_t file_node;
     if (get_file_node(filename, &file_node) < 0)
         return -1;
 
-    lprintf("Found file");
+    lprintf("File found");
+
+    return -42;
 
     int read_len = 0;
 
@@ -113,6 +121,7 @@ int readfile(char *filename, char *buf, int count, int offset)
         if (offset > 0) {
             sector += sector_offset;
             char tmp_buf[IDE_SECTOR_SIZE];
+            lprintf("First sector read");
             if (dma_read(sector, tmp_buf, 1) < 0)
                 return -3;
             int len = MIN(count, IDE_SECTOR_SIZE - offset);
@@ -124,6 +133,7 @@ int readfile(char *filename, char *buf, int count, int offset)
         // Read sectors
         if (count - read_len >= IDE_SECTOR_SIZE) {
             int sector_len = (count - read_len) / IDE_SECTOR_SIZE;
+            lprintf("Full sector read");
             if (dma_read(sector, kernel_buf + read_len, sector_len) < 0)
                 return -3;
             read_len += extent_bytes;
@@ -134,6 +144,7 @@ int readfile(char *filename, char *buf, int count, int offset)
         if (count - read_len > 0 &&
             sector < data_node.extent + data_node.extent_len) {
             char tmp_buf[IDE_SECTOR_SIZE];
+            lprintf("Last sector read");
             if (dma_read(sector, tmp_buf, 1) < 0)
                 return -3;
             int len = MIN(count, IDE_SECTOR_SIZE - offset);

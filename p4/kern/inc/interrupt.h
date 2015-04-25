@@ -13,9 +13,6 @@
 
 #include <stdint.h>
 
-#define TIMER_IDT_ENTRY 32
-#define KEY_IDT_ENTRY 	33
-
 /* IDT functions */
 int idt_init();
 void idt_add_desc(int idt_entry, void *handler, unsigned gate_type,

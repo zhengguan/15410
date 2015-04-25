@@ -16,8 +16,10 @@
 #include <scheduler.h>
 #include <simics.h>
 
+#define PRD_EOT 0x8000
+
 typedef struct prd {
-    unsigned addr;
+    uint32_t addr;
     uint16_t count;
     uint16_t flags;    
 } prd_t;
@@ -26,7 +28,7 @@ static int ide_lba48_enabled = 0;
 static int bus_master_base;
 
 static mutex_t dma_mutex;
-static int blocked_tid = -1;
+static tcb_t *blocked_tcb;
 static int dma_status = 0;
 
 int dma_init() {
@@ -44,21 +46,18 @@ int dma_init() {
 }
 
 void ide_block() {
-    blocked_tid = gettid();
+    blocked_tcb = gettcb();
     int block_flag = 0;
-    deschedule(&block_flag);
+    deschedule_kern(&block_flag, false);
     enable_interrupts();
 }
 
 void ide_unblock() {
-    make_runnable(blocked_tid);
+    make_runnable_kern(blocked_tcb, false);
 }
 
 void ide_interrupt_handler()
 {
-    lprintf("IDE interrupt");
-    MAGIC_BREAK;
-
     int bm_status = inb(bus_master_base + IDE_BM_STATUS);
 
     if (!(bm_status & BM_STAT_INT)) {
@@ -79,23 +78,28 @@ int dma_read(unsigned long addr, void *buf, int count)
 {
     // TODO check that buf is in kernel
 
+    // TODO Why do we need to do this??
+    inb(IDE_STATUS);
+
     if (!ide_present() || (addr + count > ide_size()))
         return -1;
 
-    if (lba_setup(addr, count, ide_lba48_enabled) < 0)
-        return -2;
-
-    lprintf("DMA read from sector %lu", addr);
+    lprintf("DMA read from addr %lu into buf %p, for count %d", addr, buf, count);
 
     mutex_lock(&dma_mutex);
+
+    if (lba_setup(addr, count, ide_lba48_enabled) < 0) {
+        mutex_unlock(&dma_mutex);
+        return -2;
+    }
 
     disable_interrupts();
 
     // TODO fix masking
     prd_t prd = {
-        .addr = (unsigned)buf & ~0x1,
-        .count = (count * IDE_SECTOR_SIZE) & ~0x1,
-        .flags = 0
+        .addr = (unsigned)buf,
+        .count = count * IDE_SECTOR_SIZE,
+        .flags = PRD_EOT
     };
     outd(bus_master_base + IDE_BM_PRDT, (unsigned)&prd & ~0x3);
 
@@ -106,8 +110,6 @@ int dma_read(unsigned long addr, void *buf, int count)
     outb(IDE_COMMAND, IDE_COMMAND_READ_DMA);
 
     outb(bus_master_base + IDE_BM_COMMAND, BM_COM_RD_WR | BM_COM_START_STOP);
-
-    MAGIC_BREAK;
 
     ide_block();
     int rv = dma_status;
