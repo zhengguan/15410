@@ -25,6 +25,8 @@
 
 #define MAX_READLINE (CONSOLE_HEIGHT * CONSOLE_WIDTH)
 
+#define KEY_IRQ 0x1
+
 static circbuf_t *cb;
 
 static mutex_t readchar_mutex;
@@ -70,7 +72,7 @@ void keyboard_handler()
 
     cond_signal(&readchar_cond);
 
-    pic_acknowledge_any_master();
+    pic_acknowledge(KEY_IRQ);
 }
 
 /** @brief Returns the next character in the keyboard buffer.

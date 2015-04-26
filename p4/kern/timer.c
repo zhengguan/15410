@@ -17,6 +17,8 @@
 #define TICKS_PER_SECOND 100
 #define CYCLES_BTW_INTER ((unsigned)(TIMER_RATE / TICKS_PER_SECOND))
 
+#define TIMER_IRQ 0x0
+
 static unsigned ticks = 0;
 
 /** @brief Initializes the timer driver.
@@ -42,7 +44,7 @@ void timer_handler()
 
 	scheduler_tick(ticks);
 
-	pic_acknowledge_any_master();
+    pic_acknowledge(TIMER_IRQ);
 }
 
 /** @brief Returns the number of timer ticks which have occured since system

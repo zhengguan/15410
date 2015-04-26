@@ -15,6 +15,7 @@
 #include <mutex.h>
 #include <scheduler.h>
 #include <simics.h>
+#include <ide.h>
 
 #define PRD_EOT 0x8000
 
@@ -29,7 +30,7 @@ static int bus_master_base;
 
 static mutex_t dma_mutex;
 static tcb_t *blocked_tcb;
-static int dma_status = 0;
+static int dma_rv = 0;
 
 int dma_init() {
     if (mutex_init(&dma_mutex) < 0)
@@ -59,15 +60,16 @@ void ide_unblock() {
 void ide_interrupt_handler()
 {
     int bm_status = inb(bus_master_base + IDE_BM_STATUS);
+    int ide_status = inb(IDE_STATUS);
 
-    if (!(bm_status & BM_STAT_INT)) {
+    if (!(bm_status & BM_STAT_INT) & (ide_status || !ide_status)) {
         if (!(bm_status & BM_STAT_ACTIVE)) {
             // An error has occured
             // TODO should we retry? see idems100.pdf
-            dma_status = -1;
+            dma_rv = -1;
         }
     } else {
-        dma_status = 0;
+        dma_rv = 0;
         ide_unblock();
     }
 
@@ -75,33 +77,30 @@ void ide_interrupt_handler()
 }
 
 int dma_read(unsigned long addr, void *buf, int count)
-{
-    // TODO check that buf is in kernel
-
-    // TODO Why do we need to do this??
-    inb(IDE_STATUS);
-
-    if (!ide_present() || (addr + count > ide_size()))
+{    
+    if ((unsigned)buf >= USER_MEM_START)
         return -1;
 
-    lprintf("DMA read from addr %lu into buf %p, for count %d", addr, buf, count);
+    if (!ide_present() || (addr + count > ide_size()))
+        return -2;
 
     mutex_lock(&dma_mutex);
 
     if (lba_setup(addr, count, ide_lba48_enabled) < 0) {
         mutex_unlock(&dma_mutex);
-        return -2;
+        return -3;
     }
 
     disable_interrupts();
 
-    // TODO fix masking
     prd_t prd = {
         .addr = (unsigned)buf,
         .count = count * IDE_SECTOR_SIZE,
         .flags = PRD_EOT
     };
-    outd(bus_master_base + IDE_BM_PRDT, (unsigned)&prd & ~0x3);
+    outd(bus_master_base + IDE_BM_PRDT, (unsigned)&prd);
+
+    outb(bus_master_base + IDE_BM_COMMAND, BM_COM_RD_WR);
 
     int bm_status = inb(bus_master_base + IDE_BM_STATUS);
     outb(bus_master_base + IDE_BM_STATUS,
@@ -112,7 +111,7 @@ int dma_read(unsigned long addr, void *buf, int count)
     outb(bus_master_base + IDE_BM_COMMAND, BM_COM_RD_WR | BM_COM_START_STOP);
 
     ide_block();
-    int rv = dma_status;
+    int rv = dma_rv;
 
     mutex_unlock(&dma_mutex);
 
@@ -137,7 +136,7 @@ int dma_write(unsigned long addr, void *buf, int count)
     outb(bus_master_base + IDE_BM_COMMAND, BM_COM_START_STOP);
 
     ide_block();
-    int rv = dma_status;
+    int rv = dma_rv;
 
     mutex_unlock(&dma_mutex);
 

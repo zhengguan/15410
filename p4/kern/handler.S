@@ -421,7 +421,7 @@ get_cursor_pos_esi_fail:
     iret                                # return from the interrupt
 
 
-/* Miscellaneous */
+/* Disk I/O */
 
 .globl readfile_int
 readfile_int:
@@ -470,6 +470,33 @@ readfile_esi_fail:
     mov     $0, %edx
     iret                            # return from the interrupt
 
+.globl sizefile_int
+sizefile_int:
+    call    set_kernel_segs     # set kernel data segments
+    subl    $4, %esp            # allocate space for return value
+    pushl   %esi                # push filename
+    call    str_lock            # check the string
+    test    %eax, %eax          # test if check failed
+    js      sizefile_fail       # jump if it failed
+    push    %eax                # save str len
+    pushl   %esi                # push filename
+    call    sizefile            # call sizefile
+    addl    $4, %esp           # remove the args from the stack
+    mov     %eax, 8(%esp)       # save the return value
+    call    buf_unlock          # unlock the filename
+    mov     8(%esp), %eax       # restore the return value
+sizefile_fail:
+    addl    $12, %esp            # remove args and ret from the stack
+    pushl   %eax                # save the return value
+    call    set_user_segs       # set user data segments
+    pop     %eax                # restore the return value
+    mov     $0, %ecx            # zero out caller save registers
+    mov     $0, %edx
+    iret                        # return from the interrupt
+
+
+/* Miscellaneous */
+
 .globl halt_int
 halt_int:
     call    sim_halt        # halt with simics
@@ -478,6 +505,7 @@ halt_int:
     mov     $0, %edx
     mov     $0, %eax
     iret
+
 
 /* "Special" */
 

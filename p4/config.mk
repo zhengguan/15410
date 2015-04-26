@@ -50,7 +50,7 @@ work yield_desc_mkrun
 # A list of the test programs you want compiled in from the user/progs
 # directory.
 #
-STUDENTTESTS = 
+STUDENTTESTS = read size
 
 ###########################################################################
 # Data files provided by course staff to build into the RAM disk
@@ -89,7 +89,7 @@ SYSCALL_OBJS = fork.o exec.o wait.o yield.o deschedule.o \
 make_runnable.o gettid.o new_pages.o remove_pages.o sleep.o getchar.o \
 readline.o print.o set_term_color.o set_cursor_pos.o get_cursor_pos.o \
 get_ticks.o misbehave.o halt.o task_vanish.o set_status.o vanish.o \
-readfile.o swexn.o
+readfile.o sizefile.o swexn.o
 
 ###########################################################################
 # Object files for your automatic stack handling

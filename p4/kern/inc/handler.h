@@ -45,12 +45,14 @@ int set_term_color_int(int color);
 int set_cursor_pos_int(int row, int col);
 int get_cursor_pos_int(int *row, int *col);
 
+/* Disk I/O */
+int readfile_int(const char *filename, char *buf, int count, int offset);
+int sizefile_int(const char *filename);
+
 /* Miscellaneous */
 void halt_int();
-int readfile_int(const char *filename, char *buf, int count, int offset);
 
 /* "Special" */
-void exn_handler_complete_int();
 void misbehave_int(int mode);
 
 #endif /* _HANDLER_H */
