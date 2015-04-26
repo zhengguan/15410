@@ -14,7 +14,6 @@
 #include <ide-config.h>
 #include <mutex.h>
 #include <scheduler.h>
-#include <simics.h>
 #include <ide.h>
 
 #define PRD_EOT 0x8000
@@ -30,6 +29,7 @@ static int bus_master_base;
 
 static mutex_t dma_mutex;
 static tcb_t *blocked_tcb;
+static int block_flag = 1;
 static int dma_rv = 0;
 
 int dma_init() {
@@ -38,38 +38,50 @@ int dma_init() {
 
     bus_master_base = pci_find_bus_master_base();
 
-    // TODO is this necessary?
-    int bm_status = inb(bus_master_base + IDE_BM_STATUS);
-    outb(bus_master_base + IDE_BM_STATUS,
-        bm_status |  BM_STAT_INT | BM_STAT_ERR);
-
     return 0;
 }
 
 void ide_block() {
     blocked_tcb = gettcb();
-    int block_flag = 0;
-    deschedule_kern(&block_flag, false);
+    block_flag = 0;
+
     enable_interrupts();
+
+    deschedule_kern(&block_flag, false);
 }
 
 void ide_unblock() {
+    block_flag = 1;
     make_runnable_kern(blocked_tcb, false);
 }
 
 void ide_interrupt_handler()
 {
-    int bm_status = inb(bus_master_base + IDE_BM_STATUS);
     int ide_status = inb(IDE_STATUS);
+    int bm_status = inb(bus_master_base + IDE_BM_STATUS);
 
-    if (!(bm_status & BM_STAT_INT) & (ide_status || !ide_status)) {
-        if (!(bm_status & BM_STAT_ACTIVE)) {
-            // An error has occured
-            // TODO should we retry? see idems100.pdf
+    int bm_int = bm_status & BM_STAT_INT;
+    int bm_active = bm_status & BM_STAT_ACTIVE;
+    
+    // Ignore if no transfer started or transfer in progress
+    if (!block_flag && (bm_int || !bm_active)) {
+        // DMA error, Interrupt 0 and Active 0
+        if (!bm_int) {
             dma_rv = -1;
+        } else {
+            // IDE device is busy or error
+            if ((ide_status & IDE_STATUS_BUSY) ||
+                (ide_status & IDE_STATUS_ERROR)) {
+                dma_rv = -2;
+            // Transfer successful
+            } else {
+                dma_rv = 0;
+            }
         }
-    } else {
-        dma_rv = 0;
+
+        int bm_status = inb(bus_master_base + IDE_BM_STATUS);
+        outb(bus_master_base + IDE_BM_COMMAND, bm_status & ~BM_COM_START_STOP);
+
         ide_unblock();
     }
 

@@ -65,21 +65,21 @@ void idt_add_desc(int idt_entry, void *handler, unsigned gate_type, unsigned dpl
  */
 int idt_init()
 {
-    /* Add disk interrupt gate descriptor */
-    idt_add_desc(IDE_IDT_ENTRY, ide_int, IDT_INT, IDT_DPL_KERNEL);
-
-    if (ide_init() < 0)
-        return -1;
-    
     /* Add timer and keyboard interrupt gate descriptors */
     if (timer_init() < 0)
-        return -2;
+        return -1;
 
     if (keyboard_init() < 0)
-        return -3;
+        return -2;
 
     idt_add_desc(TIMER_IDT_ENTRY, timer_handler_int, IDT_INT, IDT_DPL_KERNEL);
     idt_add_desc(KEY_IDT_ENTRY, keyboard_int, IDT_INT, IDT_DPL_KERNEL);
+
+    /* Add disk interrupt gate descriptor */
+    if (ide_init() < 0)
+        return -1;
+    
+    idt_add_desc(IDE_IDT_ENTRY, ide_int, IDT_INT, IDT_DPL_KERNEL);
 
     /* Add system call trap gate descriptors */
     idt_add_desc(FORK_INT, fork_int, IDT_TRAP, IDT_DPL_USER);
