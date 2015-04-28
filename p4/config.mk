@@ -58,7 +58,7 @@ STUDENTTESTS = read size
 # A list of the data files you want built in from the 410user/files
 # directory.
 #
-410FILES =
+410FILES = Advent.txt
 
 ###########################################################################
 # Data files you have created which you wish to build into the RAM disk

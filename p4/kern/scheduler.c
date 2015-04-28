@@ -19,6 +19,8 @@
 #include <assert.h>
 #include <asm_common.h>
 
+#include <simics.h>
+
 #define MAX_NUM_WOKEN 10
 
 linklist_t scheduler_queue;
@@ -217,13 +219,19 @@ int deschedule_kern(int *flag, bool user)
         return 0;
     }
 
+    if (gettcb() == idle_tcb) {
+        enable_interrupts();
+        return -2;
+    }
+
     assert(linklist_remove(&scheduler_queue,
         (void*)gettcb(), ident, NULL, NULL) == 0);
 
     gettcb()->user_descheduled = user;
 
     if (yield(-1) < 0) {
-        return -2;
+        enable_interrupts();
+        return -3;
     }
 
     enable_interrupts();
@@ -255,20 +263,24 @@ int make_runnable(int tid)
  */
 int make_runnable_kern(tcb_t *tcb, bool user)
 {
-    bool in = interrupts_enabled();
-    disable_interrupts();
-    if (linklist_contains(&scheduler_queue, (void *)tcb, ident)) {
-        enable_interrupts();
+    if (tcb == idle_tcb)
         return -1;
-    }
 
-    if (user && !tcb->user_descheduled) {
+    bool interrupts = interrupts_enabled();
+    disable_interrupts();
+
+    if (linklist_contains(&scheduler_queue, (void *)tcb, ident)) {
         enable_interrupts();
         return -2;
     }
 
+    if (user && !tcb->user_descheduled) {
+        enable_interrupts();
+        return -3;
+    }
+
     linklist_add_head(&scheduler_queue, (void*)tcb, &tcb->scheduler_listnode);
-    if (in)
+    if (interrupts)
         enable_interrupts();
 
     return 0;

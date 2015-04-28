@@ -14,33 +14,35 @@
 #include <kern_common.h>
 #include <assert.h>
 
+#include <simics.h>
+
 #define SUPERBLOCK_ADDR 0
 
 #define SECTOR_MASK (~(IDE_SECTOR_SIZE - 1))
-#define ROUND_DOWN_SECTOR(OFFSET) ((unsigned)(OFFSET) & SECTOR_MASK)
-#define ROUND_UP_SECTOR(OFFSET) (ROUND_DOWN_SECTOR((OFFSET) + IDE_SECTOR_SIZE - 1))
+#define PREV_SECTOR(OFFSET) ((unsigned)(OFFSET) & SECTOR_MASK)
+#define NEXT_SECTOR(OFFSET) (PREV_SECTOR((OFFSET) + IDE_SECTOR_SIZE))
 
 
 typedef struct superblock {
     int constant;
     int file_node;
     int free_node;
-    char padding[IDE_SECTOR_SIZE - 3*sizeof(int)];
+    char padding[IDE_SECTOR_SIZE - 12];
 } superblock_t;
 
 typedef struct free_node {
     int next;
     int len;
-    char padding[IDE_SECTOR_SIZE - 2*sizeof(int)];
+    char padding[IDE_SECTOR_SIZE - 8];
 } free_node_t;
 
 typedef struct file_node {
     int next;
     char filename[MAX_EXECNAME_LEN];
-    int size;
+    uint32_t size;
     int writeable;
     int data_node;
-    char padding[IDE_SECTOR_SIZE - 4*sizeof(int) -
+    char padding[IDE_SECTOR_SIZE - 16 -
                  MAX_EXECNAME_LEN*sizeof(char)];
 } file_node_t;
 
@@ -48,7 +50,7 @@ typedef struct data_node {
     int next;
     int len;
     int start;
-    char padding[IDE_SECTOR_SIZE - 3*sizeof(int)];
+    char padding[IDE_SECTOR_SIZE - 12];
 } data_node_t;
 
 static int read_superblock(superblock_t *superblock) {
@@ -115,7 +117,11 @@ int readfile(char *filename, char *buf, int count, int offset)
     if (!strcmp(filename, "."))
         return ls(buf, count);
 
-    char *kernel_buf[count];
+    lprintf("Readfile '%s' for %d at %d", filename, count, offset);
+    if (!strcmp(filename, "shell"))
+        MAGIC_BREAK;
+
+    char kernel_buf[count];
 
     file_node_t file_node;
     if (get_file_node(filename, &file_node) < 0)
@@ -136,17 +142,20 @@ int readfile(char *filename, char *buf, int count, int offset)
         if (offset >= extent_bytes) {
             offset -= extent_bytes;
             addr = data_node.next;
+            // lprintf("Skipping (%d-%d)", data_node.start, data_node.start + data_node.len-1);
             continue;
         }
 
         // Read first sector
         if (offset > 0) {
             sector += offset / IDE_SECTOR_SIZE;
+            offset = offset - PREV_SECTOR(offset);
             char tmp_buf[IDE_SECTOR_SIZE];
             if (dma_read(sector, tmp_buf, 1) < 0)
                 return -3;
-            int len = MIN(count, ROUND_UP_SECTOR(offset) - offset);
+            int len = MIN(count, NEXT_SECTOR(offset) - offset);
             memcpy(kernel_buf, tmp_buf + offset, len);
+            // lprintf("Read first sector - %d(+%d)(%d-%d) for %d(%d total) with %d remaining", sector, offset, data_node.start, data_node.start + data_node.len-1, len, read_len+len, count-read_len);
             offset = 0;
             read_len += len;
             sector++;
@@ -155,10 +164,11 @@ int readfile(char *filename, char *buf, int count, int offset)
         // Read multiple sectors
         if (count - read_len >= IDE_SECTOR_SIZE &&
             sector < data_node.start + data_node.len) {
-            int sector_len = (count - read_len) / IDE_SECTOR_SIZE;
+            int sector_len = MIN((count - read_len) / IDE_SECTOR_SIZE, data_node.len);
             if (dma_read(sector, kernel_buf + read_len, sector_len) < 0)
                 return -4;
             read_len += sector_len * IDE_SECTOR_SIZE;
+            // lprintf("Read multiple sectors - %d-%d(%d-%d) for %d(%d total) with %d remaining", sector, sector+sector_len-1, data_node.start, data_node.start + data_node.len -1, sector_len * IDE_SECTOR_SIZE, read_len, count-read_len);
             sector += sector_len;
         }
 
@@ -169,8 +179,9 @@ int readfile(char *filename, char *buf, int count, int offset)
             if (dma_read(sector, tmp_buf, 1) < 0)
                 return -5;
             int len = count - read_len;
-            memcpy(kernel_buf, tmp_buf + offset, len);
+            memcpy(kernel_buf + read_len, tmp_buf, len);
             read_len += len;
+            // lprintf("Read last sector - %d(%d-%d) for %d(%d total) with %d remaining", sector, data_node.start, data_node.start + data_node.len-1, len, read_len, count-read_len);
             sector++;
         }
 
@@ -179,8 +190,14 @@ int readfile(char *filename, char *buf, int count, int offset)
 
         addr = data_node.next;
     }
+    
+    // lprintf("Readfile return: read_len = %d, count = %d", read_len, count);
 
     memcpy(buf, kernel_buf, read_len);
+    // int i;
+    // for (i=0;i<read_len;i++){
+    //     lprintf("kernel_buf: %4d    buf: %4d", (int)kernel_buf[i], (int)buf[i]);
+    // }
     return read_len;
 }
 

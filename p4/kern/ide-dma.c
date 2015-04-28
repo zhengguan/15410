@@ -16,6 +16,8 @@
 #include <scheduler.h>
 #include <ide.h>
 
+#include <simics.h>
+
 #define PRD_EOT 0x8000
 
 typedef struct prd {
@@ -29,7 +31,7 @@ static int bus_master_base;
 
 static mutex_t dma_mutex;
 static tcb_t *blocked_tcb;
-static int block_flag = 1;
+int block_flag = 1;
 static int dma_rv = 0;
 
 int dma_init() {
@@ -44,10 +46,10 @@ int dma_init() {
 void ide_block() {
     blocked_tcb = gettcb();
     block_flag = 0;
-
     enable_interrupts();
 
-    deschedule_kern(&block_flag, false);
+    // Spin-wait if deschedule fails
+    while (deschedule_kern(&block_flag, false) < 0);
 }
 
 void ide_unblock() {
@@ -79,7 +81,6 @@ void ide_interrupt_handler()
             }
         }
 
-        int bm_status = inb(bus_master_base + IDE_BM_STATUS);
         outb(bus_master_base + IDE_BM_COMMAND, bm_status & ~BM_COM_START_STOP);
 
         ide_unblock();
@@ -89,7 +90,7 @@ void ide_interrupt_handler()
 }
 
 int dma_read(unsigned long addr, void *buf, int count)
-{    
+{
     if ((unsigned)buf >= USER_MEM_START)
         return -1;
 
