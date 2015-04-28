@@ -23,7 +23,6 @@
 #include <malloc_wrappers.h>
 #include <asm_common.h>
 
-
 #define TCB_HT_SIZE 128
 #define MEMLOCK_SIZE 128
 #define ALLOC_PAGES_HASHTABLE_SIZE 128
@@ -198,7 +197,7 @@ int proc_new_thread(pcb_t *pcb, tcb_t **tcb_out) {
 
     if (hashadd < 0) {
         free(tcb);
-        free(esp0);
+        free(esp0 - KERNEL_STACK_SIZE);
         return -3;
     }
 

@@ -16,8 +16,6 @@
 #include <scheduler.h>
 #include <ide.h>
 
-#include <simics.h>
-
 #define PRD_EOT 0x8000
 
 typedef struct prd {
@@ -46,7 +44,6 @@ int dma_init() {
 void ide_block() {
     blocked_tcb = gettcb();
     block_flag = 0;
-    enable_interrupts();
 
     // Spin-wait if deschedule fails
     while (deschedule_kern(&block_flag, false) < 0);

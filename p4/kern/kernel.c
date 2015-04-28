@@ -147,9 +147,6 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
     tr_tcb->regs.ebp_offset = -tr_tcb->esp0;
     tr_tcb->regs.eflags = USER_EFLAGS & (~EFL_IF);
 
-    linklist_add_head(&scheduler_queue, (void*)tr_tcb,
-        &tr_tcb->scheduler_listnode);
-
     /* Setup init */
     tcb_t *init_tcb;
     if (proc_new_process(&init_pcb, &init_tcb) < 0) {
@@ -167,6 +164,11 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
     set_esp0(init_tcb->esp0);
     cur_tcb = init_tcb;
 
+    // Need to disable interrupts after being enabled in readfile
+    disable_interrupts();
+
+    linklist_add_head(&scheduler_queue, (void*)tr_tcb,
+        &tr_tcb->scheduler_listnode);
     linklist_add_head(&scheduler_queue, (void*)init_tcb,
         &init_tcb->scheduler_listnode);
 

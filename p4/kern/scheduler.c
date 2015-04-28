@@ -19,8 +19,6 @@
 #include <assert.h>
 #include <asm_common.h>
 
-#include <simics.h>
-
 #define MAX_NUM_WOKEN 10
 
 linklist_t scheduler_queue;
@@ -108,7 +106,6 @@ void scheduler_tick(unsigned ticks)
 
     tcb_t *tcb;
     if (linklist_rotate_head(&scheduler_queue, (void**)&tcb) < 0) {
-        assert(gettid() == idle_tcb->tid);
         return;
     }
     assert((unsigned)tcb < USER_MEM_START);
@@ -219,13 +216,11 @@ int deschedule_kern(int *flag, bool user)
         return 0;
     }
 
-    if (gettcb() == idle_tcb) {
+    if(linklist_remove(&scheduler_queue,
+        (void*)gettcb(), ident, NULL, NULL) < 0){
         enable_interrupts();
-        return -2;
+        return -2;        
     }
-
-    assert(linklist_remove(&scheduler_queue,
-        (void*)gettcb(), ident, NULL, NULL) == 0);
 
     gettcb()->user_descheduled = user;
 

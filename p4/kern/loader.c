@@ -32,8 +32,6 @@
 #include <exception.h>
 #include <proc.h>
 
-#include <simics.h>
-
 //MUST BE PAGE ALIGNED
 #define USER_STACK_TOP ((char*)0xC0000000u)
 #define USER_ARGV_START ((char*)USER_STACK_TOP)
@@ -56,26 +54,7 @@
  */
 int getbytes(const char *filename, int offset, int size, char *buf)
 {
-    // return readfile((char *)filename, buf, size, offset);
-
-    int i;
-    if (size < 0)
-        return -3;
-    if (offset < 0)
-        return -4;
-    for (i = 0; i < exec2obj_userapp_count; i++) {
-        const exec2obj_userapp_TOC_entry *entry = &exec2obj_userapp_TOC[i];
-        if (!strncmp(entry->execname, filename, MAX_EXECNAME_LEN)) {
-            if (offset > entry->execlen) {
-                return -1;
-            }
-            int len = MIN(entry->execlen - offset, size);
-            memcpy(buf, entry->execbytes + offset, len);
-            return len;
-        }
-    }
-
-    return -2;
+    return readfile((char *)filename, buf, size, offset);
 }
 
 /**
@@ -181,17 +160,6 @@ static unsigned fill_mem(const simple_elf_t *se_hdr, int argc, char *argv[],
             (char*)se_hdr->e_rodatstart) == se_hdr->e_rodatlen);
     memset((char*)se_hdr->e_bssstart, 0, se_hdr->e_bsslen);
 
-    /* For debugging purposes only */
-    char txtbuf[se_hdr->e_txtlen];
-    readfile((char*)se_hdr->e_fname, txtbuf, se_hdr->e_txtlen, se_hdr->e_txtoff);
-    lprintf("'%s' txtcmp: %d", (char*)se_hdr->e_fname, strncmp((char*)se_hdr->e_txtstart, txtbuf, se_hdr->e_txtlen));
-    char datbuf[se_hdr->e_datlen];
-    readfile((char*)se_hdr->e_fname, datbuf, se_hdr->e_datlen, se_hdr->e_datoff);
-    lprintf("'%s' datcmp: %d", (char*)se_hdr->e_fname, strncmp((char*)se_hdr->e_datstart, datbuf, se_hdr->e_datlen));
-    char rodatbuf[se_hdr->e_rodatlen];
-    readfile((char*)se_hdr->e_fname, rodatbuf, se_hdr->e_rodatlen, se_hdr->e_rodatoff);
-    lprintf("'%s' rodatcmp: %d", (char*)se_hdr->e_fname, strncmp((char*)se_hdr->e_rodatstart, rodatbuf, se_hdr->e_rodatlen));
-
     char *stack_low = USER_STACK_TOP - USER_STACK_SIZE;
 
     if (new_pages(stack_low, USER_STACK_SIZE) < 0) {
@@ -256,7 +224,6 @@ int load(char *filename, char *argv[], unsigned *eip, unsigned *esp)
     }
 
     if (!elf_valid(&se_hdr)) {
-        lprintf("Elf not valid");
         return -4;
     }
 
