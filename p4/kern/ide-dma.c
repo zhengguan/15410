@@ -130,19 +130,36 @@ int dma_read(unsigned long addr, void *buf, int count)
 
 int dma_write(unsigned long addr, void *buf, int count)
 {
-    if (!ide_present() || (addr + count > ide_size()))
+    if ((unsigned)buf >= USER_MEM_START)
         return -1;
 
-    if (lba_setup(addr, count, ide_lba48_enabled) < 0)
+    if (!ide_present() || (addr + count > ide_size()))
         return -2;
 
     mutex_lock(&dma_mutex);
 
+    if (lba_setup(addr, count, ide_lba48_enabled) < 0) {
+        mutex_unlock(&dma_mutex);
+        return -3;
+    }
+
     disable_interrupts();
+
+    prd_t prd = {
+        .addr = (unsigned)buf,
+        .count = count * IDE_SECTOR_SIZE,
+        .flags = PRD_EOT
+    };
+    outd(bus_master_base + IDE_BM_PRDT, (unsigned)&prd);
+
+    outb(bus_master_base + IDE_BM_COMMAND, 0);
 
     int bm_status = inb(bus_master_base + IDE_BM_STATUS);
     outb(bus_master_base + IDE_BM_STATUS,
         bm_status |  BM_STAT_INT | BM_STAT_ERR);
+
+    outb(IDE_COMMAND, IDE_COMMAND_WRITE_DMA);
+
     outb(bus_master_base + IDE_BM_COMMAND, BM_COM_START_STOP);
 
     ide_block();

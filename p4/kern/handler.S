@@ -481,12 +481,41 @@ sizefile_int:
     push    %eax                # save str len
     pushl   %esi                # push filename
     call    sizefile            # call sizefile
-    addl    $4, %esp           # remove the args from the stack
+    addl    $4, %esp            # remove the args from the stack
     mov     %eax, 8(%esp)       # save the return value
     call    buf_unlock          # unlock the filename
     mov     8(%esp), %eax       # restore the return value
 sizefile_fail:
-    addl    $12, %esp            # remove args and ret from the stack
+    addl    $12, %esp           # remove args and ret from the stack
+    pushl   %eax                # save the return value
+    call    set_user_segs       # set user data segments
+    pop     %eax                # restore the return value
+    mov     $0, %ecx            # zero out caller save registers
+    mov     $0, %edx
+    iret                        # return from the interrupt
+
+.globl writefile_int
+writefile_int:
+    mov     $-1, %eax
+    iret
+
+.globl deletefile_int
+deletefile_int:
+    call    set_kernel_segs     # set kernel data segments
+    subl    $4, %esp            # allocate space for return value
+    pushl   %esi                # push filename
+    call    str_lock            # check the string
+    test    %eax, %eax          # test if check failed
+    js      deletefile_fail     # jump if it failed
+    push    %eax                # save str len
+    pushl   %esi                # push filename
+    call    deletefile          # call deletefile
+    addl    $4, %esp            # remove the args from the stack
+    mov     %eax, 8(%esp)       # save the return value
+    call    buf_unlock          # unlock the filename
+    mov     8(%esp), %eax       # restore the return value
+deletefile_fail:
+    addl    $12, %esp           # remove args and ret from the stack
     pushl   %eax                # save the return value
     call    set_user_segs       # set user data segments
     pop     %eax                # restore the return value

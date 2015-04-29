@@ -1,6 +1,3 @@
-// Simple program to print out files.
-// Michael J. Sullivan, Spring 2013
-
 #include <syscall.h>
 #include <stdlib.h>
 #include <stdio.h>

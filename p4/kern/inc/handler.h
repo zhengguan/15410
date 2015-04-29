@@ -48,6 +48,9 @@ int get_cursor_pos_int(int *row, int *col);
 /* Disk I/O */
 int readfile_int(const char *filename, char *buf, int count, int offset);
 int sizefile_int(const char *filename);
+int writefile_int(const char *filename, char *buf, int count, int offset,
+                 int create);
+int deletefile_int(const char *filename);
 
 /* Miscellaneous */
 void halt_int();
