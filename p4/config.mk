@@ -42,7 +42,7 @@ mem_eat_test mem_permissions minclone_mem new_pages print_basic readline_basic \
 register_test remove_pages_test1 remove_pages_test2 slaughter sleep_test1 \
 stack_test1 swexn_basic_test swexn_cookie_monster swexn_dispatch swexn_regs \
 swexn_stands_for_swextensible swexn_uninstall_test wait_getpid wild_test1 \
-work yield_desc_mkrun
+work yield_desc_mkrun TinyBasic
 
 ###########################################################################
 # Test programs you have written which you wish to run
