@@ -17,8 +17,6 @@
 #define TICKS_PER_SECOND 100
 #define CYCLES_BTW_INTER ((unsigned)(TIMER_RATE / TICKS_PER_SECOND))
 
-#define TIMER_IRQ 0x0
-
 static unsigned ticks = 0;
 
 /** @brief Initializes the timer driver.

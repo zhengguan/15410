@@ -10,6 +10,8 @@
 #ifndef _KEYBOARD_H
 #define _KEYBOARD_H
 
+#define KEY_IRQ 0x1
+ 
 int keyboard_init();
 
 #endif /* _KEYBOARD_H */

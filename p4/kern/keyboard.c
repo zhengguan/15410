@@ -20,12 +20,11 @@
 #include <cond.h>
 #include <console.h>
 #include <vm.h>
+#include <keyboard.h>
 
 #define BUFFER_SIZE 512
 
 #define MAX_READLINE (CONSOLE_HEIGHT * CONSOLE_WIDTH)
-
-#define KEY_IRQ 0x1
 
 static circbuf_t *cb;
 

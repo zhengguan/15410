@@ -252,6 +252,8 @@ int readfile(char *filename, char *buf, int count, int offset)
         if (offset > 0) {
             sector += offset / IDE_SECTOR_SIZE;
             offset = offset - PREV_SECTOR(offset);
+        }
+        if (offset > 0) {
             char tmp_buf[IDE_SECTOR_SIZE];
             if (dma_read(sector, tmp_buf, 1) < 0) {
                 read_len = -6;

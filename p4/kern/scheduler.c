@@ -18,6 +18,7 @@
 #include <vm.h>
 #include <assert.h>
 #include <asm_common.h>
+#include <timer.h>
 
 #define MAX_NUM_WOKEN 10
 
@@ -156,7 +157,7 @@ int yield(int tid)
         if (linklist_rotate_head(&scheduler_queue, (void**)&tcb) < 0) {
             //no threads so run idle
             assert (context_switch(idle_tcb) == 0);
-            pic_acknowledge_any_master();
+            pic_acknowledge(TIMER_IRQ);
             enable_interrupts();
             return 0;
         }
@@ -169,7 +170,7 @@ int yield(int tid)
     assert((unsigned)tcb < USER_MEM_START);
     assert (context_switch(tcb) == 0);
 
-    pic_acknowledge_any_master();
+    pic_acknowledge(TIMER_IRQ);
     return 0;
 }
 

@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include <x86/pic.h>
 #include <exception.h>
+#include <timer.h>
 
 int fork()
 {
@@ -67,7 +68,7 @@ int fork()
         enable_interrupts();
         return 0;
     } else { //old thread
-        pic_acknowledge_any_master();
+        pic_acknowledge(TIMER_IRQ);
         enable_interrupts();
         return new_tid;
     }
@@ -105,7 +106,7 @@ int thread_fork()
 
         return 0;
     } else { //old_thread
-        pic_acknowledge_any_master();
+        pic_acknowledge(TIMER_IRQ);
         enable_interrupts();
         return new_tid;
     }

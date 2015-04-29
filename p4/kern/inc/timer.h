@@ -8,6 +8,8 @@
 #ifndef _TIMER_H
 #define _TIMER_H
 
+#define TIMER_IRQ 0x0
+ 
 int timer_init();
 
 #endif /* _TIMER_H */

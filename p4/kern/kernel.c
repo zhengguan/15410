@@ -82,6 +82,8 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
         panic("Failed to init proc");
     }
 
+    enable_interrupts();
+
     clear_console();
 
     pd_t init_pd = (pd_t)get_cr3();
@@ -164,7 +166,7 @@ int kernel_main(mbinfo_t *mbinfo, int argc, char **argv, char **envp)
     set_esp0(init_tcb->esp0);
     cur_tcb = init_tcb;
 
-    // Need to disable interrupts after being enabled in readfile
+    // Need to disable interrupts to populate the scheduler queue
     disable_interrupts();
 
     linklist_add_head(&scheduler_queue, (void*)tr_tcb,

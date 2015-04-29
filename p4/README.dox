@@ -5,4 +5,60 @@
 @author Patrick Koenig (phkoenig)
 @author Jack Sorrell (jsorrell)
 
+
+In this project we implemented a simple disk driver to enable reading and
+deleting files form a disk.
+
+
+1. Readfile
+
+When reading a file, the disk driver creates a temporary buffer in kernel
+memory to be read into which is later copied to the given user buffer.  This is
+done for simplicity because disk transfer must be use a contiguous region of
+physical memory.  To read a file, the disk driver takes the following steps:
+
+    1. Skip over full extents that occur before the given file offset.
+
+    2. Skip over full sectors in the first exent to be read that occur before the
+       given file offset.
+
+    3. If the offset is positive after skipping, read a single sector and copy the
+       bytes after the offset into the beginning of the buffer.
+
+    4. While the number of bytes left to read is greater than the sector size, read
+       multiple sectors in the necessary extents.
+
+    5. If the number of bytes left to read is postive after these reads, read a
+       single sector and copy the number of bytes left to read into the end of the
+       buffer.
+
+
+2. Deletefile
+
+To delete a file, the disk driver takes the following steps:
+
+    1. Read the file-header node for the given file, get the necessary
+       information, remove the file-header node from the file list and add the
+       file-header node sector to the free list.
+
+    2. For each of the data nodes, get the necessary information, add the data
+       node sector to the free list, and add the extent to the free list.
+
+
+3. DMA and Interrupts
+
+When dma_read or dma_write is called, the disk driver first disables interrupts
+and configures the IDE device and DMA controller and begins the transfer.  The
+driver then blocks the thread.  When an IDE interrupt arrives, the IDE interrupt
+handler will read both the IDE and DMA status registers and take appropriate
+action, including unblocking the blocked thread if the trasfer completed
+successfully.
+
+To handle blocking while reading during kernel initialization, ide_block will
+repeatedly attempt to deschedule the thread until success.  In normal use cases,
+deschedule will block and return when the thread is runnable.  When reading
+during kernel initialization deschedule will repeatedly fail because the
+scheduler queue is empty.  Deschedule will eventually be successful once the
+flag is set in ide_unblock due to an interrupt.
+
 */
